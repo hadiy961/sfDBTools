@@ -293,7 +293,7 @@ func CleanupRepositories(osInfo *OSInfo) ([]string, error) {
 		// RHEL/CentOS/Fedora - remove yum/dnf repositories
 		repoFiles := []string{
 			"/etc/yum.repos.d/mariadb.repo",
-			"/etc/yum.repos.d/MariaDB.repo", 
+			"/etc/yum.repos.d/MariaDB.repo",
 			"/etc/yum.repos.d/mysql.repo",
 		}
 
@@ -308,7 +308,7 @@ func CleanupRepositories(osInfo *OSInfo) ([]string, error) {
 
 	} else if IsDebianBased(osInfo.ID) {
 		// Ubuntu/Debian - remove APT repositories and keys
-		
+
 		// Remove repository files
 		repoFiles := []string{
 			"/etc/apt/sources.list.d/mariadb.list",
@@ -332,7 +332,7 @@ func CleanupRepositories(osInfo *OSInfo) ([]string, error) {
 		}
 	}
 
-	lg.Info("Repository cleanup completed", 
+	lg.Info("Repository cleanup completed",
 		logger.Int("removed_repos", len(removedRepos)))
 
 	return removedRepos, nil
@@ -341,7 +341,7 @@ func CleanupRepositories(osInfo *OSInfo) ([]string, error) {
 // cleanRepoCache cleans repository cache for RHEL-based systems
 func cleanRepoCache(lg *logger.Logger, osID string) {
 	var cmd *exec.Cmd
-	
+
 	// Use dnf for Fedora and newer RHEL/CentOS versions
 	if osID == "fedora" || strings.Contains(osID, "rhel") || strings.Contains(osID, "centos") {
 		if _, err := exec.LookPath("dnf"); err == nil {
@@ -354,7 +354,7 @@ func cleanRepoCache(lg *logger.Logger, osID string) {
 	}
 
 	lg.Info("Cleaning repository cache", logger.String("command", cmd.String()))
-	
+
 	if err := cmd.Run(); err != nil {
 		lg.Warn("Failed to clean repository cache", logger.Error(err))
 	} else {
@@ -368,18 +368,18 @@ func removeMariaDBKeys(lg *logger.Logger) error {
 
 	// Common MariaDB key fingerprints and key IDs
 	mariadbKeys := []string{
-		"0xF1656F24C74CD1D8",      // MariaDB Package Repository Signing Key
+		"0xF1656F24C74CD1D8",                         // MariaDB Package Repository Signing Key
 		"0x177F4010FE56CA3336300305F1656F24C74CD1D8", // Full fingerprint
-		"1BB943DB",                // Short key ID
-		"C74CD1D8",                // Short key ID
+		"1BB943DB", // Short key ID
+		"C74CD1D8", // Short key ID
 	}
 
 	for _, keyID := range mariadbKeys {
 		// Try with apt-key (older systems)
 		cmd := exec.Command("apt-key", "del", keyID)
 		if err := cmd.Run(); err != nil {
-			lg.Debug("Failed to remove key with apt-key (normal if using newer APT)", 
-				logger.String("key", keyID), 
+			lg.Debug("Failed to remove key with apt-key (normal if using newer APT)",
+				logger.String("key", keyID),
 				logger.Error(err))
 		} else {
 			lg.Info("Removed GPG key with apt-key", logger.String("key", keyID))
@@ -405,7 +405,7 @@ func removeMariaDBKeys(lg *logger.Logger) error {
 // updateAPTCache updates the APT package cache
 func updateAPTCache(lg *logger.Logger) error {
 	lg.Info("Updating APT cache after repository removal")
-	
+
 	cmd := exec.Command("apt-get", "update")
 	if err := cmd.Run(); err != nil {
 		return fmt.Errorf("failed to update APT cache: %w", err)
