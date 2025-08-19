@@ -28,7 +28,6 @@ var MariaDBCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(MariaDBCmd)
-	MariaDBCmd.AddCommand(command_mariadb.CheckCmd)
 	MariaDBCmd.AddCommand(command_mariadb.UninstallCmd)
 	MariaDBCmd.AddCommand(command_mariadb.InstallCmd)
 	MariaDBCmd.AddCommand(command_mariadb.ConfigureCmd)
