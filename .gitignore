@@ -1,0 +1,7 @@
+sfDBTools
+.github/copilot-instructions.md
+backup/2025_08_13/all_databases/all_databases_20250813_105309.meta.json
+logs/sfDBTools.log
+backup/2025_08_13/gmit_pelita/gmit_pelita_2025_08_13.sql.gz.enc
+backup/2025_08_13/gmit_pelita/gmit_pelita_2025_08_13.json
+backup/2025_08_13/all_databases/all_databases_20250813_105309.sql.gz.enc

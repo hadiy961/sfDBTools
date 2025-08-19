@@ -1,0 +1,76 @@
+[2025-08-19 16:51:58] [INFO] [mariadb/check_cmd.go:46] - Starting MariaDB health check
+[2025-08-19 16:51:58] [INFO] [mariadb/check_cmd.go:111] - Starting MariaDB health check
+[2025-08-19 16:51:58] [DEBUG] [health/health_check.go:29] - Starting health check information collection
+[2025-08-19 16:51:58] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "localhost", "port": 3306}
+[2025-08-19 16:51:58] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:18] - Opening database connection {"host": "localhost", "database": ""}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:37] - Successfully connected to database {"database": ""}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:51:59] [DEBUG] [health/health_check.go:107] - Health check information collection completed
+[2025-08-19 16:51:59] [INFO] [mariadb/check_cmd.go:133] - MariaDB health check completed
+[2025-08-19 16:51:59] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
+[2025-08-19 16:54:18] [INFO] [mariadb/check_cmd.go:46] - Starting MariaDB health check
+[2025-08-19 16:54:18] [DEBUG] [health/health_check.go:29] - Starting health check information collection
+[2025-08-19 16:54:18] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "localhost", "port": 3306}
+[2025-08-19 16:54:18] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:18] - Opening database connection {"host": "localhost", "database": ""}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:37] - Successfully connected to database {"database": ""}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
+[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
+[2025-08-19 16:54:18] [DEBUG] [health/health_check.go:107] - Health check information collection completed
+[2025-08-19 16:54:18] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
+[2025-08-19 16:55:26] [INFO] [mariadb/check_cmd.go:46] - Starting MariaDB health check
+[2025-08-19 16:55:26] [DEBUG] [health/health_check.go:29] - Starting health check information collection
+[2025-08-19 16:55:26] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "localhost", "port": 3306}
+[2025-08-19 16:55:26] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
+[2025-08-19 16:55:26] [DEBUG] [health/health_check.go:107] - Health check information collection completed
+[2025-08-19 16:55:26] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
