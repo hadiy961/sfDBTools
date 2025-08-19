@@ -15,9 +15,6 @@ func Get(config Config) (*sql.DB, error) {
 	}
 
 	dsn := buildDSN(config, true) // Connect with database selected
-	lg.Debug("Opening database connection",
-		logger.String("host", config.Host),
-		logger.String("database", config.DBName))
 
 	db, err := createConnection(dsn)
 	if err != nil {
@@ -34,8 +31,7 @@ func Get(config Config) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database '%s': %w", config.DBName, err)
 	}
 
-	lg.Debug("Successfully connected to database",
-		logger.String("database", config.DBName))
+	// success - connection established (no verbose debug log to avoid noisy output)
 	return db, nil
 }
 
@@ -47,8 +43,6 @@ func GetWithoutDB(config Config) (*sql.DB, error) {
 	}
 
 	dsn := buildDSN(config, false) // Connect without database selected
-	lg.Debug("Opening database connection without specific database",
-		logger.String("host", config.Host))
 
 	db, err := createConnection(dsn)
 	if err != nil {
@@ -63,6 +57,6 @@ func GetWithoutDB(config Config) (*sql.DB, error) {
 		return nil, fmt.Errorf("failed to connect to database server: %w", err)
 	}
 
-	lg.Debug("Successfully connected to database server")
+	// success - connection to server established (no verbose debug log to avoid noisy output)
 	return db, nil
 }

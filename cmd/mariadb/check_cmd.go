@@ -39,7 +39,7 @@ sfDBTools mariadb check --json`,
 	Run: func(cmd *cobra.Command, args []string) {
 		lg, err := logger.Get()
 		if err != nil {
-			lg.Error("Failed to initialize logger", logger.Error(err))
+			fmt.Fprintf(os.Stderr, "failed to initialize logger: %v\n", err)
 			os.Exit(1)
 		}
 
@@ -108,8 +108,6 @@ func executeHealthCheck(config *HealthCheckConfig, cmd *cobra.Command) error {
 		return fmt.Errorf("failed to get logger: %w", err)
 	}
 
-	lg.Info("Starting MariaDB health check")
-
 	// Collect health check information
 	healthInfo, err := health.CollectHealthCheckInfo(config.DBConfig)
 	if err != nil {
@@ -129,8 +127,6 @@ func executeHealthCheck(config *HealthCheckConfig, cmd *cobra.Command) error {
 		// Display formatted text
 		health.DisplayHealthCheckInfo(healthInfo)
 	}
-
-	lg.Info("MariaDB health check completed")
 
 	return nil
 }
