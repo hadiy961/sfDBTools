@@ -110,90 +110,88 @@ func CollectHealthCheckInfo(config database.Config) (*HealthCheckInfo, error) {
 
 // DisplayHealthCheckInfo displays health check information in formatted text
 func DisplayHealthCheckInfo(info *HealthCheckInfo) {
-	lg, _ := logger.Get()
-
-	lg.Info("--- MariaDB Health Check: Full Report ---")
-	lg.Info("")
-	lg.Info("[Section: Service & Connection Info]")
+	fmt.Println("--- MariaDB Health Check: Full Report ---")
+	fmt.Println()
+	fmt.Println("[Section: Service & Connection Info]")
 
 	// Display service information
 	if info.ServiceInfo != nil {
-		lg.Info(fmt.Sprintf("- Service Name: %s", info.ServiceInfo.ServiceName))
-		lg.Info(fmt.Sprintf("- Status: %s", info.ServiceInfo.Status))
-		lg.Info(fmt.Sprintf("- Uptime: %s", info.ServiceInfo.Uptime))
-		lg.Info(fmt.Sprintf("- Process ID: %s", info.ServiceInfo.ProcessID))
+		fmt.Printf("- Service Name: %s\n", info.ServiceInfo.ServiceName)
+		fmt.Printf("- Status: %s\n", info.ServiceInfo.Status)
+		fmt.Printf("- Uptime: %s\n", info.ServiceInfo.Uptime)
+		fmt.Printf("- Process ID: %s\n", info.ServiceInfo.ProcessID)
 	}
 
 	// Display connection information
 	if info.ConnectionInfo != nil {
 		connectionDetails := health_db.FormatConnectionInfo(info.ConnectionInfo)
 		for _, detail := range connectionDetails {
-			lg.Info(detail)
+			fmt.Println(detail)
 		}
 	}
 
-	lg.Info("")
-	lg.Info("[Section: Core Configuration]")
+	fmt.Println()
+	fmt.Println("[Section: Core Configuration]")
 
 	// Display core configuration information
 	if info.CoreConfig != nil {
 		coreConfigDetails := health_db.FormatCoreConfig(info.CoreConfig)
 		for _, detail := range coreConfigDetails {
-			lg.Info(detail)
+			fmt.Println(detail)
 		}
 	}
 
-	lg.Info("")
-	lg.Info("[Section: MariaDB Logs & Paths]")
+	fmt.Println()
+	fmt.Println("[Section: MariaDB Logs & Paths]")
 
 	// Display logs configuration information
 	if info.LogsConfig != nil {
 		logsConfigDetails := health_db.FormatLogsConfig(info.LogsConfig)
 		for _, detail := range logsConfigDetails {
-			lg.Info(detail)
+			fmt.Println(detail)
 		}
 	}
 
-	lg.Info("")
-	lg.Info("[Section: Databases]")
+	fmt.Println()
+	fmt.Println("[Section: Databases]")
 
 	// Display databases information
 	if info.DatabasesInfo != nil {
 		databasesDetails := health_db.FormatDatabasesInfo(info.DatabasesInfo)
 		for _, detail := range databasesDetails {
-			lg.Info(detail)
+			fmt.Println(detail)
 		}
 	}
 
-	lg.Info("")
-	lg.Info("[Section: Replication]")
+	fmt.Println()
+	fmt.Println("[Section: Replication]")
 
 	// Display replication information
 	if info.ReplicationInfo != nil {
 		replicationDetails := health_db.FormatReplicationInfo(info.ReplicationInfo)
 		for _, detail := range replicationDetails {
-			lg.Info(detail)
+			fmt.Println(detail)
 		}
 	}
 
-	lg.Info("")
-	lg.Info("[Section: System Resources]")
+	fmt.Println()
+	fmt.Println("[Section: System Resources]")
 
 	// Display system resources information
 	if info.SystemResourcesInfo != nil {
 		systemResourcesDetails := health_db.FormatSystemResourcesInfo(info.SystemResourcesInfo)
 		for _, detail := range systemResourcesDetails {
-			lg.Info(detail)
+			fmt.Println(detail)
 		}
 	}
 
-	lg.Info("")
-	lg.Info("---")
-	lg.Info("Report Summary")
-	lg.Info(fmt.Sprintf("Status: %s", info.Status))
+	fmt.Println()
+	fmt.Println("---")
+	fmt.Println("Report Summary")
+	fmt.Printf("Status: %s\n", info.Status)
 	if info.TotalErrors > 0 || info.TotalWarnings > 0 {
-		lg.Info(fmt.Sprintf("Issues found: %d errors, %d warnings", info.TotalErrors, info.TotalWarnings))
+		fmt.Printf("Issues found: %d errors, %d warnings\n", info.TotalErrors, info.TotalWarnings)
 	} else {
-		lg.Info("No issues found")
+		fmt.Println("No issues found")
 	}
 }
