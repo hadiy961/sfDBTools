@@ -33,9 +33,7 @@ func NewDecompressingReader(r io.Reader, ctype CompressionType) (io.ReadCloser, 
 // DetectCompressionTypeFromFile detects compression type based on file extension.
 func DetectCompressionTypeFromFile(path string) CompressionType {
 	name := strings.ToLower(path)
-	if strings.HasSuffix(name, ".enc") {
-		name = strings.TrimSuffix(name, ".enc")
-	}
+	name = strings.TrimSuffix(name, ".enc")
 	switch {
 	case strings.HasSuffix(name, ".gz"):
 		return CompressionGzip
