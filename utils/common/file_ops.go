@@ -1,6 +1,7 @@
 package common
 
 import (
+	"fmt"
 	"os"
 	"os/exec"
 
@@ -40,26 +41,29 @@ func SetFilePermissions(filePath string, mode os.FileMode, owner, group string) 
 func SetDirectoryPermissions(dirPath string, mode os.FileMode, owner, group string) error {
 	lg, _ := logger.Get()
 
-	// Change ownership
+	// Change ownership (if requested)
 	if owner != "" && group != "" {
 		cmd := exec.Command("chown", "-R", owner+":"+group, dirPath)
-		if err := cmd.Run(); err != nil {
+		if out, err := cmd.CombinedOutput(); err != nil {
 			lg.Warn("Failed to set directory ownership",
 				logger.String("directory", dirPath),
 				logger.String("owner", owner+":"+group),
+				logger.String("output", string(out)),
 				logger.Error(err))
-			return err
+			return fmt.Errorf("chown failed: %w: %s", err, string(out))
 		}
 	}
 
-	// Set permissions
-	cmd := exec.Command("chmod", "-R", mode.String(), dirPath)
-	if err := cmd.Run(); err != nil {
+	// Set permissions using numeric mode (chmod expects numeric or symbolic, not the FileMode string)
+	modeArg := fmt.Sprintf("%o", mode.Perm())
+	cmd := exec.Command("chmod", "-R", modeArg, dirPath)
+	if out, err := cmd.CombinedOutput(); err != nil {
 		lg.Warn("Failed to set directory permissions",
 			logger.String("directory", dirPath),
-			logger.String("mode", mode.String()),
+			logger.String("mode", modeArg),
+			logger.String("output", string(out)),
 			logger.Error(err))
-		return err
+		return fmt.Errorf("chmod failed: %w: %s", err, string(out))
 	}
 
 	lg.Debug("Directory permissions set",

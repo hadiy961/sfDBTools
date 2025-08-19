@@ -19,10 +19,10 @@ mysqldump:
   args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
 database:
   host: "localhost"
-  port: 43306
-  user: "root"
+  port: 3306
+  user: "dbaDO"
   password: "DataOn24!!"
-  dbname: "sfDBTools"
+  dbname: "sfdbtools"
 backup:
   output_dir: "./backup"
   compress: true

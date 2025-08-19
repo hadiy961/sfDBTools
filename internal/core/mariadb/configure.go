@@ -2,6 +2,7 @@ package mariadb
 
 import (
 	"bufio"
+	"database/sql"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,9 @@ import (
 	"strconv"
 	"strings"
 
+	_ "github.com/go-sql-driver/mysql"
+
+	"sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/disk"
@@ -89,7 +93,140 @@ func ConfigureMariaDB() (*ConfigResult, error) {
 	}
 
 	lg.Info("MariaDB configuration completed successfully")
+
+	// LANGKAH TAMBAHAN: Eksekusi query CREATE USER dan GRANT
+	if err := executeInitialUserGrants(options.Port); err != nil {
+		lg.Warn("Failed to execute initial user grants", logger.Error(err))
+	} else {
+		lg.Info("Initial user grants executed successfully")
+
+		// Setelah membuat user/grant, buat database kosong sesuai pola
+		if err := createInitialDatabases(options.Port); err != nil {
+			lg.Warn("Failed to create initial databases", logger.Error(err))
+		} else {
+			lg.Info("Initial databases created successfully")
+		}
+	}
+
 	return result, nil
+}
+
+// executeInitialUserGrants membuat user dan grant sesuai template
+func executeInitialUserGrants(port int) error {
+	db, err := getRootDB(port)
+	if err != nil {
+		return fmt.Errorf("failed to connect to MariaDB as root: %w", err)
+	}
+	defer db.Close()
+
+	// Ambil clientCode dari config.yaml
+	clientCode := "demo"
+	if cfg, err := config.Get(); err == nil && cfg.General.ClientCode != "" {
+		clientCode = cfg.General.ClientCode
+	}
+
+	queries := []string{
+		// Pengguna Administratif
+		"CREATE USER IF NOT EXISTS 'papp'@'%' IDENTIFIED BY 'P@ssw0rdpapp!@#';",
+		"CREATE USER IF NOT EXISTS 'sysadmin'@'%' IDENTIFIED BY 'P@ssw0rdsys!@#';",
+		"CREATE USER IF NOT EXISTS 'dbaDO'@'%' IDENTIFIED BY 'DataOn24!!';",
+		// Pengguna Galera SST
+		"CREATE USER IF NOT EXISTS 'sst_user'@'%' IDENTIFIED BY 'P@ssw0rdsst!@#';",
+		// Backup & Restore
+		"CREATE USER IF NOT EXISTS 'backup_user'@'%' IDENTIFIED BY 'P@ssw0rdBackup!@#';",
+		"CREATE USER IF NOT EXISTS 'restore_user'@'%' IDENTIFIED BY 'P@ssw0rdRestore!@#';",
+		// MaxScale
+		"CREATE USER IF NOT EXISTS 'maxscale'@'%' IDENTIFIED BY 'P@ssw0rdMaxscale!@#';",
+		// Pengguna aplikasi (admin, user, fin)
+		fmt.Sprintf("CREATE USER IF NOT EXISTS 'sfnbc_%s_admin'@'%%' IDENTIFIED BY 'P@ssw0rdadm!@#';", clientCode),
+		fmt.Sprintf("CREATE USER IF NOT EXISTS 'sfnbc_%s_user'@'%%' IDENTIFIED BY 'P@ssw0rduser!@#';", clientCode),
+		fmt.Sprintf("CREATE USER IF NOT EXISTS 'sfnbc_%s_fin'@'%%' IDENTIFIED BY 'P@ssw0rdfin!@#';", clientCode),
+
+		// GRANT
+		"GRANT ALL PRIVILEGES ON *.* TO 'papp'@'%';",
+		"GRANT ALL PRIVILEGES ON *.* TO 'sysadmin'@'%';",
+		"GRANT ALL PRIVILEGES ON *.* TO 'dbaDO'@'%' WITH GRANT OPTION;",
+		"GRANT ALL PRIVILEGES ON *.* TO 'sst_user'@'%';",
+		"GRANT SELECT, SHOW VIEW, TRIGGER, LOCK TABLES, EVENT, CREATE ROUTINE, ALTER ROUTINE, RELOAD, PROCESS, REPLICATION CLIENT ON *.* TO 'backup_user'@'%';",
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_secondary_training`.* TO 'restore_user'@'%%';", clientCode),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_secondary_training_dmart`.* TO 'restore_user'@'%%';", clientCode),
+		"GRANT ALL PRIVILEGES ON *.* TO 'maxscale'@'%';",
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s`.* TO 'sfnbc_%s_admin'@'%%', 'sfnbc_%s_user'@'%%', 'sfnbc_%s_fin'@'%%';", clientCode, clientCode, clientCode, clientCode),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_dmart`.* TO 'sfnbc_%s_admin'@'%%', 'sfnbc_%s_user'@'%%', 'sfnbc_%s_fin'@'%%';", clientCode, clientCode, clientCode, clientCode),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_temp`.* TO 'sfnbc_%s_admin'@'%%', 'sfnbc_%s_user'@'%%', 'sfnbc_%s_fin'@'%%';", clientCode, clientCode, clientCode, clientCode),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_archive`.* TO 'sfnbc_%s_admin'@'%%', 'sfnbc_%s_user'@'%%', 'sfnbc_%s_fin'@'%%';", clientCode, clientCode, clientCode, clientCode),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_secondary_training`.* TO 'sfnbc_%s_admin'@'%%', 'sfnbc_%s_user'@'%%', 'sfnbc_%s_fin'@'%%';", clientCode, clientCode, clientCode, clientCode),
+		fmt.Sprintf("GRANT ALL PRIVILEGES ON `dbsf_nbc_%s_secondary_training_dmart`.* TO 'sfnbc_%s_admin'@'%%', 'sfnbc_%s_user'@'%%', 'sfnbc_%s_fin'@'%%';", clientCode, clientCode, clientCode, clientCode),
+		"FLUSH PRIVILEGES;",
+	}
+
+	for _, q := range queries {
+		if _, err := db.Exec(q); err != nil {
+			return fmt.Errorf("failed to execute query: %s, err: %w", q, err)
+		}
+	}
+	return nil
+}
+
+// createInitialDatabases membuat database kosong sesuai pola yang diminta
+func createInitialDatabases(port int) error {
+	db, err := getRootDB(port)
+	if err != nil {
+		return fmt.Errorf("failed to connect to MariaDB as root: %w", err)
+	}
+	defer db.Close()
+
+	clientCode := "demo"
+	if cfg, err := config.Get(); err == nil && cfg.General.ClientCode != "" {
+		clientCode = cfg.General.ClientCode
+	}
+
+	names := []string{
+		"sfDBTools",
+		fmt.Sprintf("dbsf_nbc_%s", clientCode),
+		fmt.Sprintf("dbsf_nbc_%s_dmart", clientCode),
+		fmt.Sprintf("dbsaas_portal_%s", clientCode),
+		fmt.Sprintf("dbsf_nbc_%s_temp", clientCode),
+		fmt.Sprintf("dbsf_nbc_%s_archive", clientCode),
+	}
+
+	for _, name := range names {
+		q := fmt.Sprintf("CREATE DATABASE IF NOT EXISTS `%s` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;", name)
+		if _, err := db.Exec(q); err != nil {
+			return fmt.Errorf("failed to create database %s: %w", name, err)
+		}
+	}
+
+	return nil
+}
+
+// getRootDB tries to connect as root via TCP then falls back to common unix sockets
+func getRootDB(port int) (*sql.DB, error) {
+	// Try TCP first
+	tcpDSN := fmt.Sprintf("root:@tcp(127.0.0.1:%d)/mysql", port)
+	db, err := sql.Open("mysql", tcpDSN)
+	if err == nil {
+		if pingErr := db.Ping(); pingErr == nil {
+			return db, nil
+		}
+		_ = db.Close()
+	}
+
+	// Common socket locations to try
+	sockets := []string{"/var/run/mysqld/mysqld.sock", "/var/lib/mysql/mysql.sock", "/tmp/mysql.sock"}
+	for _, sock := range sockets {
+		dsn := fmt.Sprintf("root:@unix(%s)/mysql", sock)
+		db2, err2 := sql.Open("mysql", dsn)
+		if err2 != nil {
+			continue
+		}
+		if pingErr := db2.Ping(); pingErr == nil {
+			return db2, nil
+		}
+		_ = db2.Close()
+	}
+
+	return nil, fmt.Errorf("unable to connect to MariaDB via TCP or common sockets")
 }
 
 // getConfigurationOptions prompts user for configuration options
@@ -297,6 +434,7 @@ func applyConfiguration(options *ConfigOptions) (*ConfigResult, error) {
 		logger.String("config_path", options.ConfigFilePath),
 		logger.Bool("encryption_enabled", options.EnableEncryption))
 
+	// LANGKAH TAMBAHAN: Eksekusi query CREATE USER dan GRANT
 	return result, nil
 }
 
