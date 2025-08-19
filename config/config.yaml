@@ -1,0 +1,75 @@
+general:
+  client_code: "DataOn"
+  app_name: "sfDBTools"
+  version: "1.0.0"
+  author: "Hadiyatna Muflihun"
+log:
+  level: "debug"
+  format: "text"
+  timezone: "Asia/Jakarta"
+  output:
+    console: true
+    file: true
+    syslog: false
+  file:
+    dir: "./logs"
+    rotate_daily: false
+    retention_days: 7
+mysqldump:
+  args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
+database:
+  host: "localhost"
+  port: 43306
+  user: "root"
+  password: "DataOn24!!"
+  dbname: "sfDBTools"
+backup:
+  output_dir: "./backup"
+  compress: true
+  compression: "pgzip"
+  compression_level: "fast"
+  include_data: true
+  encrypt: true
+  verify_disk: true
+  retention_days: 1
+  calculate_checksum: true
+  include_dmart: false
+  include_archive: false
+  include_temp: false
+  progress: false
+  system_user: false
+
+system_users:
+  users:
+    - "sst_user"
+    - "papp"
+    - "sysadmin"
+    - "backup_user"
+    - "dbaDO"
+    - "maxscale"
+
+config_dir:
+  database_config: "./config/db_config"
+
+# MariaDB Installation Configuration
+mariadb:
+  # Default installation settings
+  default_version: "10.6"
+  available_versions:
+    - "10.5"
+    - "10.6" 
+    - "10.11"
+    - "11.0"
+    - "11.1"
+    - "11.2"
+    - "11.4"
+  
+  # Default directory configuration
+  installation:
+    base_dir: "/var/lib/mysql"
+    data_dir: "/var/lib/mysql"
+    log_dir: "/var/lib/mysql"
+    binlog_dir: "/var/lib/mysqlbinlogs"
+    port: 3306
+    key_file: "config/key_maria_nbc.txt"
+    separate_directories: true
