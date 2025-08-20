@@ -126,3 +126,75 @@
 [2025-08-20 16:00:50] [INFO] [mysqldump/backup_all_databases_process.go:139] - Separate user grants backup created successfully {"output_file": "backup/user_grants/user_grants_34.142.131.26_3306_20250820_090049.sql.gz.enc", "file_size": 1078, "total_users": 13}
 [2025-08-20 16:00:50] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
 [2025-08-20 16:00:50] [INFO] [backup/all_databases.go:182] - All databases backup summary {"output_file": "backup/2025_08_20/all_databases/all_databases_20250820_090049.sql.gz.enc", "meta_file": "backup/2025_08_20/all_databases/all_databases_20250820_090049.meta.json", "file_size": 1450, "duration": "162.384482ms", "compression": "pgzip", "encrypted": true, "includes_data": true, "average_speed_mbps": 8929.424672488101, "checksum": "8cc5da50c5565d6d689a3842a329893e7eff2b0c6c79e0acd8d7792498d6cf97"}
+[2025-08-20 17:38:22] [INFO] [cmd/backup_cmd.go:20] - Backup command executed
+[2025-08-20 17:48:40] [INFO] [database/database_drop_cmd.go:74] - Memulai proses drop database
+[2025-08-20 17:48:40] [ERROR] [database/database_drop_cmd.go:40] - Database drop failed {"error": "wajib set --source_host dan --source_user (atau gunakan pola environment jika ada)"}
+[2025-08-20 17:57:05] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:57:05] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:57:05] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 7}
+[2025-08-20 17:57:12] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 7}
+[2025-08-20 17:57:12] [INFO] [action/drop_database.go:136] - Planned databases for drop {"count": 4, "targets": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart"], "dry_run": false}
+[2025-08-20 17:57:20] [INFO] [action/drop_database.go:168] - Dropped database {"database": "dbsaas_portal_dataon"}
+[2025-08-20 17:57:20] [INFO] [action/drop_database.go:168] - Dropped database {"database": "dbsf_nbc_dataon"}
+[2025-08-20 17:57:20] [INFO] [action/drop_database.go:168] - Dropped database {"database": "dbsf_nbc_dataon_archive"}
+[2025-08-20 17:57:20] [INFO] [action/drop_database.go:168] - Dropped database {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-20 17:57:20] [INFO] [database/database_drop_cmd.go:305] - Drop summary {"planned": 4, "dropped": 4, "skipped": 0, "system_protected": []}
+[2025-08-20 17:57:47] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:57:47] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:57:47] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 3}
+[2025-08-20 17:57:48] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 3}
+[2025-08-20 17:57:48] [INFO] [action/drop_database.go:136] - Planned databases for drop {"count": 3, "targets": ["dbsf_nbc_dataon_temp", "sfdbtools", "test"], "dry_run": false}
+[2025-08-20 17:57:57] [INFO] [action/drop_database.go:168] - Dropped database {"database": "dbsf_nbc_dataon_temp"}
+[2025-08-20 17:57:57] [INFO] [action/drop_database.go:168] - Dropped database {"database": "sfdbtools"}
+[2025-08-20 17:57:57] [INFO] [action/drop_database.go:168] - Dropped database {"database": "test"}
+[2025-08-20 17:57:57] [INFO] [database/database_drop_cmd.go:305] - Drop summary {"planned": 3, "dropped": 3, "skipped": 0, "system_protected": []}
+[2025-08-20 17:58:10] [INFO] [backup/backup_cmd_all.go:68] - Starting all databases backup process
+[2025-08-20 17:58:10] [INFO] [backup/all_databases.go:44] - Starting all databases backup to single file
+[2025-08-20 17:58:13] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 17:58:13] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 17:58:13] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 7}
+[2025-08-20 17:58:13] [INFO] [backup/all_databases.go:126] - Retrieved databases list (system databases excluded) {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"]}
+[2025-08-20 17:58:13] [INFO] [backup/all_databases.go:72] - Found databases for backup {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "exclude_system": true}
+[2025-08-20 17:58:13] [DEBUG] [disk/disk.go:78] - Output directory does not exist, attempting to create {"dir": "./backup"}
+[2025-08-20 17:58:13] [INFO] [disk/disk.go:86] - Output directory created {"dir": "./backup"}
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases.go:42] - No old backup directories to remove {"outputDir": "./backup"}
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases.go:46] - Starting all databases backup using mysqldump {"host": "34.142.131.26", "port": 3306, "exclude_system": true, "include_user": false, "capture_gtid": true}
+[2025-08-20 17:58:13] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-20 17:58:13] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-20 17:58:13] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 17:58:13] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 17:58:13] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-81"}
+[2025-08-20 17:58:13] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "6 chars", "gtid_purged_length": "6 chars", "binlog_file": "mysql-bin.000011", "binlog_position": 342, "gtid_position": "1-1-81"}
+[2025-08-20 17:58:13] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 17:58:13] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-20 17:58:13] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-20 17:58:13] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases.go:89] - Replication information collected successfully
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases.go:93] - GTID information captured {"gtid_position": "1-1-81", "binlog_file": "mysql-bin.000011", "binlog_position": 342}
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases_process.go:42] - Using single mysqldump command for replication consistency {"database_count": 7, "capture_gtid": true}
+[2025-08-20 17:58:13] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 17:58:13] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 17:58:13] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 17:58:13] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases_process.go:168] - Added --master-data=2 for GTID replication
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases_process.go:74] - Executing single mysqldump command for replication {"databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "host": "34.142.131.26", "port": 3306}
+[2025-08-20 17:58:13] [INFO] [mysqldump/backup_all_databases_process.go:98] - Single mysqldump command completed successfully {"duration": "324.083732ms", "databases_count": 7}
+[2025-08-20 17:58:13] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-20 17:58:13] [INFO] [backup/all_databases.go:182] - All databases backup summary {"output_file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.sql.gz.enc", "meta_file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.meta.json", "file_size": 1450, "duration": "361.460747ms", "compression": "pgzip", "encrypted": true, "includes_data": true, "average_speed_mbps": 4011.500590408507, "checksum": "028ba730ee4ae5de85b86dbb3e717dda98c4505dbd2a4c099d48dbe6c8b60e52"}
+[2025-08-20 17:58:19] [INFO] [restore/restore_cmd_all.go:46] - Starting restore process
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:36] - Starting all database restore {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:223] - All databases restore overview {"target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "backup_file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.sql.gz.enc", "start_time": "2025-08-20 10:58:29"}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:247] - Backup metadata {"metadata_file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.meta.json", "backup_date": "2025-08-20 10:58:13", "compression": true, "encryption": true, "included_data": true, "source_host": "34.142.131.26", "source_port": 3306, "source_user": "dbaDO"}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:257] - DB source metadata {"db_name": "all_databases", "db_size": "1.5 kB", "table_count": 7, "view_count": 0, "routine_count": 0, "trigger_count": 0, "user_count": 0}
+[2025-08-20 17:58:29] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-20 17:58:29] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-20 17:58:29] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:58:29] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-20 17:58:29] [DEBUG] [all/restore_all.go:74] - Loaded config for decryption {"app_name": "sfDBTools", "client_code": "DataOn", "version": "1.0.0", "author": "Hadiyatna Muflihun"}
+[2025-08-20 17:58:29] [DEBUG] [all/restore_all.go:85] - Derived decryption key {"key_length": 32}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:120] - Starting all databases restore {"file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.sql.gz.enc"}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:130] - All databases restore completed {"file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.sql.gz.enc"}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:273] - All databases restore summary {"target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "backup_file": "backup/2025_08_20/all_databases/all_databases_20250820_105813.sql.gz.enc", "start_time": "2025-08-20 10:58:29", "end_time": "2025-08-20 10:58:29", "duration": "88.452916ms"}
+[2025-08-20 17:58:29] [INFO] [all/restore_all.go:140] - Backup metadata loaded successfully {"backup_type": "all_databases", "source_db": "all_databases", "backup_date": "2025-08-20 10:58:13"}
+[2025-08-20 17:58:29] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-20 17:58:29] [INFO] [restore/restore_cmd_all.go:82] - Restore process completed successfully

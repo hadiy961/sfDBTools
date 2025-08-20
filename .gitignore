@@ -32,3 +32,5 @@ backup/
 !go.sum
 !README.md
 !LICENSE
+logs/sfDBTools.log
+sfDBTools
