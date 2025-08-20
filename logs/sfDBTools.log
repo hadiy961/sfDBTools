@@ -74,3 +74,7 @@
 [2025-08-19 16:55:26] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
 [2025-08-19 16:55:26] [DEBUG] [health/health_check.go:107] - Health check information collection completed
 [2025-08-19 16:55:26] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
+[2025-08-20 10:07:02] [INFO] [mariadb/configure_cmd.go:61] - Starting MariaDB configuration process
+[2025-08-20 10:07:02] [INFO] [mariadb/configure.go:65] - Starting MariaDB configuration
+[2025-08-20 10:07:02] [INFO] [mariadb/configure.go:713] - Using OS-based config path detection
+[2025-08-20 10:07:02] [INFO] [mariadb/configure.go:715] - Detected config path {"path": "/etc/my.cnf.d/server.cnf"}
