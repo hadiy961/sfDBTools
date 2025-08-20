@@ -1,7 +1,34 @@
-sfDBTools
+# Log & output runtime
+logs/
+*.log
+
+# Direktori backup keseluruhan
+backup/
+
+# Jika ingin lebih spesifik (opsional):
+# backup/**/*.sql
+# backup/**/*.gz
+# backup/**/*.enc
+# backup/**/*.json
+
+# File terenkripsi / dump
+*.sql
+*.sql.gz
+*.gz
+*.enc
+
+# Metadata / hasil proses
+*.json
+
+# KECUALIKAN file konfigurasi penting kalau perlu dilacak:
+!config/example*.json
+
+# Copilot instruction khusus (jika tidak mau di-track)
 .github/copilot-instructions.md
-backup/2025_08_13/all_databases/all_databases_20250813_105309.meta.json
-logs/sfDBTools.log
-backup/2025_08_13/gmit_pelita/gmit_pelita_2025_08_13.sql.gz.enc
-backup/2025_08_13/gmit_pelita/gmit_pelita_2025_08_13.json
-backup/2025_08_13/all_databases/all_databases_20250813_105309.sql.gz.enc
+
+# Biarkan source code & modul Go tetap ter-track
+!**/*.go
+!go.mod
+!go.sum
+!README.md
+!LICENSE
