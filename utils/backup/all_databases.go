@@ -17,6 +17,8 @@ import (
 type AllDatabasesBackupOptions struct {
 	BackupOptions
 	ExcludeSystemDatabases bool
+	IncludeUser            bool // Include user grants for replication using SHOW GRANTS method
+	CaptureGTID            bool // Capture GTID information including BINLOG_GTID_POS
 	IncludeDatabaseName    bool // Include database name as comments in the output
 }
 
@@ -26,12 +28,13 @@ type AllDatabasesBackupResult struct {
 	ProcessedDatabases []string
 	SkippedDatabases   []string
 	TotalDatabases     int
+	GTIDPosition       string // GTID position from BINLOG_GTID_POS
 }
 
 // ExecuteAllDatabasesBackup executes backup for all databases into a single file
 func ExecuteAllDatabasesBackup(
 	cmd *cobra.Command,
-	backupFunc func(AllDatabasesBackupOptions) (*AllDatabasesBackupResult, error),
+	backupFunc func(AllDatabasesBackupOptions, []string) (*AllDatabasesBackupResult, error),
 ) error {
 	lg, err := logger.Get()
 	if err != nil {
@@ -52,8 +55,12 @@ func ExecuteAllDatabasesBackup(
 		return err
 	}
 
-	// 3. Get all databases
-	availableDatabases, err := info.ListDatabases(dbConfig)
+	// 3. Get databases ONCE based on system database inclusion preference
+	includeSystemDatabases, _ := cmd.Flags().GetBool("include-system-databases")
+	includeUser, _ := cmd.Flags().GetBool("include-user")
+	captureGTID, _ := cmd.Flags().GetBool("capture-gtid")
+
+	availableDatabases, err := GetAllDatabasesList(dbConfig, !includeSystemDatabases)
 	if err != nil {
 		return fmt.Errorf("failed to get available databases: %w", err)
 	}
@@ -64,7 +71,8 @@ func ExecuteAllDatabasesBackup(
 
 	lg.Info("Found databases for backup",
 		logger.Int("count", len(availableDatabases)),
-		logger.Strings("databases", availableDatabases))
+		logger.Strings("databases", availableDatabases),
+		logger.Bool("exclude_system", !includeSystemDatabases))
 
 	// 4. Create all databases backup options
 	options := AllDatabasesBackupOptions{
@@ -83,15 +91,17 @@ func ExecuteAllDatabasesBackup(
 			RetentionDays:     backupConfig.RetentionDays,
 			CalculateChecksum: backupConfig.CalculateChecksum,
 		},
-		ExcludeSystemDatabases: true,
+		ExcludeSystemDatabases: !includeSystemDatabases,
+		IncludeUser:            includeUser,
+		CaptureGTID:            captureGTID,
 		IncludeDatabaseName:    true,
 	}
 
 	// Set a special database name for all databases backup
 	options.DBName = "all_databases"
 
-	// 5. Execute backup
-	result, err := backupFunc(options)
+	// 5. Execute backup with pre-loaded database list
+	result, err := backupFunc(options, availableDatabases)
 	if err != nil {
 		return fmt.Errorf("all databases backup failed: %w", err)
 	}
@@ -99,35 +109,38 @@ func ExecuteAllDatabasesBackup(
 	// 6. Display results
 	DisplayAllDatabasesBackupResults(result, options)
 
-	lg.Info("All databases backup completed successfully",
-		logger.Int("total_databases", result.TotalDatabases),
-		logger.Int("processed", len(result.ProcessedDatabases)),
-		logger.Int("skipped", len(result.SkippedDatabases)),
-		logger.String("output_file", result.OutputFile))
-
 	return nil
 }
 
-// GetAllDatabasesList retrieves all databases excluding system databases if specified
+// GetAllDatabasesList retrieves all databases excluding or including system databases as specified
 func GetAllDatabasesList(dbConfig database.Config, excludeSystem bool) ([]string, error) {
 	lg, _ := logger.Get()
 
-	// Get all databases from server
-	databases, err := info.ListDatabases(dbConfig)
-	if err != nil {
-		return nil, fmt.Errorf("failed to list databases: %w", err)
-	}
+	if excludeSystem {
+		// Get user databases only (system databases already excluded by info.ListDatabases)
+		databases, err := info.ListDatabases(dbConfig)
+		if err != nil {
+			return nil, fmt.Errorf("failed to list databases: %w", err)
+		}
 
-	if !excludeSystem {
+		lg.Info("Retrieved databases list (system databases excluded)",
+			logger.Int("count", len(databases)),
+			logger.Strings("databases", databases))
+
 		return databases, nil
 	}
 
-	// System databases are already excluded by info.ListDatabases
-	lg.Info("Retrieved databases list (system databases excluded)",
-		logger.Int("count", len(databases)),
-		logger.Strings("databases", databases))
+	// Get all databases including system databases
+	allDatabases, err := info.ListAllDatabases(dbConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list all databases: %w", err)
+	}
 
-	return databases, nil
+	lg.Info("Retrieved databases list (including system databases)",
+		logger.Int("count", len(allDatabases)),
+		logger.Strings("databases", allDatabases))
+
+	return allDatabases, nil
 }
 
 // GenerateAllDatabasesOutputPaths generates output paths for all databases backup
@@ -177,12 +190,6 @@ func DisplayAllDatabasesBackupResults(result *AllDatabasesBackupResult, options 
 		logger.Float64("average_speed_mbps", result.AverageSpeed),
 		logger.String("checksum", result.Checksum))
 
-	if len(result.ProcessedDatabases) > 0 {
-		lg.Info("Successfully processed databases",
-			logger.Int("count", len(result.ProcessedDatabases)),
-			logger.Strings("databases", result.ProcessedDatabases))
-	}
-
 	if len(result.SkippedDatabases) > 0 {
 		lg.Warn("Skipped databases",
 			logger.Int("count", len(result.SkippedDatabases)),
@@ -210,16 +217,10 @@ func CreateAllDatabasesMetadata(
 	options AllDatabasesBackupOptions,
 	result *AllDatabasesBackupResult,
 	dbConfig database.Config,
+	replicationInfo *database.ReplicationInfo,
 ) *BackupMetadata {
-	// Get MySQL version
+	// Get MySQL version only
 	mysqlVersion, _ := database.GetMySQLVersion(dbConfig)
-
-	// Get replication information
-	replicationInfo, err := GetReplicationInfoForBackup(dbConfig)
-	lg, _ := logger.Get()
-	if err != nil {
-		lg.Warn("Failed to get replication information for all databases metadata", logger.Error(err))
-	}
 
 	metadata := &BackupMetadata{
 		DatabaseName:    "all_databases",

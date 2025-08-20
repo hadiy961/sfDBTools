@@ -62,6 +62,69 @@ func ListDatabases(config database.Config) ([]string, error) {
 	return databases, nil
 }
 
+// ListAllDatabases returns a list of all databases including system databases
+func ListAllDatabases(config database.Config) ([]string, error) {
+	lg, _ := logger.Get()
+
+	// Connect without specifying a database
+	configWithoutDB := config
+	configWithoutDB.DBName = ""
+
+	db, err := database.GetWithoutDB(configWithoutDB)
+	if err != nil {
+		lg.Error("Failed to connect to database server", logger.Error(err))
+		return nil, fmt.Errorf("failed to connect to database server: %w", err)
+	}
+	defer db.Close()
+
+	// Query to get all databases including system databases
+	query := `
+		SELECT schema_name 
+		FROM information_schema.schemata 
+		ORDER BY schema_name
+	`
+
+	rows, err := db.Query(query)
+	if err != nil {
+		// Fallback to SHOW DATABASES
+		return listAllDatabasesFallback(db)
+	}
+	defer rows.Close()
+
+	var databases []string
+	for rows.Next() {
+		var dbName string
+		if err := rows.Scan(&dbName); err != nil {
+			lg.Warn("Error scanning database name", logger.Error(err))
+			continue
+		}
+		databases = append(databases, dbName)
+	}
+
+	lg.Debug("Retrieved all databases list", logger.Int("count", len(databases)))
+	return databases, nil
+}
+
+// listAllDatabasesFallback uses SHOW DATABASES as fallback (includes all databases)
+func listAllDatabasesFallback(db *sql.DB) ([]string, error) {
+	rows, err := db.Query("SHOW DATABASES")
+	if err != nil {
+		return nil, fmt.Errorf("failed to list databases: %w", err)
+	}
+	defer rows.Close()
+
+	var databases []string
+	for rows.Next() {
+		var dbName string
+		if err := rows.Scan(&dbName); err != nil {
+			continue
+		}
+		databases = append(databases, dbName)
+	}
+
+	return databases, nil
+}
+
 // listDatabasesFallback uses SHOW DATABASES as fallback
 func listDatabasesFallback(db *sql.DB) ([]string, error) {
 	rows, err := db.Query("SHOW DATABASES")

@@ -14,6 +14,9 @@ type GTIDInfo struct {
 	GTIDPurged   string `json:"gtid_purged"`
 	ServerUUID   string `json:"server_uuid"`
 	HasGTID      bool   `json:"has_gtid"`
+	BinlogFile   string `json:"binlog_file,omitempty"`   // From SHOW MASTER STATUS
+	BinlogPos    int64  `json:"binlog_pos,omitempty"`    // From SHOW MASTER STATUS
+	GTIDPosition string `json:"gtid_position,omitempty"` // From BINLOG_GTID_POS
 }
 
 // GetGTIDInfo retrieves GTID information from the database
@@ -65,43 +68,122 @@ func GetGTIDInfo(config Config) (*GTIDInfo, error) {
 		gtidInfo.GTIDPurged = gtidPurged
 	}
 
-	// Get Server UUID
-	serverUUID, err := getServerUUID(db)
+	// Get current binlog position for GTID calculation
+	binlogFile, binlogPos, err := getMasterStatus(db)
 	if err != nil {
-		lg.Warn("Failed to get SERVER_UUID", logger.Error(err))
+		lg.Warn("Failed to get MASTER STATUS", logger.Error(err))
 	} else {
-		gtidInfo.ServerUUID = serverUUID
+		gtidInfo.BinlogFile = binlogFile
+		gtidInfo.BinlogPos = binlogPos
+
+		// Get GTID position using BINLOG_GTID_POS function
+		gtidPosition, err := getBinlogGTIDPos(db, binlogFile, binlogPos)
+		if err != nil {
+			lg.Warn("Failed to get BINLOG_GTID_POS", logger.Error(err))
+		} else {
+			gtidInfo.GTIDPosition = gtidPosition
+		}
 	}
 
 	lg.Info("GTID information collected",
 		logger.Bool("has_gtid", gtidInfo.HasGTID),
 		logger.String("server_uuid", gtidInfo.ServerUUID),
 		logger.String("gtid_executed_length", fmt.Sprintf("%d chars", len(gtidInfo.GTIDExecuted))),
-		logger.String("gtid_purged_length", fmt.Sprintf("%d chars", len(gtidInfo.GTIDPurged))))
+		logger.String("gtid_purged_length", fmt.Sprintf("%d chars", len(gtidInfo.GTIDPurged))),
+		logger.String("binlog_file", gtidInfo.BinlogFile),
+		logger.Int64("binlog_position", gtidInfo.BinlogPos),
+		logger.String("gtid_position", gtidInfo.GTIDPosition))
 
 	return gtidInfo, nil
 }
 
 // checkGTIDEnabled checks if GTID is enabled on the server
+// Works for both MySQL and MariaDB by checking server capabilities
 func checkGTIDEnabled(db *sql.DB) (bool, error) {
-	var variableName, value string
-	query := "SHOW VARIABLES LIKE 'gtid_mode'"
+	lg, _ := logger.Get()
 
-	err := db.QueryRow(query).Scan(&variableName, &value)
+	// First check if this is MySQL or MariaDB
+	version, err := getMySQLVersionString(db)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			// GTID might not be supported in this MySQL version
-			return false, nil
-		}
-		return false, err
+		lg.Warn("Could not determine database version", logger.Error(err))
 	}
 
-	// GTID is enabled if gtid_mode is ON
-	return strings.ToUpper(value) == "ON", nil
+	isMariaDB := strings.Contains(strings.ToLower(version), "mariadb")
+
+	if isMariaDB {
+		// For MariaDB, check if gtid_domain_id exists and is configured
+		var domainID sql.NullInt64
+		err := db.QueryRow("SELECT @@GLOBAL.gtid_domain_id").Scan(&domainID)
+		if err != nil {
+			// gtid_domain_id doesn't exist, GTID not supported
+			lg.Debug("MariaDB GTID not supported (no gtid_domain_id)", logger.Error(err))
+			return false, nil
+		}
+
+		// Check if gtid_current_pos has any value (indicates GTID is working)
+		var currentPos sql.NullString
+		err = db.QueryRow("SELECT @@GLOBAL.gtid_current_pos").Scan(&currentPos)
+		if err != nil {
+			lg.Debug("MariaDB GTID variables not accessible", logger.Error(err))
+			return false, nil
+		}
+
+		lg.Debug("MariaDB GTID status detected",
+			logger.Bool("domain_id_valid", domainID.Valid),
+			logger.String("current_pos", currentPos.String))
+
+		return true, nil
+	} else {
+		// For MySQL, check gtid_mode variable
+		var variableName, value string
+		query := "SHOW VARIABLES LIKE 'gtid_mode'"
+
+		err := db.QueryRow(query).Scan(&variableName, &value)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// GTID not supported in this MySQL version
+				lg.Debug("MySQL GTID not supported (no gtid_mode variable)")
+				return false, nil
+			}
+			return false, err
+		}
+
+		enabled := strings.ToUpper(value) == "ON"
+		lg.Debug("MySQL GTID status", logger.String("gtid_mode", value), logger.Bool("enabled", enabled))
+		return enabled, nil
+	}
 }
 
-// getGTIDExecuted retrieves the GTID_EXECUTED global variable
+// getGTIDExecuted retrieves the GTID_EXECUTED global variable (MySQL) or gtid_current_pos (MariaDB)
 func getGTIDExecuted(db *sql.DB) (string, error) {
+	version, err := getMySQLVersionString(db)
+	if err != nil {
+		// If we can't get version, try MySQL format first
+		return getGTIDExecutedMySQL(db)
+	}
+
+	isMariaDB := strings.Contains(strings.ToLower(version), "mariadb")
+
+	if isMariaDB {
+		// MariaDB uses gtid_current_pos
+		var gtidPos sql.NullString
+		err := db.QueryRow("SELECT @@GLOBAL.gtid_current_pos").Scan(&gtidPos)
+		if err != nil {
+			return "", err
+		}
+
+		if gtidPos.Valid {
+			return gtidPos.String, nil
+		}
+		return "", nil
+	} else {
+		// MySQL uses GTID_EXECUTED
+		return getGTIDExecutedMySQL(db)
+	}
+}
+
+// getGTIDExecutedMySQL retrieves GTID_EXECUTED for MySQL
+func getGTIDExecutedMySQL(db *sql.DB) (string, error) {
 	var gtidExecuted sql.NullString
 	query := "SELECT @@GLOBAL.GTID_EXECUTED"
 
@@ -116,8 +198,36 @@ func getGTIDExecuted(db *sql.DB) (string, error) {
 	return "", nil
 }
 
-// getGTIDPurged retrieves the GTID_PURGED global variable
+// getGTIDPurged retrieves the GTID_PURGED global variable (MySQL) or gtid_binlog_pos (MariaDB)
 func getGTIDPurged(db *sql.DB) (string, error) {
+	version, err := getMySQLVersionString(db)
+	if err != nil {
+		// If we can't get version, try MySQL format first
+		return getGTIDPurgedMySQL(db)
+	}
+
+	isMariaDB := strings.Contains(strings.ToLower(version), "mariadb")
+
+	if isMariaDB {
+		// MariaDB uses gtid_binlog_pos (closest equivalent to GTID_PURGED)
+		var gtidBinlogPos sql.NullString
+		err := db.QueryRow("SELECT @@GLOBAL.gtid_binlog_pos").Scan(&gtidBinlogPos)
+		if err != nil {
+			return "", err
+		}
+
+		if gtidBinlogPos.Valid {
+			return gtidBinlogPos.String, nil
+		}
+		return "", nil
+	} else {
+		// MySQL uses GTID_PURGED
+		return getGTIDPurgedMySQL(db)
+	}
+}
+
+// getGTIDPurgedMySQL retrieves GTID_PURGED for MySQL
+func getGTIDPurgedMySQL(db *sql.DB) (string, error) {
 	var gtidPurged sql.NullString
 	query := "SELECT @@GLOBAL.GTID_PURGED"
 
@@ -144,6 +254,37 @@ func getServerUUID(db *sql.DB) (string, error) {
 
 	if serverUUID.Valid {
 		return serverUUID.String, nil
+	}
+	return "", nil
+}
+
+// getBinlogGTIDPos gets GTID position for a specific binlog file and position
+// This function only works on MariaDB, returns empty for MySQL
+func getBinlogGTIDPos(db *sql.DB, binlogFile string, binlogPos int64) (string, error) {
+	version, err := getMySQLVersionString(db)
+	if err != nil {
+		// Can't determine version, skip BINLOG_GTID_POS
+		return "", nil
+	}
+
+	isMariaDB := strings.Contains(strings.ToLower(version), "mariadb")
+
+	if !isMariaDB {
+		// BINLOG_GTID_POS function only exists in MariaDB
+		return "", nil
+	}
+
+	// MariaDB: Use BINLOG_GTID_POS function
+	query := fmt.Sprintf("SELECT BINLOG_GTID_POS('%s', %d)", binlogFile, binlogPos)
+
+	var gtidPos sql.NullString
+	err = db.QueryRow(query).Scan(&gtidPos)
+	if err != nil {
+		return "", fmt.Errorf("failed to get BINLOG_GTID_POS (MariaDB): %w", err)
+	}
+
+	if gtidPos.Valid {
+		return gtidPos.String, nil
 	}
 	return "", nil
 }
@@ -312,4 +453,14 @@ func GetReplicationInfo(config Config) (*ReplicationInfo, error) {
 		logger.Bool("has_binlog", replicationInfo.BinaryLogInfo != nil && replicationInfo.BinaryLogInfo.HasBinlog))
 
 	return replicationInfo, nil
+}
+
+// getMySQLVersionString gets the version string from database
+func getMySQLVersionString(db *sql.DB) (string, error) {
+	var version string
+	err := db.QueryRow("SELECT VERSION()").Scan(&version)
+	if err != nil {
+		return "", err
+	}
+	return version, nil
 }

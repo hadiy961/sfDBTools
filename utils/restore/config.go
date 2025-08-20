@@ -47,11 +47,18 @@ func ResolveRestoreConfig(cmd *cobra.Command) (*RestoreConfig, error) {
 	restoreConfig.File = filePath
 
 	// Resolve database name (may depend on file path for filename extraction)
-	dbName, err := ResolveDatabaseNameWithFile(cmd, host, port, user, password, filePath)
-	if err != nil {
-		return nil, fmt.Errorf("failed to resolve database name: %w", err)
+	// If this command is the "all" restore mode, skip interactive database selection
+	// because "all" operates on all databases and shouldn't prompt for a single DB.
+	if cmd != nil && cmd.Name() == "all" {
+		// Explicitly leave DBName empty for all-mode restores
+		restoreConfig.DBName = ""
+	} else {
+		dbName, err := ResolveDatabaseNameWithFile(cmd, host, port, user, password, filePath)
+		if err != nil {
+			return nil, fmt.Errorf("failed to resolve database name: %w", err)
+		}
+		restoreConfig.DBName = dbName
 	}
-	restoreConfig.DBName = dbName
 
 	// Resolve other restore options
 	restoreConfig.VerifyChecksum = common.GetBoolFlagOrEnv(cmd, "verify-checksum", "VERIFY_CHECKSUM", false)

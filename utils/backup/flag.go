@@ -10,7 +10,7 @@ import (
 func AddCommonBackupFlags(cmd *cobra.Command) {
 	_, _, _, defaultOutputDir,
 		defaultCompress, defaultCompression, defaultCompressionLevel, defaultIncludeData,
-		defaultEncrypt, _, _, _, defaultSystemUser := config.GetBackupDefaults()
+		defaultEncrypt, _, _, _, _ := config.GetBackupDefaults()
 
 	// Configuration options
 	cmd.Flags().String("config", "", "encrypted configuration file (.cnf.enc)")
@@ -29,7 +29,6 @@ func AddCommonBackupFlags(cmd *cobra.Command) {
 	cmd.Flags().String("output-dir", defaultOutputDir, "output directory")
 	cmd.Flags().Bool("data", defaultIncludeData, "include data in backup")
 	cmd.Flags().Bool("encrypt", defaultEncrypt, "encrypt output")
-	cmd.Flags().Bool("system-user", defaultSystemUser, "include system users (sst_user, papp, sysadmin, backup_user, dbaDO, maxscale)")
 }
 
 // ParseBackupOptionsFromFlags parses backup options from command flags.

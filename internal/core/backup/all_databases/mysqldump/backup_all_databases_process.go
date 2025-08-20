@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"sfDBTools/internal/config"
+	user_grants_backup "sfDBTools/internal/core/backup/user_grants"
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/common"
@@ -30,6 +31,18 @@ func executeAllDatabasesMysqldump(options backup_utils.AllDatabasesBackupOptions
 		return nil, nil, fmt.Errorf("failed to create output directory: %w", err)
 	}
 
+	// Always use single mysqldump command for replication consistency
+	return executeAllDatabasesWithSingleCommand(options, outputFile, databases)
+}
+
+// executeAllDatabasesWithSingleCommand executes a single mysqldump command for all databases (for replication consistency)
+func executeAllDatabasesWithSingleCommand(options backup_utils.AllDatabasesBackupOptions, outputFile string, databases []string) ([]string, []string, error) {
+	lg, _ := logger.Get()
+
+	lg.Info("Using single mysqldump command for replication consistency",
+		logger.Int("database_count", len(databases)),
+		logger.Bool("capture_gtid", options.CaptureGTID))
+
 	// Create output file
 	outFile, err := os.Create(outputFile)
 	if err != nil {
@@ -46,121 +59,97 @@ func executeAllDatabasesMysqldump(options backup_utils.AllDatabasesBackupOptions
 		lg.Error("Failed to set up writer chain", logger.Error(err))
 		return nil, nil, err
 	}
-
-	// Write header with backup information
-	if options.IncludeDatabaseName {
-		header := fmt.Sprintf("-- All Databases Backup\n-- Generated on: %s\n-- Host: %s:%d\n-- User: %s\n-- Total Databases: %d\n\n",
-			time.Now().Format("2006-01-02 15:04:05"),
-			options.Host,
-			options.Port,
-			options.User,
-			len(databases))
-		writer.Write([]byte(header))
-	}
-
-	var processedDatabases []string
-	var skippedDatabases []string
-
-	// Process each database
-	for i, dbName := range databases {
-		lg.Info("Processing database",
-			logger.String("database", dbName),
-			logger.Int("current", i+1),
-			logger.Int("total", len(databases)))
-
-		// Write database separator comment
-		if options.IncludeDatabaseName {
-			separator := fmt.Sprintf("\n-- ================================\n-- Database: %s\n-- ================================\n\n", dbName)
-			writer.Write([]byte(separator))
+	defer func() {
+		// Close writers in reverse order (inner to outer)
+		for i := len(closers) - 1; i >= 0; i-- {
+			if err := closers[i].Close(); err != nil {
+				lg.Warn("Failed to close writer", logger.Error(err))
+			}
 		}
+	}()
 
-		// Execute mysqldump for this database
-		success, err := executeSingleDatabaseDump(options, writer, dbName)
-		if err != nil {
-			lg.Error("Failed to dump database",
-				logger.String("database", dbName),
-				logger.Error(err))
-			skippedDatabases = append(skippedDatabases, dbName)
-			continue
-		}
+	// Build mysqldump command for all databases
+	args := getReplicationMysqldumpArgs(options, databases)
 
-		if success {
-			processedDatabases = append(processedDatabases, dbName)
-			lg.Info("Successfully processed database", logger.String("database", dbName))
-		} else {
-			skippedDatabases = append(skippedDatabases, dbName)
-			lg.Warn("Database was skipped", logger.String("database", dbName))
-		}
-	}
-
-	// Close writers in reverse order (inner to outer)
-	for i := len(closers) - 1; i >= 0; i-- {
-		if err := closers[i].Close(); err != nil {
-			lg.Warn("Failed to close writer", logger.Error(err))
-		}
-	}
-
-	lg.Info("All databases backup completed",
-		logger.Int("total", len(databases)),
-		logger.Int("processed", len(processedDatabases)),
-		logger.Int("skipped", len(skippedDatabases)))
-
-	return processedDatabases, skippedDatabases, nil
-}
-
-// executeSingleDatabaseDump executes mysqldump for a single database and writes to the provided writer
-func executeSingleDatabaseDump(options backup_utils.AllDatabasesBackupOptions, writer io.Writer, dbName string) (bool, error) {
-	lg, _ := logger.Get()
-
-	// Build mysqldump command arguments
-	args := getOptimizedMysqldumpArgsForAllDatabases(options, dbName)
-
-	lg.Debug("Executing mysqldump for database",
-		logger.String("database", dbName),
+	lg.Info("Executing single mysqldump command for replication",
+		logger.Strings("databases", databases),
 		logger.String("host", options.Host),
-		logger.Int("port", options.Port),
-		logger.Bool("compress", options.Compress),
-		logger.Bool("is_remote", common.IsRemoteConnection(options.Host)))
+		logger.Int("port", options.Port))
 
 	// Execute mysqldump command
 	cmd := exec.Command("mysqldump", args...)
 	cmd.Stdout = writer
-	cmd.Stderr = os.Stderr // Capture stderr for error diagnostics
+	cmd.Stderr = os.Stderr
 
 	// Set environment variable for password
 	if options.Password != "" {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("MYSQL_PWD=%s", options.Password))
 	}
 
-	// Start the command execution
 	startTime := time.Now()
-
-	err := cmd.Run()
+	err = cmd.Run()
 
 	if err != nil {
-		lg.Error("mysqldump command failed for database",
-			logger.Error(err),
-			logger.String("database", dbName),
-			logger.String("host", options.Host),
-			logger.Int("port", options.Port),
-			logger.String("user", options.User))
-		return false, fmt.Errorf("mysqldump failed for database %s: %w", dbName, err)
+		lg.Error("Single mysqldump command failed", logger.Error(err))
+		return nil, databases, fmt.Errorf("mysqldump failed: %w", err)
 	}
 
 	duration := time.Since(startTime)
-	lg.Debug("mysqldump completed for database",
-		logger.String("database", dbName),
-		logger.String("duration", duration.String()))
+	lg.Info("Single mysqldump command completed successfully",
+		logger.String("duration", duration.String()),
+		logger.Int("databases_count", len(databases)))
 
-	return true, nil
+	// Handle user grants backup if requested - save to separate file
+	if options.IncludeUser {
+		if err := createSeparateUserGrantsBackup(options); err != nil {
+			lg.Error("Failed to create separate user grants backup", logger.Error(err))
+			// Don't fail the entire backup, just log the error
+		}
+	}
+
+	return databases, []string{}, nil
 }
 
-// getOptimizedMysqldumpArgsForAllDatabases builds optimized mysqldump arguments for a single database in all databases backup
-func getOptimizedMysqldumpArgsForAllDatabases(options backup_utils.AllDatabasesBackupOptions, dbName string) []string {
+// createSeparateUserGrantsBackup creates user grants backup in separate file
+func createSeparateUserGrantsBackup(options backup_utils.AllDatabasesBackupOptions) error {
+	lg, _ := logger.Get()
+
+	// Convert AllDatabasesBackupOptions to BackupOptions
+	backupOptions := backup_utils.BackupOptions{
+		Host:              options.Host,
+		Port:              options.Port,
+		User:              options.User,
+		Password:          options.Password,
+		OutputDir:         options.OutputDir,
+		Compress:          options.Compress,
+		Compression:       options.Compression,
+		CompressionLevel:  options.CompressionLevel,
+		Encrypt:           options.Encrypt,
+		VerifyDisk:        options.VerifyDisk,
+		RetentionDays:     options.RetentionDays,
+		CalculateChecksum: options.CalculateChecksum,
+	}
+
+	// Call the BackupUserGrants function from the separate package
+	result, err := user_grants_backup.BackupUserGrants(backupOptions)
+	if err != nil {
+		return fmt.Errorf("failed to create separate user grants backup: %w", err)
+	}
+
+	lg.Info("Separate user grants backup created successfully",
+		logger.String("output_file", result.OutputFile),
+		logger.Int64("file_size", result.OutputSize),
+		logger.Int("total_users", result.TotalUsers))
+
+	return nil
+}
+
+// getReplicationMysqldumpArgs builds mysqldump arguments optimized for replication
+func getReplicationMysqldumpArgs(options backup_utils.AllDatabasesBackupOptions, databases []string) []string {
 	cfg, err := config.Get()
 	lg, _ := logger.Get()
-	if err != nil || cfg == nil || cfg.Mysqldump.Args == "" {
-		lg.Fatal("Config/Mysqldump args is required but not found", logger.Error(err))
+	if err != nil || cfg == nil {
+		lg.Fatal("Config is required but not found", logger.Error(err))
 		return nil
 	}
 
@@ -170,17 +159,46 @@ func getOptimizedMysqldumpArgsForAllDatabases(options backup_utils.AllDatabasesB
 		fmt.Sprintf("--user=%s", options.User),
 	}
 
-	// Parse and add config args
-	configArgs := common.ParseArgsString(cfg.Mysqldump.Args)
-	args = append(args, configArgs...)
+	// Essential replication flags
+	args = append(args, "--single-transaction") // Ensures consistency
+
+	if options.CaptureGTID {
+		// For GTID-based replication, use --master-data=2 (commented CHANGE MASTER TO)
+		args = append(args, "--master-data=2")
+		lg.Info("Added --master-data=2 for GTID replication")
+	} else {
+		// For traditional binlog replication, use --master-data=1 (executable CHANGE MASTER TO)
+		args = append(args, "--master-data=1")
+		lg.Info("Added --master-data=1 for traditional replication")
+	}
+
+	// Parse and add config args, excluding conflicting ones
+	if cfg.Mysqldump.Args != "" {
+		configArgs := common.ParseArgsString(cfg.Mysqldump.Args)
+		for _, arg := range configArgs {
+			// Skip flags that we're handling explicitly or that conflict
+			if arg != "--master-data" && arg != "--single-transaction" &&
+				arg != "--databases" && arg != "-B" && arg != "--all-databases" && arg != "-A" {
+				args = append(args, arg)
+			}
+		}
+	}
 
 	// Handle data inclusion
 	if !options.IncludeData {
 		args = append(common.RemoveDataFlags(args), "--no-data")
 	}
 
-	// Add database name as the last argument
-	args = append(args, dbName)
+	// Add database specification
+	if options.ExcludeSystemDatabases {
+		// Use --databases flag for specific databases
+		args = append(args, "--databases")
+		args = append(args, databases...)
+	} else {
+		// Use --all-databases for complete server backup
+		args = append(args, "--all-databases")
+		lg.Info("Using --all-databases for complete server backup including system databases")
+	}
 
 	return args
 }

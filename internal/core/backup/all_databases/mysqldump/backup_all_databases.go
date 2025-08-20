@@ -14,7 +14,7 @@ import (
 )
 
 // BackupAllDatabases performs a backup of all databases into a single file
-func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions) (*backup_utils.AllDatabasesBackupResult, error) {
+func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions, availableDatabases []string) (*backup_utils.AllDatabasesBackupResult, error) {
 	lg, err := logger.Get()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get logger: %w", err)
@@ -46,7 +46,9 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions) (*backup
 	lg.Info("Starting all databases backup using mysqldump",
 		logger.String("host", options.Host),
 		logger.Int("port", options.Port),
-		logger.Bool("exclude_system", options.ExcludeSystemDatabases))
+		logger.Bool("exclude_system", options.ExcludeSystemDatabases),
+		logger.Bool("include_user", options.IncludeUser),
+		logger.Bool("capture_gtid", options.CaptureGTID))
 
 	// Initialize result
 	result := &backup_utils.AllDatabasesBackupResult{
@@ -66,7 +68,7 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions) (*backup
 		return result, err
 	}
 
-	// Setup database connection
+	// Setup database connection (single instance)
 	dbConfig := database.Config{
 		Host:     options.Host,
 		Port:     options.Port,
@@ -79,23 +81,26 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions) (*backup
 		defer database.CleanupMaxStatementTimeManager(timeManager)
 	}
 
-	// Collect replication information before backup
+	// Collect replication information ONCE (no duplicate database list call)
 	replicationInfo, err := backup_utils.GetReplicationInfoForBackup(dbConfig)
 	if err != nil {
-		lg.Warn("Failed to collect replication information before all databases backup", logger.Error(err))
+		lg.Warn("Failed to collect replication information", logger.Error(err))
 	} else if replicationInfo != nil {
-		lg.Info("Replication information collected successfully before all databases backup")
+		lg.Info("Replication information collected successfully")
+		// Extract GTID position if available
+		if options.CaptureGTID && replicationInfo.GTIDInfo != nil && replicationInfo.GTIDInfo.HasGTID {
+			result.GTIDPosition = replicationInfo.GTIDInfo.GTIDPosition
+			lg.Info("GTID information captured",
+				logger.String("gtid_position", result.GTIDPosition),
+				logger.String("binlog_file", replicationInfo.GTIDInfo.BinlogFile),
+				logger.Int64("binlog_position", replicationInfo.GTIDInfo.BinlogPos))
+		}
 	}
 
-	// Get all databases
-	databases, err := backup_utils.GetAllDatabasesList(dbConfig, options.ExcludeSystemDatabases)
-	if err != nil {
-		result.BackupResult.Error = err
-		return result, err
-	}
+	// Use provided database list (no duplicate call)
+	databases := availableDatabases
 
 	result.TotalDatabases = len(databases)
-	lg.Info("Found databases to backup", logger.Int("count", len(databases)), logger.Strings("databases", databases))
 
 	// Generate output paths
 	outputFile, metaFile := backup_utils.GenerateAllDatabasesOutputPaths(options)
@@ -117,24 +122,19 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions) (*backup
 		lg.Warn("Failed to finalize backup result", logger.Error(err))
 	}
 
-	// Create metadata file
-	metadata := backup_utils.CreateAllDatabasesMetadata(options, result, dbConfig)
-	if err := backup_utils.CreateMetadataFile(options.BackupOptions, &result.BackupResult, dbConfig, nil); err != nil {
-		lg.Warn("Failed to create metadata file", logger.Error(err))
-	}
-
-	// Save custom metadata for all databases
+	// Create metadata ONCE using already collected replication info
+	metadata := backup_utils.CreateAllDatabasesMetadata(options, result, dbConfig, replicationInfo)
 	if err := saveAllDatabasesMetadata(metaFile, metadata); err != nil {
 		lg.Warn("Failed to save all databases metadata", logger.Error(err))
 	}
 
 	result.BackupResult.Success = true
-	lg.Info("All databases backup completed successfully",
-		logger.Int("total_databases", result.TotalDatabases),
-		logger.Int("processed", len(result.ProcessedDatabases)),
-		logger.Int("skipped", len(result.SkippedDatabases)),
-		logger.String("output_file", result.BackupResult.OutputFile),
-		logger.String("duration", result.BackupResult.Duration.String()))
+	// lg.Info("All databases backup completed successfully",
+	// 	logger.Int("total_databases", result.TotalDatabases),
+	// 	logger.Int("processed", len(result.ProcessedDatabases)),
+	// 	logger.Int("skipped", len(result.SkippedDatabases)),
+	// 	logger.String("output_file", result.BackupResult.OutputFile),
+	// 	logger.String("duration", result.BackupResult.Duration.String()))
 
 	return result, nil
 }
@@ -155,9 +155,9 @@ func performAllDatabasesBackup(options backup_utils.AllDatabasesBackupOptions, o
 		return processedDatabases, skippedDatabases, fmt.Errorf("mysqldump failed: %w", err)
 	}
 
-	lg.Info("All databases mysqldump completed successfully",
-		logger.Int("processed", len(processedDatabases)),
-		logger.Int("skipped", len(skippedDatabases)))
+	// lg.Info("All databases mysqldump completed successfully",
+	// 	logger.Int("processed", len(processedDatabases)),
+	// 	logger.Int("skipped", len(skippedDatabases)))
 
 	return processedDatabases, skippedDatabases, nil
 }

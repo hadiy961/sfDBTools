@@ -14,20 +14,27 @@ import (
 
 var BackupAllDatabasesCmd = &cobra.Command{
 	Use:   "all",
-	Short: "Backup all databases into a single file",
+	Short: "Backup all databases into a single file with flexible system database inclusion",
 	Long: `This command backs up all databases from a MySQL/MariaDB server into a single backup file.
-It will dump all user databases (excluding system databases like information_schema, performance_schema, mysql, sys)
-into one consolidated backup file with proper separation and comments.
+You can choose to include or exclude system databases and system users for replication purposes.
 
 Features:
 - Single file output containing all databases
+- Flexible system database inclusion/exclusion
+- User grants backup in separate file (uses SHOW GRANTS method)
+- GTID information capture for replication
 - Compression and encryption support
 - Proper database separation with comments
-- Skip system databases automatically
 - Metadata generation with backup details`,
 
-	Example: `# Backup all databases with default settings
+	Example: `# Backup all user databases (exclude system databases - default)
 sfDBTools backup all --source_host localhost --source_user root
+
+# Backup all databases including system databases (for full server backup)
+sfDBTools backup all --source_host localhost --source_user root --include-system-databases
+
+# Backup for replication setup (includes user grants in separate file + GTID info)
+sfDBTools backup all --source_host localhost --source_user root --include-system-databases --include-user
 
 # Backup with custom output directory and compression
 sfDBTools backup all --source_host localhost --source_user root --output-dir ./backups --compress --compression gzip
@@ -76,6 +83,11 @@ func init() {
 	BackupAllDatabasesCmd.Flags().Bool("verify-disk", defaultVerifyDisk, "verify available disk space before backup")
 	BackupAllDatabasesCmd.Flags().Int("retention-days", defaultRetentionDays, "retention period in days")
 	BackupAllDatabasesCmd.Flags().Bool("calculate-checksum", defaultCalculateChecksum, "calculate SHA256 checksum of backup file")
+
+	// New flags for system database and user inclusion
+	BackupAllDatabasesCmd.Flags().Bool("include-system-databases", false, "include system databases (mysql, information_schema, performance_schema, sys)")
+	BackupAllDatabasesCmd.Flags().Bool("include-user", false, "include user grants in separate file (uses SHOW GRANTS method)")
+	BackupAllDatabasesCmd.Flags().Bool("capture-gtid", true, "capture GTID information for replication (includes BINLOG_GTID_POS)")
 
 	// Note: This command doesn't need database selection flags since it backs up all databases
 	// source_db flag from AddCommonBackupFlags will be ignored in this context

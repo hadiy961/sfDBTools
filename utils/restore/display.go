@@ -82,7 +82,9 @@ func LogRestoreCompletion(options RestoreOptions, duration time.Duration, lg *lo
 // PromptRestoreConfirmation prompts user for confirmation before performing restore
 func PromptRestoreConfirmation(options RestoreOptions) error {
 	reader := bufio.NewReader(os.Stdin)
-
+	if options.DBName == "" {
+		options.DBName = "All Database"
+	}
 	fmt.Println("\n⚠️  RESTORE CONFIRMATION")
 	fmt.Println("========================")
 	fmt.Printf("You are about to restore backup to:\n")

@@ -1,80 +1,128 @@
-[2025-08-19 16:51:58] [INFO] [mariadb/check_cmd.go:46] - Starting MariaDB health check
-[2025-08-19 16:51:58] [INFO] [mariadb/check_cmd.go:111] - Starting MariaDB health check
-[2025-08-19 16:51:58] [DEBUG] [health/health_check.go:29] - Starting health check information collection
-[2025-08-19 16:51:58] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "localhost", "port": 3306}
-[2025-08-19 16:51:58] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:18] - Opening database connection {"host": "localhost", "database": ""}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:37] - Successfully connected to database {"database": ""}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:51:58] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:51:59] [DEBUG] [health/health_check.go:107] - Health check information collection completed
-[2025-08-19 16:51:59] [INFO] [mariadb/check_cmd.go:133] - MariaDB health check completed
-[2025-08-19 16:51:59] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
-[2025-08-19 16:54:18] [INFO] [mariadb/check_cmd.go:46] - Starting MariaDB health check
-[2025-08-19 16:54:18] [DEBUG] [health/health_check.go:29] - Starting health check information collection
-[2025-08-19 16:54:18] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "localhost", "port": 3306}
-[2025-08-19 16:54:18] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:18] - Opening database connection {"host": "localhost", "database": ""}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:37] - Successfully connected to database {"database": ""}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:50] - Opening database connection without specific database {"host": "localhost"}
-[2025-08-19 16:54:18] [DEBUG] [connection/connection.go:66] - Successfully connected to database server
-[2025-08-19 16:54:18] [DEBUG] [health/health_check.go:107] - Health check information collection completed
-[2025-08-19 16:54:18] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
-[2025-08-19 16:55:26] [INFO] [mariadb/check_cmd.go:46] - Starting MariaDB health check
-[2025-08-19 16:55:26] [DEBUG] [health/health_check.go:29] - Starting health check information collection
-[2025-08-19 16:55:26] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "localhost", "port": 3306}
-[2025-08-19 16:55:26] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "localhost", "port": 3306}
-[2025-08-19 16:55:26] [DEBUG] [health/health_check.go:107] - Health check information collection completed
-[2025-08-19 16:55:26] [INFO] [mariadb/check_cmd.go:61] - MariaDB health check completed
-[2025-08-20 10:07:02] [INFO] [mariadb/configure_cmd.go:61] - Starting MariaDB configuration process
-[2025-08-20 10:07:02] [INFO] [mariadb/configure.go:65] - Starting MariaDB configuration
-[2025-08-20 10:07:02] [INFO] [mariadb/configure.go:713] - Using OS-based config path detection
-[2025-08-20 10:07:02] [INFO] [mariadb/configure.go:715] - Detected config path {"path": "/etc/my.cnf.d/server.cnf"}
+[2025-08-20 15:57:59] [INFO] [backup/backup_cmd_all.go:68] - Starting all databases backup process
+[2025-08-20 15:57:59] [INFO] [backup/all_databases.go:44] - Starting all databases backup to single file
+[2025-08-20 15:58:02] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 15:58:02] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 15:58:02] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 7}
+[2025-08-20 15:58:02] [INFO] [backup/all_databases.go:126] - Retrieved databases list (system databases excluded) {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"]}
+[2025-08-20 15:58:02] [INFO] [backup/all_databases.go:72] - Found databases for backup {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "exclude_system": true}
+[2025-08-20 15:58:02] [DEBUG] [disk/disk.go:101] - Checking write permission for output directory {"dir": "backup"}
+[2025-08-20 15:58:02] [DEBUG] [disk/disk.go:111] - Output directory is writable {"dir": "backup"}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases.go:42] - No old backup directories to remove {"outputDir": "backup"}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases.go:46] - Starting all databases backup using mysqldump {"host": "34.142.131.26", "port": 3306, "exclude_system": true, "include_user": true, "capture_gtid": true}
+[2025-08-20 15:58:02] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-20 15:58:02] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-20 15:58:02] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 15:58:02] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 15:58:02] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-81"}
+[2025-08-20 15:58:02] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "6 chars", "gtid_purged_length": "6 chars", "binlog_file": "mysql-bin.000011", "binlog_position": 342, "gtid_position": "1-1-81"}
+[2025-08-20 15:58:02] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 15:58:02] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-20 15:58:02] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-20 15:58:02] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases.go:89] - Replication information collected successfully
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases.go:93] - GTID information captured {"gtid_position": "1-1-81", "binlog_file": "mysql-bin.000011", "binlog_position": 342}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases_process.go:42] - Using single mysqldump command for replication consistency {"database_count": 7, "capture_gtid": true}
+[2025-08-20 15:58:02] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 15:58:02] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 15:58:02] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 15:58:02] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases_process.go:168] - Added --master-data=2 for GTID replication
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases_process.go:74] - Executing single mysqldump command for replication {"databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "host": "34.142.131.26", "port": 3306}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases_process.go:98] - Single mysqldump command completed successfully {"duration": "100.980819ms", "databases_count": 7}
+[2025-08-20 15:58:02] [INFO] [user_grants/user_grants_backup.go:33] - Starting user grants backup {"host": "34.142.131.26", "port": 3306, "output_dir": "backup"}
+[2025-08-20 15:58:02] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 15:58:02] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 15:58:02] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 15:58:02] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 15:58:02] [INFO] [user_grants/user_grants_backup.go:155] - Executing SHOW GRANTS method for user backup
+[2025-08-20 15:58:02] [INFO] [user_grants/user_grants_backup.go:186] - Found users to backup {"user_count": 13}
+[2025-08-20 15:58:02] [INFO] [user_grants/user_grants_backup.go:233] - User grants backup processing completed {"total_users": 13, "grant_statements": 36}
+[2025-08-20 15:58:02] [INFO] [user_grants/user_grants_backup.go:142] - User grants backup completed successfully {"output_file": "backup/user_grants/user_grants_34.142.131.26_3306_20250820_085802.sql.gz.enc", "file_size": 1079, "duration": "42.110107ms", "total_users": 13}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases_process.go:139] - Separate user grants backup created successfully {"output_file": "backup/user_grants/user_grants_34.142.131.26_3306_20250820_085802.sql.gz.enc", "file_size": 1079, "total_users": 13}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases.go:158] - All databases mysqldump completed successfully {"processed": 7, "skipped": 0}
+[2025-08-20 15:58:02] [INFO] [mysqldump/backup_all_databases.go:132] - All databases backup completed successfully {"total_databases": 7, "processed": 7, "skipped": 0, "output_file": "backup/2025_08_20/all_databases/all_databases_20250820_085802.sql.gz.enc", "duration": "175.657599ms"}
+[2025-08-20 15:58:02] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-20 15:58:02] [INFO] [backup/all_databases.go:182] - All databases backup summary {"output_file": "backup/2025_08_20/all_databases/all_databases_20250820_085802.sql.gz.enc", "meta_file": "backup/2025_08_20/all_databases/all_databases_20250820_085802.meta.json", "file_size": 1449, "duration": "175.657599ms", "compression": "pgzip", "encrypted": true, "includes_data": true, "average_speed_mbps": 8249.002652028736, "checksum": "fcae294cd60f89d80429fa3c007a901b125342d4c1279443112e3f2775f84aa3"}
+[2025-08-20 16:00:11] [INFO] [backup/backup_cmd_all.go:68] - Starting all databases backup process
+[2025-08-20 16:00:11] [INFO] [backup/all_databases.go:44] - Starting all databases backup to single file
+[2025-08-20 16:00:13] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:13] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:13] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 7}
+[2025-08-20 16:00:13] [INFO] [backup/all_databases.go:126] - Retrieved databases list (system databases excluded) {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"]}
+[2025-08-20 16:00:13] [INFO] [backup/all_databases.go:72] - Found databases for backup {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "exclude_system": true}
+[2025-08-20 16:00:13] [DEBUG] [disk/disk.go:101] - Checking write permission for output directory {"dir": "backup"}
+[2025-08-20 16:00:13] [DEBUG] [disk/disk.go:111] - Output directory is writable {"dir": "backup"}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases.go:42] - No old backup directories to remove {"outputDir": "backup"}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases.go:46] - Starting all databases backup using mysqldump {"host": "34.142.131.26", "port": 3306, "exclude_system": true, "include_user": true, "capture_gtid": true}
+[2025-08-20 16:00:13] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-20 16:00:13] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-20 16:00:13] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:13] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:13] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-81"}
+[2025-08-20 16:00:13] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "6 chars", "gtid_purged_length": "6 chars", "binlog_file": "mysql-bin.000011", "binlog_position": 342, "gtid_position": "1-1-81"}
+[2025-08-20 16:00:13] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 16:00:13] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-20 16:00:13] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-20 16:00:13] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases.go:89] - Replication information collected successfully
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases.go:93] - GTID information captured {"gtid_position": "1-1-81", "binlog_file": "mysql-bin.000011", "binlog_position": 342}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases_process.go:42] - Using single mysqldump command for replication consistency {"database_count": 7, "capture_gtid": true}
+[2025-08-20 16:00:13] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 16:00:13] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 16:00:13] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 16:00:13] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases_process.go:168] - Added --master-data=2 for GTID replication
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases_process.go:74] - Executing single mysqldump command for replication {"databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases_process.go:98] - Single mysqldump command completed successfully {"duration": "96.358165ms", "databases_count": 7}
+[2025-08-20 16:00:13] [INFO] [user_grants/user_grants_backup.go:33] - Starting user grants backup {"host": "34.142.131.26", "port": 3306, "output_dir": "backup"}
+[2025-08-20 16:00:13] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 16:00:13] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 16:00:13] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 16:00:13] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 16:00:13] [INFO] [user_grants/user_grants_backup.go:155] - Executing SHOW GRANTS method for user backup
+[2025-08-20 16:00:13] [INFO] [user_grants/user_grants_backup.go:186] - Found users to backup {"user_count": 13}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases_process.go:139] - Separate user grants backup created successfully {"output_file": "backup/user_grants/user_grants_34.142.131.26_3306_20250820_090013.sql.gz.enc", "file_size": 1078, "total_users": 13}
+[2025-08-20 16:00:13] [INFO] [mysqldump/backup_all_databases.go:158] - All databases mysqldump completed successfully {"processed": 7, "skipped": 0}
+[2025-08-20 16:00:13] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-20 16:00:13] [INFO] [backup/all_databases.go:182] - All databases backup summary {"output_file": "backup/2025_08_20/all_databases/all_databases_20250820_090013.sql.gz.enc", "meta_file": "backup/2025_08_20/all_databases/all_databases_20250820_090013.meta.json", "file_size": 1450, "duration": "171.767513ms", "compression": "pgzip", "encrypted": true, "includes_data": true, "average_speed_mbps": 8441.642861767463, "checksum": "104c9859ef65df9cb66b61eb41769dd6f5cebc72d0fc837813dd4489d82d801f"}
+[2025-08-20 16:00:47] [INFO] [backup/backup_cmd_all.go:68] - Starting all databases backup process
+[2025-08-20 16:00:47] [INFO] [backup/all_databases.go:44] - Starting all databases backup to single file
+[2025-08-20 16:00:49] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:49] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:49] [DEBUG] [info/database_list.go:61] - Retrieved database list {"count": 7}
+[2025-08-20 16:00:49] [INFO] [backup/all_databases.go:126] - Retrieved databases list (system databases excluded) {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"]}
+[2025-08-20 16:00:49] [INFO] [backup/all_databases.go:72] - Found databases for backup {"count": 7, "databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "exclude_system": true}
+[2025-08-20 16:00:49] [DEBUG] [disk/disk.go:101] - Checking write permission for output directory {"dir": "backup"}
+[2025-08-20 16:00:49] [DEBUG] [disk/disk.go:111] - Output directory is writable {"dir": "backup"}
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases.go:42] - No old backup directories to remove {"outputDir": "backup"}
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases.go:46] - Starting all databases backup using mysqldump {"host": "34.142.131.26", "port": 3306, "exclude_system": true, "include_user": true, "capture_gtid": true}
+[2025-08-20 16:00:49] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-20 16:00:49] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-20 16:00:49] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:49] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:49] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-81"}
+[2025-08-20 16:00:49] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "6 chars", "gtid_purged_length": "6 chars", "binlog_file": "mysql-bin.000011", "binlog_position": 342, "gtid_position": "1-1-81"}
+[2025-08-20 16:00:49] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 16:00:49] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-20 16:00:49] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-20 16:00:49] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000011", "log_position": 342}
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases.go:89] - Replication information collected successfully
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases.go:93] - GTID information captured {"gtid_position": "1-1-81", "binlog_file": "mysql-bin.000011", "binlog_position": 342}
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases_process.go:42] - Using single mysqldump command for replication consistency {"database_count": 7, "capture_gtid": true}
+[2025-08-20 16:00:49] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 16:00:49] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 16:00:49] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 16:00:49] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases_process.go:168] - Added --master-data=2 for GTID replication
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases_process.go:74] - Executing single mysqldump command for replication {"databases": ["dbsaas_portal_dataon", "dbsf_nbc_dataon", "dbsf_nbc_dataon_archive", "dbsf_nbc_dataon_dmart", "dbsf_nbc_dataon_temp", "sfdbtools", "test"], "host": "34.142.131.26", "port": 3306}
+[2025-08-20 16:00:49] [INFO] [mysqldump/backup_all_databases_process.go:98] - Single mysqldump command completed successfully {"duration": "92.861727ms", "databases_count": 7}
+[2025-08-20 16:00:49] [INFO] [user_grants/user_grants_backup.go:33] - Starting user grants backup {"host": "34.142.131.26", "port": 3306, "output_dir": "backup"}
+[2025-08-20 16:00:49] [DEBUG] [backup/writer.go:26] - Creating encryption writer {"key_length": 32}
+[2025-08-20 16:00:49] [INFO] [backup/writer.go:34] - Encryption configured {"method": "AES-GCM"}
+[2025-08-20 16:00:49] [DEBUG] [backup/writer.go:35] - Encryption writer chain setup complete
+[2025-08-20 16:00:49] [INFO] [backup/writer.go:57] - Compression configured {"type": "pgzip", "level": "fast"}
+[2025-08-20 16:00:49] [INFO] [user_grants/user_grants_backup.go:155] - Executing SHOW GRANTS method for user backup
+[2025-08-20 16:00:49] [INFO] [user_grants/user_grants_backup.go:186] - Found users to backup {"user_count": 13}
+[2025-08-20 16:00:50] [INFO] [mysqldump/backup_all_databases_process.go:139] - Separate user grants backup created successfully {"output_file": "backup/user_grants/user_grants_34.142.131.26_3306_20250820_090049.sql.gz.enc", "file_size": 1078, "total_users": 13}
+[2025-08-20 16:00:50] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-20 16:00:50] [INFO] [backup/all_databases.go:182] - All databases backup summary {"output_file": "backup/2025_08_20/all_databases/all_databases_20250820_090049.sql.gz.enc", "meta_file": "backup/2025_08_20/all_databases/all_databases_20250820_090049.meta.json", "file_size": 1450, "duration": "162.384482ms", "compression": "pgzip", "encrypted": true, "includes_data": true, "average_speed_mbps": 8929.424672488101, "checksum": "8cc5da50c5565d6d689a3842a329893e7eff2b0c6c79e0acd8d7792498d6cf97"}

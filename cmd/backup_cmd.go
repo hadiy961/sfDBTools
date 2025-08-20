@@ -29,7 +29,6 @@ var BackupCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(BackupCmd)
 	BackupCmd.AddCommand(command_backup.BackupAllDatabasesCmd)
-	BackupCmd.AddCommand(command_backup.FullDBCmd)
 	BackupCmd.AddCommand(command_backup.BackupSelectionCmd)
 	BackupCmd.AddCommand(command_backup.BackupUserCMD)
 }

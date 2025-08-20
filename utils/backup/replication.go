@@ -19,6 +19,7 @@ func CreateReplicationMetadata(replicationInfo *database.ReplicationInfo) *Repli
 		meta.GTIDExecuted = replicationInfo.GTIDInfo.GTIDExecuted
 		meta.GTIDPurged = replicationInfo.GTIDInfo.GTIDPurged
 		meta.ServerUUID = replicationInfo.GTIDInfo.ServerUUID
+		meta.GTIDPosition = replicationInfo.GTIDInfo.GTIDPosition
 	}
 
 	// Add Binary Log information

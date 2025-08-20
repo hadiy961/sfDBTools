@@ -67,6 +67,7 @@ type ReplicationMeta struct {
 	HasBinlog    bool   `json:"has_binlog"`
 	LogFile      string `json:"log_file,omitempty"`
 	LogPosition  int64  `json:"log_position,omitempty"`
+	GTIDPosition string `json:"gtid_position,omitempty"` // From BINLOG_GTID_POS function
 }
 
 // DatabaseInfoMeta represents database information in metadata
