@@ -4,6 +4,8 @@ logs/
 
 # Direktori backup keseluruhan
 backup/
+config/db_list
+config/db_config
 
 # Jika ingin lebih spesifik (opsional):
 # backup/**/*.sql
@@ -16,6 +18,7 @@ backup/
 *.sql.gz
 *.gz
 *.enc
+*.txt
 
 # Metadata / hasil proses
 *.json
