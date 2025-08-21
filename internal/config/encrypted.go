@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"sfDBTools/internal/config/model"
 	"sfDBTools/utils/crypto"
 )
 
@@ -19,7 +18,7 @@ type EncryptedDatabaseConfig struct {
 }
 
 // LoadEncryptedDatabaseConfig loads and decrypts the database configuration
-func LoadEncryptedDatabaseConfig(cfg *model.Config, encryptionPassword string) (*EncryptedDatabaseConfig, error) {
+func LoadEncryptedDatabaseConfig(encryptionPassword string) (*EncryptedDatabaseConfig, error) {
 	// Path to encrypted config file
 	configPath := filepath.Join("./config", "database.encrypted")
 
@@ -34,14 +33,8 @@ func LoadEncryptedDatabaseConfig(cfg *model.Config, encryptionPassword string) (
 		return nil, fmt.Errorf("failed to read encrypted config file: %w", err)
 	}
 
-	// Generate encryption key from app config and user password
-	key, err := crypto.DeriveKeyWithPassword(
-		cfg.General.AppName,
-		cfg.General.ClientCode,
-		cfg.General.Version,
-		cfg.General.Author,
-		encryptionPassword,
-	)
+	// Generate encryption key from user password only
+	key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive decryption key: %w", err)
 	}
@@ -80,7 +73,7 @@ func GetDatabaseConfigWithEncryption() (host string, port int, user, password st
 		return "", 0, "", "", fmt.Errorf("failed to get encryption password: %w", err)
 	}
 
-	encryptedDB, err := LoadEncryptedDatabaseConfig(cfg, encryptionPassword)
+	encryptedDB, err := LoadEncryptedDatabaseConfig(encryptionPassword)
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("failed to load encrypted database config: %w", err)
 	}
@@ -105,7 +98,7 @@ func GetDatabaseConfigWithPassword(encryptionPassword string) (host string, port
 	}
 
 	// Load encrypted database config with provided password
-	encryptedDB, err := LoadEncryptedDatabaseConfig(cfg, encryptionPassword)
+	encryptedDB, err := LoadEncryptedDatabaseConfig(encryptionPassword)
 	if err != nil {
 		return "", 0, "", "", fmt.Errorf("failed to load encrypted database config: %w", err)
 	}
@@ -115,13 +108,13 @@ func GetDatabaseConfigWithPassword(encryptionPassword string) (host string, port
 }
 
 // ValidateEncryptedDatabaseConfig validates that the encrypted database configuration can be decrypted
-func ValidateEncryptedDatabaseConfig(cfg *model.Config, encryptionPassword string) error {
-	_, err := LoadEncryptedDatabaseConfig(cfg, encryptionPassword)
+func ValidateEncryptedDatabaseConfig(encryptionPassword string) error {
+	_, err := LoadEncryptedDatabaseConfig(encryptionPassword)
 	return err
 }
 
 // LoadEncryptedDatabaseConfigFromFile loads and decrypts the database configuration from specific file
-func LoadEncryptedDatabaseConfigFromFile(configPath string, cfg *model.Config, encryptionPassword string) (*EncryptedDatabaseConfig, error) {
+func LoadEncryptedDatabaseConfigFromFile(configPath string, encryptionPassword string) (*EncryptedDatabaseConfig, error) {
 	// Check if encrypted config file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
 		return nil, fmt.Errorf("encrypted database configuration not found at %s", configPath)
@@ -133,14 +126,8 @@ func LoadEncryptedDatabaseConfigFromFile(configPath string, cfg *model.Config, e
 		return nil, fmt.Errorf("failed to read encrypted config file: %w", err)
 	}
 
-	// Generate encryption key from app config and user password
-	key, err := crypto.DeriveKeyWithPassword(
-		cfg.General.AppName,
-		cfg.General.ClientCode,
-		cfg.General.Version,
-		cfg.General.Author,
-		encryptionPassword,
-	)
+	// Generate encryption key from user password only
+	key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 	if err != nil {
 		return nil, fmt.Errorf("failed to derive decryption key: %w", err)
 	}

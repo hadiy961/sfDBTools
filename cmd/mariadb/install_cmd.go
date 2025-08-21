@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sfDBTools/internal/config"
 	"sfDBTools/internal/core/mariadb"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
@@ -69,6 +70,15 @@ func executeInstall(cmd *cobra.Command) error {
 	force, _ := cmd.Flags().GetBool("force")
 	customPaths, _ := cmd.Flags().GetBool("custom-paths")
 	interactive, _ := cmd.Flags().GetBool("interactive")
+
+	// Confirm with user immediately after parsing flags (unless forced)
+	if !force {
+		if !promptConfirmInstall(version, port, dataDir, logDir, binlogDir, keyFile, customPaths) {
+			lg.Info("Installation cancelled by user before any checks")
+			fmt.Println("❌ Installation cancelled.")
+			return nil
+		}
+	}
 
 	// Detect OS without additional connectivity checks
 	osInfo, err := mariadb_utils.DetectOS()
@@ -159,6 +169,8 @@ func executeInstall(cmd *cobra.Command) error {
 		logger.Int("port", port),
 		logger.Bool("force", force))
 
+	// (confirmation already performed earlier)
+
 	// Execute install
 	result, err := mariadb.InstallMariaDB(mariadb_utils.InstallOptions{
 		Version:     version,
@@ -177,6 +189,9 @@ func executeInstall(cmd *cobra.Command) error {
 
 	// Display results
 	mariadb_utils.DisplayInstallResults(result)
+
+	// Print concise install summary to stdout
+	printInstallSummary(result)
 
 	// Log results
 	lg.Info("MariaDB install completed successfully",
@@ -207,8 +222,14 @@ func executeInstall(cmd *cobra.Command) error {
 }
 
 func init() {
-	// Use a static default version to avoid network calls during app startup
+	// Prefer default version from application config; fallback to static value
 	defaultVersion := "10.6.23"
+
+	if cfg, err := config.Get(); err == nil && cfg != nil {
+		if v := cfg.MariaDB.DefaultVersion; v != "" {
+			defaultVersion = v
+		}
+	}
 
 	InstallCmd.Flags().String("version", defaultVersion, "MariaDB version to install")
 	InstallCmd.Flags().Int("port", 3306, "MariaDB port number")
@@ -355,5 +376,61 @@ func selectVersionInteractive(osInfo *mariadb_utils.OSInfo) (string, error) {
 		}
 
 		fmt.Printf("Invalid selection. Please enter a number between 1 and %d, or 'r' for recommended.\n", len(allVersionsList))
+	}
+}
+
+// promptConfirmInstall shows selected options and asks user to confirm before install
+func promptConfirmInstall(version string, port int, dataDir, logDir, binlogDir, keyFile string, customPaths bool) bool {
+	reader := bufio.NewReader(os.Stdin)
+
+	fmt.Println("\n🔎 Install Summary")
+	fmt.Println("====================")
+	fmt.Printf("Version:      %s\n", version)
+	fmt.Printf("Port:         %d\n", port)
+	fmt.Printf("Data dir:     %s\n", dataDir)
+	fmt.Printf("Log dir:      %s\n", logDir)
+	fmt.Printf("Binlog dir:   %s\n", binlogDir)
+	if keyFile != "" {
+		fmt.Printf("Encryption:   %s\n", keyFile)
+	} else {
+		fmt.Printf("Encryption:   (none)\n")
+	}
+	fmt.Printf("Custom paths: %t\n", customPaths)
+
+	fmt.Print("\nProceed with installation? (y/n): ")
+	resp, err := reader.ReadString('\n')
+	if err != nil {
+		return false
+	}
+	resp = strings.TrimSpace(strings.ToLower(resp))
+	return resp == "y" || resp == "yes"
+}
+
+// printInstallSummary prints a concise installation summary to stdout
+func printInstallSummary(result *mariadb_utils.InstallResult) {
+	if result == nil {
+		return
+	}
+
+	status := "FAILED"
+	if result.Success {
+		status = "SUCCESS"
+	}
+
+	fmt.Println("\n📦 MariaDB Install Summary")
+	fmt.Println("-------------------------")
+	fmt.Printf("Status:       %s\n", status)
+	fmt.Printf("Version:      %s\n", result.Version)
+	fmt.Printf("OS:           %s\n", result.OperatingSystem)
+	if result.Distribution != "" {
+		fmt.Printf("Distro:       %s\n", result.Distribution)
+	}
+	fmt.Printf("Port:         %d\n", result.Port)
+	fmt.Printf("Data dir:     %s\n", result.DataDir)
+	fmt.Printf("Log dir:      %s\n", result.LogDir)
+	fmt.Printf("Binlog dir:   %s\n", result.BinlogDir)
+	fmt.Printf("Service:      %s\n", result.ServiceStatus)
+	if result.Duration != 0 {
+		fmt.Printf("Duration:     %s\n", result.Duration.String())
 	}
 }
