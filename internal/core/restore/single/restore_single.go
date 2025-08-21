@@ -12,7 +12,6 @@ import (
 	"strings"
 	"time"
 
-	"sfDBTools/internal/config"
 	restoreUtils "sfDBTools/internal/core/restore/utils"
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
@@ -69,27 +68,23 @@ func RestoreSingle(options restoreUtils.RestoreOptions) error {
 
 	pathNoEnc := options.File
 	if strings.HasSuffix(strings.ToLower(pathNoEnc), ".enc") {
-		cfgApp, err := config.LoadConfig()
+		// Get encryption password from user (same method as config generate and backup)
+		encryptionPassword, err := crypto.GetEncryptionPassword("Enter encryption password to decrypt backup: ")
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to get encryption password: %w", err)
 		}
 
-		lg.Debug("Loaded config for decryption",
-			logger.String("app_name", cfgApp.General.AppName),
-			logger.String("client_code", cfgApp.General.ClientCode),
-			logger.String("version", cfgApp.General.Version),
-			logger.String("author", cfgApp.General.Author))
-
-		key, err := crypto.DeriveKeyFromAppConfig(cfgApp.General.AppName, cfgApp.General.ClientCode, cfgApp.General.Version, cfgApp.General.Author)
+		// Use the same key derivation method as config generate and backup
+		key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to derive decryption key: %w", err)
 		}
 
 		lg.Debug("Derived decryption key", logger.Int("key_length", len(key)))
 
 		dr, err := crypto.NewGCMDecryptingReader(reader, key)
 		if err != nil {
-			return fmt.Errorf("failed to create decrypting reader: failed to decrypt data (key derivation or data corruption issue): %w", err)
+			return fmt.Errorf("failed to create decrypting reader: failed to decrypt data (incorrect password or data corruption): %w", err)
 		}
 		reader = io.NopCloser(dr)
 		pathNoEnc = strings.TrimSuffix(pathNoEnc, ".enc")

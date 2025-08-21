@@ -139,8 +139,24 @@ func ResolveBackupFile(cmd *cobra.Command) (string, error) {
 		return filePath, nil
 	}
 
+	// Get backup directory from config instead of hardcoded path
+	cfg, err := config.Get()
+	if err != nil {
+		// Fallback to default directory if config fails
+		selectedFile, err := SelectBackupFileInteractive("./backup")
+		if err != nil {
+			return "", fmt.Errorf("failed to select backup file: %w", err)
+		}
+		return selectedFile, nil
+	}
+
+	backupDir := cfg.Backup.OutputDir
+	if backupDir == "" {
+		backupDir = "./backup" // fallback default
+	}
+
 	// Show available backup files and let user choose
-	selectedFile, err := SelectBackupFileInteractive("./backup")
+	selectedFile, err := SelectBackupFileInteractive(backupDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to select backup file: %w", err)
 	}
@@ -164,8 +180,24 @@ func ResolveGrantsFile(cmd *cobra.Command) (string, error) {
 		return filePath, nil
 	}
 
+	// Get backup directory from config instead of hardcoded path
+	cfg, err := config.Get()
+	if err != nil {
+		// Fallback to default directory if config fails
+		selectedFile, err := SelectGrantsFileInteractive("./backup")
+		if err != nil {
+			return "", fmt.Errorf("failed to select grants file: %w", err)
+		}
+		return selectedFile, nil
+	}
+
+	backupDir := cfg.Backup.OutputDir
+	if backupDir == "" {
+		backupDir = "./backup" // fallback default
+	}
+
 	// Show available grants files and let user choose (look in grants directories specifically)
-	selectedFile, err := SelectGrantsFileInteractive("./backup")
+	selectedFile, err := SelectGrantsFileInteractive(backupDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to select grants file: %w", err)
 	}

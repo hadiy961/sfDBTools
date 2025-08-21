@@ -28,7 +28,7 @@ func AddCommonBackupFlags(cmd *cobra.Command) {
 	cmd.Flags().String("compression-level", defaultCompressionLevel, "compression level (best_speed, fast, default, better, best)")
 	cmd.Flags().String("output-dir", defaultOutputDir, "output directory")
 	cmd.Flags().Bool("data", defaultIncludeData, "include data in backup")
-	cmd.Flags().Bool("encrypt", defaultEncrypt, "encrypt output")
+	cmd.Flags().Bool("encrypt", defaultEncrypt, "encrypt output (will prompt for encryption password)")
 }
 
 // ParseBackupOptionsFromFlags parses backup options from command flags.

@@ -23,9 +23,15 @@ Features:
 - Flexible system database inclusion/exclusion
 - User grants backup in separate file (uses SHOW GRANTS method)
 - GTID information capture for replication
-- Compression and encryption support
+- Compression and encryption support (uses same password as config encryption)
 - Proper database separation with comments
-- Metadata generation with backup details`,
+- Metadata generation with backup details
+
+Encryption:
+- When --encrypt is enabled, you will be prompted for an encryption password
+- Use the same password as your encrypted configuration files (.cnf.enc)
+- You can set the SFDB_ENCRYPTION_PASSWORD environment variable to avoid prompts
+- This ensures consistency between config and backup encryption`,
 
 	Example: `# Backup all user databases (exclude system databases - default)
 sfDBTools backup all --source_host localhost --source_user root

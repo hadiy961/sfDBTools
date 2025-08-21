@@ -15,7 +15,13 @@ import (
 var AllRestoreCMD = &cobra.Command{
 	Use:   "all",
 	Short: "Restore all databases from backup files",
-	Long:  `This command allows you to restore all databases from their respective backup files with various options for database connection and validation.`,
+	Long: `This command allows you to restore all databases from their respective backup files with various options for database connection and validation.
+
+Encrypted Backup Support:
+- For encrypted backup files (.enc extension), you will be prompted for the encryption password
+- Use the same password that was used during backup creation
+- You can set the SFDB_ENCRYPTION_PASSWORD environment variable to avoid prompts
+- The encryption method is consistent with config file encryption`,
 	Example: `sfDBTools restore all --config ./config/mydb.cnf.enc --file ./backup/database_backup.sql.gz
 sfDBTools restore all --target_db my_database --target_host localhost --target_port 3306 --target_user root --target_password my_password --file ./backup/database_backup.sql.gz
 sfDBTools restore all --target_host localhost --target_user root --file ./backup/database_backup.sql.gz  # Will prompt for database selection

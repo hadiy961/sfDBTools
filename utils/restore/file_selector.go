@@ -202,13 +202,18 @@ func SelectBackupFileInteractive(baseDir string) (string, error) {
 	fmt.Println("📁 Available Backup Files:")
 	fmt.Println("===========================")
 	for i, file := range allFiles {
-		relPath, _ := filepath.Rel(".", file.Path)
+		relPath, err := filepath.Rel(".", file.Path)
+		if err != nil {
+			relPath = file.Path // fallback to absolute path if relative fails
+		}
 		sizeStr := formatFileSize(file.Size)
 		timeStr := file.ModTime.Format("2006-01-02 15:04")
 
-		fmt.Printf("   %d. %s\n", i+1, relPath)
+		fmt.Printf("   %d. %s\n", i+1, file.Name)
+		fmt.Printf("      Path: %s\n", relPath)
 		fmt.Printf("      Database: %s | Size: %s | Date: %s\n",
 			file.DatabaseName, sizeStr, timeStr)
+		fmt.Println()
 	}
 
 	// Let user choose
@@ -239,6 +244,9 @@ func SelectGrantsFileInteractive(baseDir string) (string, error) {
 	}
 
 	if len(allFiles) == 0 {
+		fmt.Println("❌ No grants backup files found.")
+		fmt.Printf("   Searched in: %s (looking for 'grants' and 'user_grants' subdirectories)\n", baseDir)
+		fmt.Println("   Use --file flag to specify grants file path manually.")
 		return "", fmt.Errorf("no grants backup files found in %s", baseDir)
 	}
 
@@ -248,13 +256,18 @@ func SelectGrantsFileInteractive(baseDir string) (string, error) {
 	fmt.Println("📁 Available Grants Backup Files:")
 	fmt.Println("==================================")
 	for i, file := range allFiles {
-		relPath, _ := filepath.Rel(".", file.Path)
+		relPath, err := filepath.Rel(".", file.Path)
+		if err != nil {
+			relPath = file.Path // fallback to absolute path if relative fails
+		}
 		sizeStr := formatFileSize(file.Size)
 		timeStr := file.ModTime.Format("2006-01-02 15:04")
 
-		fmt.Printf("   %d. %s\n", i+1, relPath)
+		fmt.Printf("   %d. %s\n", i+1, file.Name)
+		fmt.Printf("      Path: %s\n", relPath)
 		fmt.Printf("      Type: %s | Size: %s | Date: %s\n",
 			file.DatabaseName, sizeStr, timeStr)
+		fmt.Println()
 	}
 
 	// Let user choose
@@ -299,7 +312,7 @@ func FindGrantsFiles(dir string) ([]BackupFileInfo, error) {
 
 		// Only look in grants directories and check if file has grants-related name
 		dirName := filepath.Base(filepath.Dir(path))
-		if dirName != "grants" {
+		if dirName != "grants" && dirName != "user_grants" {
 			return nil
 		}
 
