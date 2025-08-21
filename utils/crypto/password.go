@@ -70,21 +70,17 @@ func ConfirmEncryptionPassword(promptMessage string) (string, error) {
 	return password1, nil
 }
 
-// DeriveKeyWithPassword derives an encryption key using both app config and user password
-func DeriveKeyWithPassword(appName, clientCode, version, author, userPassword string) ([]byte, error) {
-	// Combine app config values
-	appConfigString := appName + clientCode + version + author
+// DeriveKeyWithPassword derives an encryption key using only user password
+func DeriveKeyWithPassword(userPassword string) ([]byte, error) {
+	// Use only the user password for key derivation
+	password := []byte(userPassword)
 
-	// Create combined password using both app config and user password
-	combinedPassword := []byte(appConfigString + ":" + userPassword)
-
-	// Generate salt for key derivation (use a fixed salt for consistency across runs)
-	saltString := fmt.Sprintf("%s_%s_salt_v2", appName, clientCode)
-	salt := []byte(saltString)
+	// Generate a standard salt for consistency across runs
+	salt := []byte("sfdb_encryption_salt_v3")
 
 	// Derive encryption key
 	key := DeriveKeyFromPassword(
-		combinedPassword,
+		password,
 		salt,
 		32, // AES-256 key length
 		DefaultIterations,
@@ -94,8 +90,8 @@ func DeriveKeyWithPassword(appName, clientCode, version, author, userPassword st
 }
 
 // ValidatePassword checks if a password can successfully decrypt a test piece of data
-func ValidatePassword(encryptedData []byte, appName, clientCode, version, author, userPassword string) error {
-	key, err := DeriveKeyWithPassword(appName, clientCode, version, author, userPassword)
+func ValidatePassword(encryptedData []byte, userPassword string) error {
+	key, err := DeriveKeyWithPassword(userPassword)
 	if err != nil {
 		return fmt.Errorf("failed to derive key: %w", err)
 	}

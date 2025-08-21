@@ -201,20 +201,8 @@ func editSpecificConfig(filePath string) error {
 }
 
 func saveUpdatedConfig(originalPath, currentName, newName string, dbConfig *config.EncryptedDatabaseConfig, encryptionPassword string) error {
-	// Load app config for encryption
-	cfg, err := config.Get()
-	if err != nil {
-		return fmt.Errorf("failed to load app configuration: %w", err)
-	}
-
-	// Generate encryption key
-	key, err := crypto.DeriveKeyWithPassword(
-		cfg.General.AppName,
-		cfg.General.ClientCode,
-		cfg.General.Version,
-		cfg.General.Author,
-		encryptionPassword,
-	)
+	// Generate encryption key from user password only
+	key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 	if err != nil {
 		return fmt.Errorf("failed to derive encryption key: %w", err)
 	}

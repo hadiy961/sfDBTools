@@ -91,16 +91,6 @@ func displayConfiguration(filePath string, dbConfig *config.EncryptedDatabaseCon
 	fmt.Printf("   Port: %d\n", dbConfig.Port)
 	fmt.Printf("   User: %s\n", dbConfig.User)
 	fmt.Printf("   Password: %s\n", dbConfig.Password)
-
-	fmt.Println("\n🔐 Encryption Details:")
-	// Load general config to show encryption parameters
-	cfg, err := config.Get()
-	if err == nil {
-		fmt.Printf("   App Name: %s\n", cfg.General.AppName)
-		fmt.Printf("   Client Code: %s\n", cfg.General.ClientCode)
-		fmt.Printf("   Version: %s\n", cfg.General.Version)
-		fmt.Printf("   Author: %s\n", cfg.General.Author)
-	}
 }
 
 func init() {

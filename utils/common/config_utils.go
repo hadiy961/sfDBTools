@@ -75,14 +75,8 @@ func SelectConfigFileInteractive() (string, error) {
 
 // LoadEncryptedConfigFromFile loads and decrypts config from a specific file
 func LoadEncryptedConfigFromFile(filePath, encryptionPassword string) (*config.EncryptedDatabaseConfig, error) {
-	// Load main config to get app settings
-	cfg, err := config.Get()
-	if err != nil {
-		return nil, fmt.Errorf("failed to load main configuration: %w", err)
-	}
-
 	// Use the function from internal/config package
-	return config.LoadEncryptedDatabaseConfigFromFile(filePath, cfg, encryptionPassword)
+	return config.LoadEncryptedDatabaseConfigFromFile(filePath, encryptionPassword)
 }
 
 // GetDatabaseConfigFromEncrypted gets database configuration from encrypted file

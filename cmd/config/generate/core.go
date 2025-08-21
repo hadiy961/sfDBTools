@@ -21,12 +21,6 @@ func GenerateEncryptedConfig(cmd *cobra.Command, configName, dbHost string, dbPo
 		return fmt.Errorf("failed to get logger: %w", err)
 	}
 
-	// Load current config to get general settings
-	cfg, err := config.Get()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
-
 	lg.Info("Starting encrypted database configuration generation")
 
 	// Check if we should use automated mode (based on --auto flag and availability of required parameters)
@@ -104,14 +98,8 @@ func GenerateEncryptedConfig(cmd *cobra.Command, configName, dbHost string, dbPo
 		}
 	}
 
-	// Generate encryption key from app config and user password
-	key, err := crypto.DeriveKeyWithPassword(
-		cfg.General.AppName,
-		cfg.General.ClientCode,
-		cfg.General.Version,
-		cfg.General.Author,
-		finalEncryptionPassword,
-	)
+	// Generate encryption key from user password only
+	key, err := crypto.DeriveKeyWithPassword(finalEncryptionPassword)
 	if err != nil {
 		return fmt.Errorf("failed to derive encryption key: %w", err)
 	}
@@ -143,7 +131,7 @@ func GenerateEncryptedConfig(cmd *cobra.Command, configName, dbHost string, dbPo
 		logger.String("file", encryptedConfigPath))
 
 	fmt.Printf("✅ Encrypted database configuration saved to: %s\n", encryptedConfigPath)
-	fmt.Println("🔐 Configuration encrypted using application settings + encryption password")
+	fmt.Println("🔐 Configuration encrypted using encryption password")
 
 	return nil
 }
