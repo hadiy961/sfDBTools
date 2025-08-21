@@ -76,9 +76,8 @@ type ConfigDirConfig struct {
 }
 
 type MariaDBConfig struct {
-	DefaultVersion    string               `mapstructure:"default_version"`
-	AvailableVersions []string             `mapstructure:"available_versions"`
-	Installation      MariaDBInstallConfig `mapstructure:"installation"`
+	DefaultVersion string               `mapstructure:"default_version"`
+	Installation   MariaDBInstallConfig `mapstructure:"installation"`
 }
 
 type MariaDBInstallConfig struct {

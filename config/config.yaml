@@ -17,27 +17,16 @@ log:
     retention_days: 7
 mysqldump:
   args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
-database:
-  host: "localhost"
-  port: 3306
-  user: "dbaDO"
-  password: "DataOn24!!"
-  dbname: "sfdbtools"
 backup:
-  output_dir: "./backup"
+  output_dir: "/media/ArchiveDB"
   compress: true
-  compression: "pgzip"
-  compression_level: "fast"
+  compression: "gzip"
+  compression_level: "best"
   include_data: true
   encrypt: true
   verify_disk: true
   retention_days: 1
   calculate_checksum: true
-  include_dmart: false
-  include_archive: false
-  include_temp: false
-  progress: false
-  system_user: false
 
 system_users:
   users:
@@ -54,15 +43,7 @@ config_dir:
 # MariaDB Installation Configuration
 mariadb:
   # Default installation settings
-  default_version: "10.6"
-  available_versions:
-    - "10.5"
-    - "10.6" 
-    - "10.11"
-    - "11.0"
-    - "11.1"
-    - "11.2"
-    - "11.4"
+  default_version: "10.6.23"
   
   # Default directory configuration
   installation:

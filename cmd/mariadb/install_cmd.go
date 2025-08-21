@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sfDBTools/internal/config"
 	"sfDBTools/internal/core/mariadb"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
@@ -207,8 +208,14 @@ func executeInstall(cmd *cobra.Command) error {
 }
 
 func init() {
-	// Use a static default version to avoid network calls during app startup
+	// Prefer default version from application config; fallback to static value
 	defaultVersion := "10.6.23"
+
+	if cfg, err := config.Get(); err == nil && cfg != nil {
+		if v := cfg.MariaDB.DefaultVersion; v != "" {
+			defaultVersion = v
+		}
+	}
 
 	InstallCmd.Flags().String("version", defaultVersion, "MariaDB version to install")
 	InstallCmd.Flags().Int("port", 3306, "MariaDB port number")
