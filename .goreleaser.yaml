@@ -33,11 +33,6 @@ archives:
       - README.md
       - SETUP_SUMMARY.md
       - "config/config.yaml"
-      - "config/config.example.yaml"
-      - "config/key_maria_nbc.txt"
-      - "config/server.cnf"
-      - "config/db_config/**"
-      - "config/db_list/**"
 
 checksum:
   name_template: "checksums_{{ .Version }}.txt"
