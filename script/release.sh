@@ -1,7 +1,7 @@
 #!/bin/bash
 
 VERSION=${1:-"latest"}
-PLATFORMS="linux/amd64 windows/amd64 darwin/amd64"
+PLATFORMS="linux/amd64 darwin/amd64"
 
 echo "Building sfDBTools version: $VERSION"
 
