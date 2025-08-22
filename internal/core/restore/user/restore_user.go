@@ -70,28 +70,76 @@ func RestoreUserGrants(options restore_utils.RestoreUserOptions) error {
 
 	// Handle decryption if file is encrypted
 	if strings.HasSuffix(strings.ToLower(pathNoEnc), ".enc") {
-		cfgApp, err := config.LoadConfig()
+		var dr io.Reader
+		var decryptionSuccessful bool
+
+		// Try new encryption method first (user password based)
+		lg.Debug("Attempting decryption with new method (user password based)")
+		encryptionPassword, err := crypto.GetEncryptionPassword("Enter encryption password for grants file: ")
 		if err != nil {
-			return fmt.Errorf("failed to load config for decryption: %w", err)
+			lg.Debug("Failed to get encryption password", logger.Error(err))
+		} else {
+			key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
+			if err != nil {
+				lg.Debug("Failed to derive key from password", logger.Error(err))
+			} else {
+				lg.Debug("Attempting decryption with user password", logger.Int("key_length", len(key)))
+
+				// Try to decrypt with user password
+				testReader, err := crypto.NewGCMDecryptingReader(reader, key)
+				if err == nil {
+					dr = testReader
+					decryptionSuccessful = true
+					lg.Info("Successfully decrypted using new encryption method (user password)")
+				} else {
+					lg.Debug("New encryption method failed", logger.Error(err))
+				}
+			}
 		}
 
-		lg.Debug("Loaded config for decryption",
-			logger.String("app_name", cfgApp.General.AppName),
-			logger.String("client_code", cfgApp.General.ClientCode),
-			logger.String("version", cfgApp.General.Version),
-			logger.String("author", cfgApp.General.Author))
+		// If new method failed, try old encryption method (app config based)
+		if !decryptionSuccessful {
+			lg.Debug("Attempting decryption with old method (app config based)")
 
-		key, err := crypto.DeriveKeyFromAppConfig(cfgApp.General.AppName, cfgApp.General.ClientCode, cfgApp.General.Version, cfgApp.General.Author)
-		if err != nil {
-			return fmt.Errorf("failed to derive decryption key: %w", err)
+			// Reset reader to beginning of file
+			file.Close()
+			file, err = os.Open(options.File)
+			if err != nil {
+				return fmt.Errorf("failed to reopen grants file: %w", err)
+			}
+			reader = file
+
+			cfgApp, err := config.LoadConfig()
+			if err != nil {
+				return fmt.Errorf("failed to load config for decryption: %w", err)
+			}
+
+			lg.Debug("Loaded config for decryption",
+				logger.String("app_name", cfgApp.General.AppName),
+				logger.String("client_code", cfgApp.General.ClientCode),
+				logger.String("version", cfgApp.General.Version),
+				logger.String("author", cfgApp.General.Author))
+
+			key, err := crypto.DeriveKeyFromAppConfig(cfgApp.General.AppName, cfgApp.General.ClientCode, cfgApp.General.Version, cfgApp.General.Author)
+			if err != nil {
+				return fmt.Errorf("failed to derive decryption key: %w", err)
+			}
+
+			lg.Debug("Derived decryption key", logger.Int("key_length", len(key)))
+
+			testReader, err := crypto.NewGCMDecryptingReader(reader, key)
+			if err != nil {
+				return fmt.Errorf("failed to decrypt with both new and old encryption methods: %w", err)
+			}
+			dr = testReader
+			decryptionSuccessful = true
+			lg.Info("Successfully decrypted using old encryption method (app config)")
 		}
 
-		lg.Debug("Derived decryption key", logger.Int("key_length", len(key)))
-
-		dr, err := crypto.NewGCMDecryptingReader(reader, key)
-		if err != nil {
-			return fmt.Errorf("failed to create decrypting reader: failed to decrypt data (key derivation or data corruption issue): %w", err)
+		if !decryptionSuccessful {
+			return fmt.Errorf("failed to decrypt grants file with any available method")
 		}
+
 		reader = io.NopCloser(dr)
 		pathNoEnc = strings.TrimSuffix(pathNoEnc, ".enc")
 	}
