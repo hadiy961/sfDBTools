@@ -21,11 +21,6 @@ const (
 	SourceInteractive
 )
 
-// DatabaseConnectionResolver handles resolving database connection configuration
-type DatabaseConnectionResolver struct {
-	source ConfigurationSource
-}
-
 // ResolveDatabaseConnection resolves database connection from various sources
 func ResolveDatabaseConnection(cmd *cobra.Command) (host string, port int, user, password string, source ConfigurationSource, err error) {
 	// Check if --config flag is provided
