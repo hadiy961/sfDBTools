@@ -18,13 +18,13 @@ func loadViper() (*viper.Viper, error) {
 
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
-	
+
 	// Add multiple config paths
-	v.AddConfigPath("./config")          // default path: ./config/config.yaml
-	v.AddConfigPath("./")                // current directory
-	v.AddConfigPath("/etc/sfdbtools")    // system-wide config (for root)
+	v.AddConfigPath("./config")                // default path: ./config/config.yaml
+	v.AddConfigPath("./")                      // current directory
+	v.AddConfigPath("/etc/sfdbtools")          // system-wide config (for root)
 	v.AddConfigPath("$HOME/.config/sfdbtools") // user config
-	
+
 	// Default values (opsional)
 	v.SetDefault("log.level", "info")
 	v.SetDefault("log.format", "text")
