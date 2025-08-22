@@ -93,9 +93,15 @@ get_latest_release() {
     local latest_url="https://api.github.com/repos/$REPO/releases/latest"
     local release_info
     
+    log_info "Fetching from: $latest_url"
     release_info=$(curl -s "$latest_url")
     if [[ $? -ne 0 ]]; then
         log_error "Failed to fetch release information"
+        exit 1
+    fi
+    
+    if [[ -z "$release_info" ]]; then
+        log_error "Empty response from GitHub API"
         exit 1
     fi
     
