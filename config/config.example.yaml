@@ -8,7 +8,7 @@ general:
 log:
   level: "info"
   format: "text"
-  timezone: "Asia/Jakarta"
+  timezone: "UTC"
   output:
     console: true
     file: true

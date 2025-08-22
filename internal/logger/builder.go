@@ -13,6 +13,13 @@ import (
 
 // buildLogger membuat dan mengkonfigurasi instance Logger dari konfigurasi yang diberikan
 func buildLogger(cfg *model.Config) (*Logger, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			// If buildLogger panics, return a nop logger
+			panic(fmt.Errorf("buildLogger panicked: %v", r))
+		}
+	}()
+	
 	c := cfg.Log
 	level := parseLevel(c.Level)
 	// Buat encoder berdasarkan konfigurasi

@@ -6,7 +6,7 @@ general:
 log:
   level: "debug"
   format: "text"
-  timezone: "Asia/Jakarta"
+  timezone: "UTC"
   output:
     console: true
     file: true

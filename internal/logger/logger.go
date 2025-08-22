@@ -1,6 +1,7 @@
 package logger
 
 import (
+	"fmt"
 	"sync"
 
 	"sfDBTools/internal/config"
@@ -41,6 +42,14 @@ func (l *Logger) Sync() error                       { return l.Logger.Sync() }
 func Get() (*Logger, error) {
 	var err error
 	once.Do(func() {
+		defer func() {
+			if r := recover(); r != nil {
+				err = fmt.Errorf("logger initialization panicked: %v", r)
+				// Create a minimal logger as fallback
+				lg = &Logger{zap.NewNop()}
+			}
+		}()
+		
 		var cfg *model.Config
 		cfg, err = config.LoadConfig()
 		if err != nil {

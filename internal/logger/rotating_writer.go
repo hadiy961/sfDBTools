@@ -23,9 +23,19 @@ type rotatingFileWriter struct {
 
 // newRotatingFileWriter membuat writer log dengan kemampuan rotasi
 func newRotatingFileWriter(dir, appName, tz string, rotate bool, retention int) (*rotatingFileWriter, error) {
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return nil, err
+	// Validate timezone before proceeding
+	if tz != "" {
+		if _, err := time.LoadLocation(tz); err != nil {
+			// Log warning but continue with UTC as fallback
+			fmt.Fprintf(os.Stderr, "Warning: Invalid timezone '%s', using UTC as fallback: %v\n", tz, err)
+			tz = "UTC"
+		}
 	}
+	
+	if err := os.MkdirAll(dir, 0o755); err != nil {
+		return nil, fmt.Errorf("failed to create log directory '%s': %w", dir, err)
+	}
+	
 	w := &rotatingFileWriter{
 		dir:           dir,
 		appName:       appName,
@@ -33,19 +43,28 @@ func newRotatingFileWriter(dir, appName, tz string, rotate bool, retention int) 
 		rotateDaily:   rotate,
 		retentionDays: retention,
 	}
+	
 	if err := w.rotate(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to initialize log file: %w", err)
 	}
+	
 	w.cleanup()
 	return w, nil
 }
 
 // now mengembalikan waktu saat ini dalam timezone yang dikonfigurasi
 func (w *rotatingFileWriter) now() time.Time {
+	// Handle empty or invalid timezone gracefully
+	if w.timezone == "" {
+		return time.Now()
+	}
+	
 	if loc, err := time.LoadLocation(w.timezone); err == nil {
 		return time.Now().In(loc)
 	}
-	return time.Now()
+	
+	// Fallback to UTC if timezone is invalid
+	return time.Now().UTC()
 }
 
 // filename mengembalikan nama file berdasarkan tanggal jika rotasi diaktifkan
