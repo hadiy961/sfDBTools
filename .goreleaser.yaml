@@ -38,8 +38,6 @@ archives:
       - "config/server.cnf"
       - "config/db_config/**"
       - "config/db_list/**"
-    replacements:
-      linux: linux
 
 checksum:
   name_template: "checksums_{{ .Version }}.txt"

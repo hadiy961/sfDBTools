@@ -1,12 +1,3 @@
-# Log & output runtime
-logs/
-*.log
-
-# Direktori backup keseluruhan
-# backup/
-config/db_list
-config/db_config
-
 # Jika ingin lebih spesifik (opsional):
 backup/**/*.sql
 backup/**/*.gz
@@ -47,4 +38,4 @@ coverage.out
 *.cover
 
 # GoReleaser
-.goreleaser.yaml
+# .goreleaser.yaml

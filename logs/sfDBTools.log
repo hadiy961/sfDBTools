@@ -1555,3 +1555,23 @@
 [2025-08-22 15:34:52] [INFO] [config/config_show.go:43] - Showing database configuration
 [2025-08-22 08:38:20] [INFO] [config/config_show.go:43] - Showing database configuration
 [2025-08-22 08:44:11] [INFO] [config/config_show.go:43] - Showing database configuration
+[2025-08-22 09:18:27] [INFO] [config/config_validate.go:47] - Starting database configuration validation
+[2025-08-22 09:18:38] [ERROR] [config/config_validate.go:28] - Failed to validate config {"error": "invalid selection: "}
+[2025-08-22 09:18:39] [INFO] [mariadb/versions.go:73] - Checking internet connectivity for MariaDB operations
+[2025-08-22 09:18:39] [INFO] [common/network.go:232] - Checking internet connectivity {"operation": "MariaDB operations"}
+[2025-08-22 09:18:39] [DEBUG] [common/network.go:208] - Starting MariaDB-specific connectivity check
+[2025-08-22 09:18:39] [DEBUG] [common/network.go:84] - Testing DNS resolution {"domain": "google.com"}
+[2025-08-22 09:18:39] [DEBUG] [common/network.go:88] - DNS resolution successful {"domain": "google.com"}
+[2025-08-22 09:18:39] [DEBUG] [common/network.go:215] - DNS resolution successful for MariaDB operations
+[2025-08-22 09:18:39] [DEBUG] [common/network.go:115] - Testing HTTP connectivity {"endpoint": "https://downloads.mariadb.org"}
+[2025-08-22 09:18:41] [DEBUG] [common/network.go:134] - HTTP connectivity successful {"endpoint": "https://downloads.mariadb.org", "status_code": 200}
+[2025-08-22 09:18:41] [DEBUG] [common/network.go:222] - HTTP connectivity successful for MariaDB operations
+[2025-08-22 09:18:41] [INFO] [common/network.go:224] - MariaDB connectivity verified
+[2025-08-22 09:18:41] [INFO] [common/network.go:241] - Internet connectivity verified {"operation": "MariaDB operations"}
+[2025-08-22 09:18:43] [INFO] [mariadb/versions.go:175] - Successfully fetched versions from API {"count": 54}
+[2025-08-22 09:18:43] [INFO] [mariadb/versions.go:97] - Fetched MariaDB versions from API {"total_versions": 54}
+[2025-08-22 09:18:43] [DEBUG] [mariadb/os.go:30] - OS detected {"id": "centos", "version": "9"}
+[2025-08-22 09:18:43] [DEBUG] [mariadb/versions.go:65] - Using cached MariaDB versions {"source": "api", "last_updated": "2025-08-22 09:18:43"}
+[2025-08-22 09:18:43] [DEBUG] [mariadb/versions.go:619] - Getting recommended version for OS {"os": "centos", "version": "9"}
+[2025-08-22 09:18:43] [DEBUG] [mariadb/versions.go:626] - Selected latest stable version {"version": "12.0.0"}
+[2025-08-22 09:18:43] [DEBUG] [mariadb/os.go:30] - OS detected {"id": "centos", "version": "9"}

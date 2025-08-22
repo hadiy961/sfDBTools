@@ -1,222 +1,334 @@
 #!/bin/bash
 
-# Client Setup Script for sfDBTools
-# This script helps new users set up sfDBTools after installation
+# sfDBTools Setup Script
+# This script helps configure sfDBTools after installation
 
-set -e
+set -e  # Exit on any error
 
-# Colors
+# Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
-NC='\033[0m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
 
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+# Configuration
+BINARY_NAME="sfdbtools"
+CONFIG_DIR="/etc/sfdbtools"
+LOG_DIR="/var/log/sfdbtools"
+USER_CONFIG_DIR="$HOME/.config/sfdbtools"
+USER_LOG_DIR="$HOME/.local/share/sfdbtools/logs"
+
+# Functions
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-log_error() {
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-log_step() {
-    echo -e "${BLUE}[STEP]${NC} $1"
+print_step() {
+    echo -e "${CYAN}[STEP]${NC} $1"
 }
 
-# Check if sfdbtools is installed
+# Check if sfDBTools is installed
 check_installation() {
-    if ! command -v sfdbtools >/dev/null 2>&1; then
-        log_error "sfdbtools is not installed or not in PATH"
-        log_info "Please install sfdbtools first:"
-        log_info "  curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/sfDBTools/main/install.sh | bash"
+    if ! command -v "$BINARY_NAME" >/dev/null 2>&1; then
+        print_error "sfDBTools is not installed or not in PATH."
+        print_info "Please run './install.sh' first to install sfDBTools."
         exit 1
     fi
     
-    log_info "sfdbtools found: $(which sfdbtools)"
-    log_info "Version: $(sfdbtools --version 2>/dev/null || sfdbtools version 2>/dev/null || echo 'Version unknown')"
+    local version_output
+    version_output=$("$BINARY_NAME" --version 2>/dev/null || echo "Version check failed")
+    print_success "sfDBTools found: $version_output"
 }
 
-# Check prerequisites
-check_prerequisites() {
-    log_step "Checking prerequisites..."
-    
-    local missing=()
-    
-    # Check for MariaDB/MySQL client
-    if ! command -v mysql >/dev/null 2>&1 && ! command -v mariadb >/dev/null 2>&1; then
-        missing+=("mysql-client or mariadb-client")
-    fi
-    
-    # Check for rsync
-    if ! command -v rsync >/dev/null 2>&1; then
-        missing+=("rsync")
-    fi
-    
-    # Check for systemctl (for service management)
-    if ! command -v systemctl >/dev/null 2>&1; then
-        log_warn "systemctl not found - some service management features may not work"
-    fi
-    
-    if [[ ${#missing[@]} -gt 0 ]]; then
-        log_error "Missing prerequisites: ${missing[*]}"
-        log_info "Install them with:"
-        log_info "  sudo apt update"
-        log_info "  sudo apt install mysql-client rsync"
-        log_info "  # or for MariaDB:"
-        log_info "  sudo apt install mariadb-client rsync"
-        exit 1
-    fi
-    
-    log_info "All prerequisites are installed"
-}
-
-# Create config directory
-setup_config_directory() {
-    log_step "Setting up configuration directory..."
-    
-    local config_dir="$HOME/.config/sfdbtools"
-    
-    if [[ ! -d "$config_dir" ]]; then
-        mkdir -p "$config_dir"
-        log_info "Created config directory: $config_dir"
+# Determine configuration paths
+setup_paths() {
+    if [[ $EUID -eq 0 ]]; then
+        print_info "Running as root - using system-wide configuration"
+        CONFIG_PATH="$CONFIG_DIR"
+        LOG_PATH="$LOG_DIR"
     else
-        log_info "Config directory already exists: $config_dir"
+        print_info "Running as user - using user-specific configuration"
+        CONFIG_PATH="$USER_CONFIG_DIR"
+        LOG_PATH="$USER_LOG_DIR"
     fi
     
-    # Set appropriate permissions
-    chmod 700 "$config_dir"
-    
-    echo "$config_dir"
+    # Create directories if they don't exist
+    mkdir -p "$CONFIG_PATH"
+    mkdir -p "$LOG_PATH"
 }
 
-# Generate initial config
-generate_config() {
-    local config_dir=$1
-    local config_file="$config_dir/config.yaml"
+# Check system requirements
+check_requirements() {
+    print_step "Checking system requirements..."
     
-    log_step "Generating initial configuration..."
+    local missing_tools=()
+    
+    # Check for required tools
+    if ! command -v mysql >/dev/null 2>&1 && ! command -v mariadb >/dev/null 2>&1; then
+        missing_tools+=("mysql/mariadb client")
+    fi
+    
+    if ! command -v mysqldump >/dev/null 2>&1 && ! command -v mariadb-dump >/dev/null 2>&1; then
+        missing_tools+=("mysqldump/mariadb-dump")
+    fi
+    
+    if ! command -v systemctl >/dev/null 2>&1; then
+        missing_tools+=("systemctl")
+    fi
+    
+    if ! command -v rsync >/dev/null 2>&1; then
+        missing_tools+=("rsync")
+    fi
+    
+    if [[ ${#missing_tools[@]} -gt 0 ]]; then
+        print_warning "Some optional tools are missing:"
+        for tool in "${missing_tools[@]}"; do
+            print_warning "  - $tool"
+        done
+        print_info "You can install these later if needed for specific features."
+    else
+        print_success "All system requirements are met."
+    fi
+}
+
+# Generate initial configuration
+generate_config() {
+    print_step "Setting up configuration..."
+    
+    local config_file="$CONFIG_PATH/config.yaml"
     
     if [[ -f "$config_file" ]]; then
-        log_warn "Config file already exists: $config_file"
-        read -p "Overwrite existing config? (y/N): " -n 1 -r
-        echo
+        print_warning "Configuration file already exists: $config_file"
+        read -p "Do you want to overwrite it? (y/N): " -r
         if [[ ! $REPLY =~ ^[Yy]$ ]]; then
-            log_info "Keeping existing config"
+            print_info "Keeping existing configuration."
             return
         fi
     fi
     
-    # Use sfdbtools to generate config
-    if sfdbtools config generate --output "$config_file" 2>/dev/null; then
-        log_info "Config generated successfully: $config_file"
+    # Use sfDBTools to generate configuration
+    print_info "Generating configuration file..."
+    
+    if "$BINARY_NAME" config generate --output "$config_file" 2>/dev/null; then
+        print_success "Configuration generated at: $config_file"
     else
-        log_warn "Could not generate config automatically. Creating basic template..."
+        print_warning "Could not generate config automatically. Creating basic config..."
         
-        cat > "$config_file" << 'EOF'
-# sfDBTools Configuration
-general:
-  client_code: "YOUR_CLIENT_CODE"
-  log_level: "info"
-  log_file: "sfdbtools.log"
+        # Create basic configuration
+        cat > "$config_file" << EOF
+# sfDBTools Configuration File
+# Generated by setup script
 
+general:
+  client_code: "default"
+  environment: "production"
+  log_level: "info"
+  
 database:
-  host: "localhost"
-  port: 3306
-  user: "root"
-  password: ""
+  default_host: "localhost"
+  default_port: 3306
+  default_user: "root"
+  backup_path: "/var/backups/sfdbtools"
   
 backup:
-  output_dir: "./backups"
   compression: true
   encryption: false
+  retention_days: 30
   
-restore:
-  temp_dir: "/tmp/sfdbtools_restore"
-  
-# Add more configuration as needed
+logging:
+  file_path: "$LOG_PATH/sfdbtools.log"
+  max_size: 100
+  max_backups: 5
+  max_age: 30
 EOF
-        log_info "Basic config template created: $config_file"
+        print_success "Basic configuration created at: $config_file"
+    fi
+}
+
+# Setup MariaDB/MySQL configuration
+setup_database_config() {
+    print_step "Setting up database configuration..."
+    
+    # Check if MariaDB/MySQL is running
+    if systemctl is-active --quiet mariadb || systemctl is-active --quiet mysql; then
+        print_success "Database service is running."
+        
+        # Test database connection
+        read -p "Enter database root password (press Enter if no password): " -rs db_password
+        echo
+        
+        local mysql_cmd
+        if command -v mariadb >/dev/null 2>&1; then
+            mysql_cmd="mariadb"
+        else
+            mysql_cmd="mysql"
+        fi
+        
+        if [[ -z "$db_password" ]]; then
+            if $mysql_cmd -u root -e "SELECT 1;" >/dev/null 2>&1; then
+                print_success "Database connection test successful."
+            else
+                print_warning "Could not connect to database. Please check your credentials."
+            fi
+        else
+            if $mysql_cmd -u root -p"$db_password" -e "SELECT 1;" >/dev/null 2>&1; then
+                print_success "Database connection test successful."
+            else
+                print_warning "Could not connect to database. Please check your credentials."
+            fi
+        fi
+    else
+        print_warning "Database service is not running."
+        print_info "You can start it with:"
+        print_info "  sudo systemctl start mariadb"
+        print_info "  # or"
+        print_info "  sudo systemctl start mysql"
+    fi
+}
+
+# Test sfDBTools commands
+test_commands() {
+    print_step "Testing sfDBTools functionality..."
+    
+    # Test config validation
+    if "$BINARY_NAME" config validate >/dev/null 2>&1; then
+        print_success "Configuration validation passed."
+    else
+        print_warning "Configuration validation failed. Please check your config file."
     fi
     
-    # Set appropriate permissions for config file
-    chmod 600 "$config_file"
-    log_warn "Config file permissions set to 600 (owner read/write only)"
+    # Test MariaDB commands (if available)
+    if "$BINARY_NAME" mariadb versions >/dev/null 2>&1; then
+        print_success "MariaDB commands are working."
+    else
+        print_info "MariaDB commands not available (this is normal if MariaDB is not installed)."
+    fi
 }
 
-# Show next steps
-show_next_steps() {
-    local config_dir=$1
+# Create systemd service (optional)
+create_service() {
+    if [[ $EUID -ne 0 ]]; then
+        print_info "Skipping systemd service creation (not running as root)."
+        return
+    fi
     
-    echo ""
-    log_info "🎉 Setup completed successfully!"
-    echo ""
-    log_info "Next steps:"
-    echo "  1. Edit your configuration:"
-    echo "     nano $config_dir/config.yaml"
-    echo ""
-    echo "  2. Validate your configuration:"
-    echo "     sfdbtools config validate"
-    echo ""
-    echo "  3. Test database connection:"
-    echo "     sfdbtools database test"
-    echo ""
-    echo "  4. View available commands:"
-    echo "     sfdbtools --help"
-    echo ""
-    echo "  5. Common operations:"
-    echo "     sfdbtools backup --help"
-    echo "     sfdbtools restore --help"
-    echo "     sfdbtools mariadb --help"
-    echo ""
-    log_info "Configuration file: $config_dir/config.yaml"
-    log_info "Log file location will be shown in config or set via --log-file flag"
-    echo ""
+    print_step "Creating systemd service (optional)..."
+    
+    read -p "Do you want to create a systemd service for sfDBTools? (y/N): " -r
+    if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+        print_info "Skipping systemd service creation."
+        return
+    fi
+    
+    local service_file="/etc/systemd/system/sfdbtools.service"
+    
+    cat > "$service_file" << EOF
+[Unit]
+Description=sfDBTools Database Management Service
+After=network.target mariadb.service mysql.service
+Wants=mariadb.service mysql.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/usr/local/bin/sfdbtools backup all
+RemainAfterExit=no
+StandardOutput=journal
+StandardError=journal
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    # Create timer for regular backups
+    local timer_file="/etc/systemd/system/sfdbtools.timer"
+    
+    cat > "$timer_file" << EOF
+[Unit]
+Description=Run sfDBTools backup daily
+Requires=sfdbtools.service
+
+[Timer]
+OnCalendar=daily
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+    
+    systemctl daemon-reload
+    print_success "Systemd service and timer created."
+    print_info "To enable daily backups, run:"
+    print_info "  sudo systemctl enable --now sfdbtools.timer"
 }
 
-# Show troubleshooting info
-show_troubleshooting() {
-    echo ""
-    log_info "Troubleshooting:"
-    echo "  • If commands fail, check the configuration file"
-    echo "  • Ensure database credentials are correct"
-    echo "  • Check log files for detailed error messages"
-    echo "  • Use --verbose flag for more output"
-    echo ""
-    echo "  Common issues:"
-    echo "    - Permission denied: Check file/directory permissions"
-    echo "    - Connection failed: Verify database host/port/credentials"
-    echo "    - Command not found: Ensure sfdbtools is in PATH"
-    echo ""
-    echo "  Support:"
-    echo "    - Documentation: https://github.com/YOURUSERNAME/sfDBTools"
-    echo "    - Issues: https://github.com/YOURUSERNAME/sfDBTools/issues"
-    echo ""
+# Display next steps
+show_next_steps() {
+    echo -e "${GREEN}"
+    echo "=================================="
+    echo "      Setup Complete!"
+    echo "=================================="
+    echo -e "${NC}"
+    
+    print_info "Configuration location: $CONFIG_PATH/config.yaml"
+    print_info "Log location: $LOG_PATH/"
+    
+    echo -e "${CYAN}"
+    echo "Next steps:"
+    echo "1. Edit the configuration file to match your environment"
+    echo "2. Test the installation with: sfdbtools --help"
+    echo "3. Run a test backup: sfdbtools backup --help"
+    echo "4. Check the documentation for more advanced usage"
+    echo -e "${NC}"
+    
+    print_info "Common commands:"
+    print_info "  sfdbtools config show          - Show current configuration"
+    print_info "  sfdbtools config validate      - Validate configuration"
+    print_info "  sfdbtools mariadb install      - Install MariaDB"
+    print_info "  sfdbtools mariadb configure    - Configure MariaDB"
+    print_info "  sfdbtools backup user <name>   - Backup user databases"
+    print_info "  sfdbtools restore user <name>  - Restore user databases"
+    
+    if [[ $EUID -eq 0 ]]; then
+        print_info ""
+        print_info "System service commands:"
+        print_info "  systemctl enable sfdbtools.timer  - Enable daily backups"
+        print_info "  systemctl start sfdbtools.timer   - Start backup scheduler"
+        print_info "  systemctl status sfdbtools.timer  - Check backup status"
+    fi
 }
 
-# Main function
+# Main setup process
 main() {
-    log_info "sfDBTools Client Setup"
-    log_info "====================="
-    echo ""
+    echo -e "${BLUE}"
+    echo "=================================="
+    echo "      sfDBTools Setup"
+    echo "=================================="
+    echo -e "${NC}"
     
     check_installation
-    check_prerequisites
-    
-    local config_dir
-    config_dir=$(setup_config_directory)
-    
-    generate_config "$config_dir"
-    
-    show_next_steps "$config_dir"
-    show_troubleshooting
+    setup_paths
+    check_requirements
+    generate_config
+    setup_database_config
+    test_commands
+    create_service
+    show_next_steps
 }
 
-# Run setup if script is executed directly
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-    main "$@"
-fi
+# Run main function
+main "$@"

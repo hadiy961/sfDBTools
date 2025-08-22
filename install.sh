@@ -1,429 +1,231 @@
 #!/bin/bash
 
-# sfDBTools Auto Installer for Linux
-# This script downloads and installs the latest release of sfDBTools
+# sfDBTools Installation Script
+# This script automatically downloads and installs the latest version of sfDBTools
 
-set -e
+set -e  # Exit on any error
 
 # Colors for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="hadiy961/sfDBTools"  # GitHub repository
+REPO_OWNER="hadiy961"
+REPO_NAME="sfDBTools"
+BINARY_NAME="sfDBTools"
 INSTALL_DIR="/usr/local/bin"
-BINARY_NAME="sfdbtools"
+CONFIG_DIR="/etc/sfdbtools"
+LOG_DIR="/var/log/sfdbtools"
 
 # Functions
-log_info() {
-    echo -e "${GREEN}[INFO]${NC} $1"
+print_info() {
+    echo -e "${BLUE}[INFO]${NC} $1"
 }
 
-log_warn() {
-    echo -e "${YELLOW}[WARN]${NC} $1"
+print_success() {
+    echo -e "${GREEN}[SUCCESS]${NC} $1"
 }
 
-log_error() {
+print_warning() {
+    echo -e "${YELLOW}[WARNING]${NC} $1"
+}
+
+print_error() {
     echo -e "${RED}[ERROR]${NC} $1"
 }
 
-# Detect architecture
+# Check if running as root
+check_root() {
+    if [[ $EUID -eq 0 ]]; then
+        print_warning "Running as root. Installation will be system-wide."
+        INSTALL_DIR="/usr/local/bin"
+        CONFIG_DIR="/etc/sfdbtools"
+    else
+        print_info "Running as regular user. Installing to user directory."
+        INSTALL_DIR="$HOME/.local/bin"
+        CONFIG_DIR="$HOME/.config/sfdbtools"
+        LOG_DIR="$HOME/.local/share/sfdbtools/logs"
+        
+        # Create user bin directory if it doesn't exist
+        mkdir -p "$INSTALL_DIR"
+        
+        # Add to PATH if not already there
+        if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
+            echo "export PATH=\"$INSTALL_DIR:\$PATH\"" >> "$HOME/.bashrc"
+            print_warning "Added $INSTALL_DIR to PATH. Please run 'source ~/.bashrc' or restart your terminal."
+        fi
+    fi
+}
+
+# Detect system architecture
 detect_arch() {
     local arch
     arch=$(uname -m)
     case $arch in
         x86_64)
-            echo "amd64"
+            ARCH="amd64"
             ;;
         aarch64|arm64)
-            echo "arm64"
+            ARCH="arm64"
             ;;
         *)
-            log_error "Unsupported architecture: $arch"
+            print_error "Unsupported architecture: $arch"
+            print_error "Supported architectures: x86_64 (amd64), aarch64/arm64"
             exit 1
             ;;
     esac
+    print_info "Detected architecture: $ARCH"
 }
 
-# Detect OS
-detect_os() {
-    local os
-    os=$(uname -s | tr '[:upper:]' '[:lower:]')
-    case $os in
-        linux)
-            echo "linux"
-            ;;
-        *)
-            log_error "Unsupported OS: $os. This tool only supports Linux."
-            exit 1
-            ;;
-    esac
-}
-
-# Check if running as root for system-wide installation
-check_permissions() {
-    if [[ $EUID -eq 0 ]]; then
-        log_info "Running as root, installing system-wide to $INSTALL_DIR"
-        return 0
+# Get latest release version
+get_latest_version() {
+    print_info "Fetching latest release information..."
+    
+    if command -v curl >/dev/null 2>&1; then
+        LATEST_VERSION=$(curl -s "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
+    elif command -v wget >/dev/null 2>&1; then
+        LATEST_VERSION=$(wget -qO- "https://api.github.com/repos/$REPO_OWNER/$REPO_NAME/releases/latest" | grep '"tag_name"' | cut -d'"' -f4)
     else
-        log_warn "Not running as root. Installing to $HOME/.local/bin"
-        INSTALL_DIR="$HOME/.local/bin"
-        mkdir -p "$INSTALL_DIR"
-        
-        # Add to PATH if not already there
-        if [[ ":$PATH:" != *":$INSTALL_DIR:"* ]]; then
-            echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$HOME/.bashrc"
-            log_info "Added $INSTALL_DIR to PATH in .bashrc"
-            log_warn "Please run 'source ~/.bashrc' or restart your terminal"
-        fi
+        print_error "Neither curl nor wget is available. Please install one of them."
+        exit 1
     fi
+    
+    if [[ -z "$LATEST_VERSION" ]]; then
+        print_error "Could not fetch latest version. Please check your internet connection."
+        exit 1
+    fi
+    
+    print_info "Latest version: $LATEST_VERSION"
 }
 
-# Get latest release info
-get_latest_release() {
-    log_info "Fetching latest release information..."
-    
-    if ! command -v curl >/dev/null 2>&1; then
-        log_error "curl is required but not installed."
-        exit 1
-    fi
-    
-    local latest_url="https://api.github.com/repos/$REPO/releases/latest"
-    local release_info
-    
-    log_info "Fetching from: $latest_url"
-    release_info=$(curl -s "$latest_url")
-    if [[ $? -ne 0 ]]; then
-        log_error "Failed to fetch release information"
-        exit 1
-    fi
-    
-    if [[ -z "$release_info" ]]; then
-        log_error "Empty response from GitHub API"
-        exit 1
-    fi
-    
-    echo "$release_info"
-}
-
-# Download and install
+# Download and install binary
 install_binary() {
-    local os arch release_info download_url version
+    local download_url="https://github.com/$REPO_OWNER/$REPO_NAME/releases/download/$LATEST_VERSION/${REPO_NAME}_${LATEST_VERSION#v}_linux_${ARCH}.tar.gz"
+    local temp_dir=$(mktemp -d)
+    local archive_file="$temp_dir/sfdbtools.tar.gz"
     
-    os=$(detect_os)
-    arch=$(detect_arch)
-    release_info=$(get_latest_release)
+    print_info "Downloading $REPO_NAME $LATEST_VERSION for linux_$ARCH..."
+    print_info "Download URL: $download_url"
     
-    # Debug: show release info
-    # echo "DEBUG: Release info: $release_info" >&2
+    if command -v curl >/dev/null 2>&1; then
+        curl -L -o "$archive_file" "$download_url"
+    elif command -v wget >/dev/null 2>&1; then
+        wget -O "$archive_file" "$download_url"
+    fi
     
-    # Extract version
-    version=$(echo "$release_info" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
-    if [[ -z "$version" ]]; then
-        log_error "Could not determine latest version"
-        log_error "Release info received: $release_info"
+    if [[ ! -f "$archive_file" ]]; then
+        print_error "Download failed. Please check the release exists for your architecture."
         exit 1
     fi
     
-    log_info "Latest version: $version"
-    log_info "Detected OS: $os, Architecture: $arch"
+    print_info "Extracting archive..."
+    tar -xzf "$archive_file" -C "$temp_dir"
     
-    # Remove 'v' prefix from version if present
-    version_number=${version#v}
-    
-    # Construct download URL - match GoReleaser naming pattern
-    local filename="sfDBTools_${version_number}_linux_${arch}.tar.gz"
-    download_url=$(echo "$release_info" | grep "browser_download_url.*$filename" | cut -d '"' -f 4)
-    
-    if [[ -z "$download_url" ]]; then
-        log_error "Could not find download URL for $os $arch"
-        log_error "Available files:"
-        echo "$release_info" | grep "browser_download_url" | cut -d '"' -f 4
-        exit 1
-    fi
-    
-    log_info "Downloading from: $download_url"
-    
-    # Create temporary directory
-    local temp_dir
-    temp_dir=$(mktemp -d)
-    trap "rm -rf $temp_dir" EXIT
-    
-    # Download
-    if ! curl -L -o "$temp_dir/$filename" "$download_url"; then
-        log_error "Failed to download $filename"
-        exit 1
-    fi
-    
-    # Extract
-    log_info "Extracting $filename..."
-    if ! tar -xzf "$temp_dir/$filename" -C "$temp_dir"; then
-        log_error "Failed to extract $filename"
-        exit 1
-    fi
-    
-    # Install
-    log_info "Installing to $INSTALL_DIR/$BINARY_NAME..."
-    # Binary name in tar file is 'sfDBTools', but we want to install as 'sfdbtools'
-    if ! cp "$temp_dir/sfDBTools" "$INSTALL_DIR/$BINARY_NAME"; then
-        log_error "Failed to copy binary to $INSTALL_DIR"
-        exit 1
-    fi
-    
-    # Make executable
-    chmod +x "$INSTALL_DIR/$BINARY_NAME"
-    
-    log_info "Successfully installed $BINARY_NAME $version"
-    
-    # Setup configuration
-    setup_config "$temp_dir"
-    
-    # Verify installation
-    if command -v "$BINARY_NAME" >/dev/null 2>&1; then
-        log_info "Installation verified. Version:"
-        "$BINARY_NAME" --version 2>/dev/null || "$BINARY_NAME" version || echo "Version command not available"
+    # Find the binary in the extracted files
+    local binary_path
+    if [[ -f "$temp_dir/$BINARY_NAME" ]]; then
+        binary_path="$temp_dir/$BINARY_NAME"
+    elif [[ -f "$temp_dir/sfdbtools" ]]; then
+        binary_path="$temp_dir/sfdbtools"
     else
-        log_warn "Binary installed but not found in PATH. You may need to:"
-        log_warn "  1. Restart your terminal, or"
-        log_warn "  2. Run: source ~/.bashrc"
-        log_warn "  3. Or use full path: $INSTALL_DIR/$BINARY_NAME"
+        print_error "Binary not found in archive"
+        ls -la "$temp_dir"
+        exit 1
     fi
-}
-
-# Setup configuration files
-setup_config() {
-    local temp_dir=$1
-    local config_dir
     
-    # Determine config directory based on user
+    print_info "Installing binary to $INSTALL_DIR..."
+    
+    # Create install directory if it doesn't exist
     if [[ $EUID -eq 0 ]]; then
-        config_dir="/etc/sfdbtools"
+        mkdir -p "$INSTALL_DIR"
+        cp "$binary_path" "$INSTALL_DIR/sfdbtools"
+        chmod +x "$INSTALL_DIR/sfdbtools"
     else
-        config_dir="$HOME/.config/sfdbtools"
+        mkdir -p "$INSTALL_DIR"
+        cp "$binary_path" "$INSTALL_DIR/sfdbtools"
+        chmod +x "$INSTALL_DIR/sfdbtools"
     fi
     
-    log_info "Setting up configuration in $config_dir..."
-    
-    # Create config directory
-    if ! mkdir -p "$config_dir"; then
-        log_warn "Failed to create config directory $config_dir"
-        return 1
+    # Copy configuration files if they exist in the archive
+    if [[ -d "$temp_dir/config" ]]; then
+        print_info "Installing configuration files..."
+        mkdir -p "$CONFIG_DIR"
+        if [[ $EUID -eq 0 ]]; then
+            cp -r "$temp_dir/config"/* "$CONFIG_DIR/"
+            chmod -R 644 "$CONFIG_DIR"/*
+        else
+            cp -r "$temp_dir/config"/* "$CONFIG_DIR/"
+        fi
     fi
     
-    # Create db_config subdirectory
-    if ! mkdir -p "$config_dir/db_config"; then
-        log_warn "Failed to create db_config directory $config_dir/db_config"
+    # Create log directory
+    mkdir -p "$LOG_DIR"
+    
+    # Cleanup
+    rm -rf "$temp_dir"
+    
+    print_success "Installation completed successfully!"
+}
+
+# Verify installation
+verify_installation() {
+    print_info "Verifying installation..."
+    
+    local binary_path
+    if [[ $EUID -eq 0 ]]; then
+        binary_path="/usr/local/bin/sfdbtools"
     else
-        log_info "Created db_config directory at $config_dir/db_config"
+        binary_path="$HOME/.local/bin/sfdbtools"
     fi
     
-    # Create db_list subdirectory
-    if ! mkdir -p "$config_dir/db_list"; then
-        log_warn "Failed to create db_list directory $config_dir/db_list"
+    if [[ -x "$binary_path" ]]; then
+        local version_output
+        version_output=$("$binary_path" --version 2>/dev/null || echo "Version command not available")
+        print_success "sfDBTools installed at: $binary_path"
+        print_info "Version: $version_output"
     else
-        log_info "Created db_list directory at $config_dir/db_list"
-    fi
-    
-    # Debug: List what's in temp directory
-    log_info "Checking archive contents..."
-    ls -la "$temp_dir"/ || log_warn "Failed to list temp directory contents"
-    
-    # Copy example config if it exists in the archive (direct in temp_dir)
-    if [[ -f "$temp_dir/config.example.yaml" ]]; then
-        if ! cp "$temp_dir/config.example.yaml" "$config_dir/"; then
-            log_warn "Failed to copy example config file"
-        else
-            log_info "Example config copied to $config_dir/config.example.yaml"
-        fi
-    else
-        log_warn "config.example.yaml not found in archive"
-    fi
-    
-    # Copy ready-to-use config if it exists in the archive (direct in temp_dir)
-    if [[ -f "$temp_dir/config.yaml" ]]; then
-        if [[ ! -f "$config_dir/config.yaml" ]]; then
-            if ! cp "$temp_dir/config.yaml" "$config_dir/"; then
-                log_warn "Failed to copy config file"
-            else
-                log_info "Default config copied to $config_dir/config.yaml"
-                log_info "Config is ready to use! You may customize it as needed."
-            fi
-        else
-            log_info "Config file already exists at $config_dir/config.yaml (keeping existing)"
-        fi
-    fi
-    
-    # Copy additional config files if they exist
-    for file in "key_maria_nbc.txt" "server.cnf"; do
-        if [[ -f "$temp_dir/config/$file" ]]; then
-            if cp "$temp_dir/config/$file" "$config_dir/"; then
-                log_info "Copied $file to $config_dir/"
-            else
-                log_warn "Failed to copy $file"
-            fi
-        fi
-    done
-    
-    # Copy db_config directory if it exists
-    if [[ -d "$temp_dir/config/db_config" ]]; then
-        if cp -r "$temp_dir/config/db_config"/* "$config_dir/db_config/" 2>/dev/null; then
-            log_info "Copied database config files to $config_dir/db_config/"
-        else
-            log_info "No database config files found in archive (this is normal)"
-        fi
-    fi
-    
-    # Copy db_list directory if it exists
-    if [[ -d "$temp_dir/config/db_list" ]]; then
-        if cp -r "$temp_dir/config/db_list"/* "$config_dir/db_list/" 2>/dev/null; then
-            log_info "Copied database list files to $config_dir/db_list/"
-        else
-            log_info "No database list files found in archive (this is normal)"
-        fi
-    fi
-    
-    # If no config exists, create one
-    if [[ ! -f "$config_dir/config.yaml" ]]; then
-        if [[ -f "$config_dir/config.example.yaml" ]]; then
-            if cp "$config_dir/config.example.yaml" "$config_dir/config.yaml"; then
-                log_info "Created default config at $config_dir/config.yaml"
-                log_info "Please edit $config_dir/config.yaml to configure your database settings"
-            else
-                log_warn "Failed to create default config file"
-            fi
-        else
-            log_info "Generating default config file..."
-            # Create a minimal working config with proper paths
-            local log_dir
-            if [[ $EUID -eq 0 ]]; then
-                log_dir="/var/log/sfdbtools"
-            else
-                log_dir="$HOME/.local/share/sfdbtools/logs"
-            fi
-            
-            # Create log directory
-            mkdir -p "$log_dir"
-                
-                cat > "$config_dir/config.yaml" << EOF
-general:
-  client_code: "CLIENT01"
-  app_name: "sfDBTools"
-  version: "1.0.0"
-  author: "Hadiyatna Muflihun"
-
-log:
-  level: "info"
-  format: "text"
-  timezone: "UTC"
-  output:
-    console: true
-    file: true
-    syslog: false
-  file:
-    dir: "$log_dir"
-    rotate_daily: true
-    retention_days: 7
-
-mysqldump:
-  args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
-
-backup:
-  output_dir: "/backup"
-  compress: true
-  compression: "gzip"
-  compression_level: "best"
-  include_data: true
-  encrypt: true
-  verify_disk: true
-  retention_days: 7
-  calculate_checksum: true
-
-system_users:
-  users:
-    - "sst_user"
-    - "papp"
-    - "sysadmin"
-    - "backup_user"
-    - "dbaDO"
-    - "maxscale"
-
-config_dir:
-  database_config: "$config_dir/db_config"
-
-mariadb:
-  default_version: "10.6.23"
-  installation:
-    base_dir: "/var/lib/mysql"
-    data_dir: "/var/lib/mysql"
-    log_dir: "/var/lib/mysql"
-    binlog_dir: "/var/lib/mysqlbinlogs"
-    port: 3306
-    key_file: "$config_dir/key_maria_nbc.txt"
-    separate_directories: true
-EOF
-                if [[ -f "$config_dir/config.yaml" ]]; then
-                    log_info "Created default config at $config_dir/config.yaml"
-                    log_info "Log directory created at $log_dir"
-                    log_info "Config is ready to use! You may customize it as needed."
-                else
-                    log_warn "Failed to create default config file"
-                    log_warn "You can generate it with: $BINARY_NAME config generate"
-                fi
-            fi
-        else
-            log_info "Config file already exists at $config_dir/config.yaml"
-        fi
+        print_error "Installation verification failed. Binary not found or not executable."
+        exit 1
     fi
 }
 
-# Main execution
+# Main installation process
 main() {
-    log_info "sfDBTools Auto Installer"
-    log_info "========================"
+    echo -e "${BLUE}"
+    echo "=================================="
+    echo "    sfDBTools Installation"
+    echo "=================================="
+    echo -e "${NC}"
     
-    # Check prerequisites
-    if ! command -v curl >/dev/null 2>&1; then
-        log_error "curl is required but not installed. Please install curl first."
-        exit 1
-    fi
-    
+    # Check requirements
     if ! command -v tar >/dev/null 2>&1; then
-        log_error "tar is required but not installed. Please install tar first."
+        print_error "tar is required but not installed. Please install tar and try again."
         exit 1
     fi
     
-    check_permissions
+    check_root
+    detect_arch
+    get_latest_version
     install_binary
+    verify_installation
     
-    # Determine config directory for final message
-    local config_dir log_dir
-    if [[ $EUID -eq 0 ]]; then
-        config_dir="/etc/sfdbtools"
-        log_dir="/var/log/sfdbtools"
-    else
-        config_dir="$HOME/.config/sfdbtools"
-        log_dir="$HOME/.local/share/sfdbtools/logs"
-    fi
+    echo -e "${GREEN}"
+    echo "=================================="
+    echo "    Installation Complete!"
+    echo "=================================="
+    echo -e "${NC}"
     
-    log_info ""
-    log_info "Installation complete! 🎉"
-    log_info ""
-    log_info "Configuration:"
-    log_info "  Config directory: $config_dir"
-    if [[ -f "$config_dir/config.yaml" ]]; then
-        log_info "  Edit config: $config_dir/config.yaml"
-    else
-        log_info "  Generate config: $BINARY_NAME config generate"
+    print_info "Next steps:"
+    print_info "1. Run 'sfdbtools --help' to see available commands"
+    print_info "2. Run './setup.sh' to configure sfDBTools for first use"
+    print_info "3. Edit configuration files in: $CONFIG_DIR"
+    
+    if [[ $EUID -ne 0 ]]; then
+        print_warning "If 'sfdbtools' command is not found, run: source ~/.bashrc"
     fi
-    log_info "  Log directory: $log_dir"
-    log_info ""
-    log_info "Quick start:"
-    log_info "  $BINARY_NAME --help"
-    log_info "  $BINARY_NAME config show"
-    log_info "  $BINARY_NAME mariadb versions"
-    log_info ""
 }
 
 # Run main function
