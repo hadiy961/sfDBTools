@@ -47,19 +47,59 @@ func Get() (*model.Config, error) {
 	return cfg, nil
 }
 
+// GetOrDefault returns the loaded configuration or default values if config loading fails
+func GetOrDefault() *model.Config {
+	config, err := Get()
+	if err != nil {
+		// Return default configuration if loading fails
+		return &model.Config{
+			Database: model.DatabaseConfig{
+				Host: "localhost",
+				Port: 3306,
+				User: "root",
+			},
+			Backup: model.BackupConfig{
+				OutputDir:        "./backup",
+				Compress:         true,
+				Compression:      "pgzip",
+				CompressionLevel: "fast",
+				IncludeData:      true,
+				Encrypt:          false,
+				VerifyDisk:       true,
+				RetentionDays:    30,
+				CalculateChecksum: true,
+				SystemUser:       false,
+			},
+		}
+	}
+	return config
+}
+
+// ValidateConfigFile checks if config file exists and is readable
+func ValidateConfigFile() error {
+	possiblePaths := []string{
+		"./config/config.yaml",
+		"./config/config.yml",
+		"config.yaml",
+		"config.yml",
+	}
+	
+	for _, path := range possiblePaths {
+		if fileExists(path) {
+			return nil // Found valid config file
+		}
+	}
+	
+	return fmt.Errorf("file konfigurasi tidak ditemukan. Jalankan 'sfdbtools config generate' untuk membuat konfigurasi default")
+}
+
 // GetBackupDefaults returns default values for backup command flags
 func GetBackupDefaults() (host string, port int, user string, outputDir string,
 	compress bool, compression string, compressionLevel string, includeData bool,
 	encrypt bool, verifyDisk bool, retentionDays int, calculateChecksum bool, systemUser bool) {
 
-	// Load config with fallback values
-	cfg, err := Get()
-	if err != nil || cfg == nil {
-		// Return hardcoded defaults if config fails or is nil
-		return "localhost", 3306, "root", "./backup",
-			true, "pgzip", "fast", true,
-			false, true, 30, true, false
-	}
+	// Use GetOrDefault to ensure we always get a valid config
+	cfg := GetOrDefault()
 
 	return cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Backup.OutputDir,
 		cfg.Backup.Compress, cfg.Backup.Compression, cfg.Backup.CompressionLevel, cfg.Backup.IncludeData,
