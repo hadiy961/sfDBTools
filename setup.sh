@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# Client Setup Script for sfDBTools_new
-# This script helps new users set up sfDBTools_new after installation
+# Client Setup Script for sfDBTools
+# This script helps new users set up sfDBTools after installation
 
 set -e
 
@@ -33,7 +33,7 @@ check_installation() {
     if ! command -v sfdbtools >/dev/null 2>&1; then
         log_error "sfdbtools is not installed or not in PATH"
         log_info "Please install sfdbtools first:"
-        log_info "  curl -sSL https://raw.githubusercontent.com/hadiy961/sfDBTools_new/main/install.sh | bash"
+        log_info "  curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/sfDBTools/main/install.sh | bash"
         exit 1
     fi
     
@@ -118,7 +118,7 @@ generate_config() {
         log_warn "Could not generate config automatically. Creating basic template..."
         
         cat > "$config_file" << 'EOF'
-# sfDBTools_new Configuration
+# sfDBTools Configuration
 general:
   client_code: "YOUR_CLIENT_CODE"
   log_level: "info"
@@ -193,14 +193,14 @@ show_troubleshooting() {
     echo "    - Command not found: Ensure sfdbtools is in PATH"
     echo ""
     echo "  Support:"
-    echo "    - Documentation: https://github.com/hadiy961/sfDBTools_new"
-    echo "    - Issues: https://github.com/hadiy961/sfDBTools_new/issues"
+    echo "    - Documentation: https://github.com/YOURUSERNAME/sfDBTools"
+    echo "    - Issues: https://github.com/YOURUSERNAME/sfDBTools/issues"
     echo ""
 }
 
 # Main function
 main() {
-    log_info "sfDBTools_new Client Setup"
+    log_info "sfDBTools Client Setup"
     log_info "====================="
     echo ""
     

@@ -32,8 +32,8 @@
 
 1. **Setup GitHub Repository** (jika belum):
    ```bash
-   # Replace hadiy961 dengan username GitHub Anda
-   git remote set-url origin https://github.com/hadiy961/sfDBTools_new.git
+   # Replace YOURUSERNAME dengan username GitHub Anda
+   git remote set-url origin https://github.com/YOURUSERNAME/sfDBTools.git
    ```
 
 2. **Push semua changes**:
@@ -55,32 +55,32 @@
    ```
 
 4. **Monitor GitHub Actions**:
-   - Go to: `https://github.com/hadiy961/sfDBTools_new/actions`
+   - Go to: `https://github.com/YOURUSERNAME/sfDBTools/actions`
    - Wait for build completion (~2-5 minutes)
 
 ### B. Untuk Client - Install dan Setup:
 
 #### Method 1: Auto Install (Termudah)
 ```bash
-curl -sSL https://raw.githubusercontent.com/hadiy961/sfDBTools_new/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/sfDBTools/main/install.sh | bash
 ```
 
 #### Method 2: Manual Download
 ```bash
 # Untuk amd64
-wget https://github.com/hadiy961/sfDBTools_new/releases/latest/download/sfdbtools_v1.0.0_Linux_amd64.tar.gz
+wget https://github.com/YOURUSERNAME/sfDBTools/releases/latest/download/sfdbtools_v1.0.0_Linux_amd64.tar.gz
 tar -xzf sfdbtools_*.tar.gz
 sudo mv sfdbtools /usr/local/bin/
 chmod +x /usr/local/bin/sfdbtools
 
 # Untuk ARM64 (Raspberry Pi, AWS Graviton, dll)
-wget https://github.com/hadiy961/sfDBTools_new/releases/latest/download/sfdbtools_v1.0.0_Linux_arm64.tar.gz
+wget https://github.com/YOURUSERNAME/sfDBTools/releases/latest/download/sfdbtools_v1.0.0_Linux_arm64.tar.gz
 ```
 
 #### Setup setelah install:
 ```bash
 # Run setup script
-curl -sSL https://raw.githubusercontent.com/hadiy961/sfDBTools_new/main/setup.sh | bash
+curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/sfDBTools/main/setup.sh | bash
 
 # Atau manual setup
 sfdbtools config generate
@@ -91,14 +91,14 @@ sfdbtools config validate
 
 ### 1. Setup GitHub Repository:
 - [ ] Push project ke GitHub
-- [ ] Replace `hadiy961` di semua file dengan username GitHub Anda
+- [ ] Replace `YOURUSERNAME` di semua file dengan username GitHub Anda
 - [ ] Enable GitHub Actions (biasanya sudah auto-enabled)
 
 ### 2. Update Configuration:
-- [ ] Edit `install.sh` line 13: `REPO="hadiy961/sfDBTools_new"`
+- [ ] Edit `install.sh` line 13: `REPO="YOURUSERNAME/sfDBTools"`
 - [ ] Edit `setup.sh` line 105-106: Update URL GitHub
 - [ ] Edit `docs/DEPLOYMENT.md`: Replace USERNAME dengan username Anda
-- [ ] Edit `README.md`: Replace hadiy961 dengan username Anda
+- [ ] Edit `README.md`: Replace YOURUSERNAME dengan username Anda
 
 ### 3. Test Release:
 - [ ] Buat tag pertama: `git tag v1.0.0 && git push origin v1.0.0`
@@ -113,7 +113,7 @@ sfdbtools config validate
 
 ```bash
 # Update GitHub username di semua file
-find . -type f \( -name "*.sh" -o -name "*.md" \) -exec sed -i 's/hadiy961/your-actual-username/g' {} +
+find . -type f \( -name "*.sh" -o -name "*.md" \) -exec sed -i 's/YOURUSERNAME/your-actual-username/g' {} +
 ```
 
 ## 🎯 Workflow untuk ke depan:
@@ -130,7 +130,7 @@ find . -type f \( -name "*.sh" -o -name "*.md" \) -exec sed -i 's/hadiy961/your-
 ## 📁 File Structure Summary:
 
 ```
-sfDBTools_new/
+sfDBTools/
 ├── .github/workflows/
 │   ├── release.yml          # Auto release
 │   └── test.yml             # Auto testing

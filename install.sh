@@ -1,7 +1,7 @@
 #!/bin/bash
 
-# sfDBTools_new Auto Installer for Linux
-# This script downloads and installs the latest release of sfDBTools_new
+# sfDBTools Auto Installer for Linux
+# This script downloads and installs the latest release of sfDBTools
 
 set -e
 
@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="hadiy961/sfDBTools_new"  # Replace with your actual GitHub username/organization
+REPO="YOURUSERNAME/sfDBTools"  # Replace with your actual GitHub username/organization
 INSTALL_DIR="/usr/local/bin"
 BINARY_NAME="sfdbtools"
 
@@ -177,7 +177,7 @@ install_binary() {
 
 # Main execution
 main() {
-    log_info "sfDBTools_new Auto Installer"
+    log_info "sfDBTools Auto Installer"
     log_info "========================"
     
     # Check prerequisites

@@ -64,11 +64,11 @@ echo "Release v$VERSION created! Check GitHub Actions for build status."
 ### 3. Monitoring Release
 
 1. **Check GitHub Actions**
-   - Go to: `https://github.com/USERNAME/sfDBTools_new/actions`
+   - Go to: `https://github.com/USERNAME/sfDBTools/actions`
    - Monitor workflow: "Release"
 
 2. **Check Releases**
-   - Go to: `https://github.com/USERNAME/sfDBTools_new/releases`
+   - Go to: `https://github.com/USERNAME/sfDBTools/releases`
    - Verify binary files are uploaded
 
 ## Client Installation
@@ -77,20 +77,20 @@ echo "Release v$VERSION created! Check GitHub Actions for build status."
 
 ```bash
 # Download dan jalankan installer
-curl -sSL https://raw.githubusercontent.com/USERNAME/sfDBTools_new/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/USERNAME/sfDBTools/main/install.sh | bash
 ```
 
 ### Method 2: Manual Download
 
 ```bash
 # Check latest release
-curl -s https://api.github.com/repos/USERNAME/sfDBTools_new/releases/latest
+curl -s https://api.github.com/repos/USERNAME/sfDBTools/releases/latest
 
 # Download untuk amd64
-wget https://github.com/USERNAME/sfDBTools_new/releases/latest/download/sfdbtools_v1.0.0_Linux_amd64.tar.gz
+wget https://github.com/USERNAME/sfDBTools/releases/latest/download/sfdbtools_v1.0.0_Linux_amd64.tar.gz
 
 # Download untuk arm64
-wget https://github.com/USERNAME/sfDBTools_new/releases/latest/download/sfdbtools_v1.0.0_Linux_arm64.tar.gz
+wget https://github.com/USERNAME/sfDBTools/releases/latest/download/sfdbtools_v1.0.0_Linux_arm64.tar.gz
 
 # Extract dan install
 tar -xzf sfdbtools_*.tar.gz
@@ -101,8 +101,8 @@ chmod +x /usr/local/bin/sfdbtools
 ### Method 3: Git Clone + Build
 
 ```bash
-git clone https://github.com/USERNAME/sfDBTools_new.git
-cd sfDBTools_new
+git clone https://github.com/USERNAME/sfDBTools.git
+cd sfDBTools
 go build -o sfdbtools main.go
 sudo mv sfdbtools /usr/local/bin/
 ```
@@ -141,7 +141,7 @@ sfdbtools update
 
 ```bash
 # Re-run installer
-curl -sSL https://raw.githubusercontent.com/USERNAME/sfDBTools_new/main/install.sh | bash
+curl -sSL https://raw.githubusercontent.com/USERNAME/sfDBTools/main/install.sh | bash
 ```
 
 ## Troubleshooting
@@ -218,7 +218,7 @@ go build -o sfdbtools main.go
 - Verifikasi checksum sebelum install:
   ```bash
   # Download checksum
-  wget https://github.com/USERNAME/sfDBTools_new/releases/latest/download/checksums_v1.0.0.txt
+  wget https://github.com/USERNAME/sfDBTools/releases/latest/download/checksums_v1.0.0.txt
   
   # Verify
   sha256sum -c checksums_v1.0.0.txt
@@ -226,5 +226,5 @@ go build -o sfdbtools main.go
 
 ## Support
 
-- GitHub Issues: `https://github.com/USERNAME/sfDBTools_new/issues`
-- Documentation: `https://github.com/USERNAME/sfDBTools_new/wiki`
+- GitHub Issues: `https://github.com/USERNAME/sfDBTools/issues`
+- Documentation: `https://github.com/USERNAME/sfDBTools/wiki`

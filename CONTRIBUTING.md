@@ -6,8 +6,8 @@
 
 1. **Clone repository**
    ```bash
-   git clone https://github.com/hadiy961/sfDBTools_new.git
-   cd sfDBTools_new
+   git clone https://github.com/YOURUSERNAME/sfDBTools.git
+   cd sfDBTools
    ```
 
 2. **Install dependencies**

@@ -1,4 +1,4 @@
-# sfDBTools_new
+# sfDBTools
 
 A comprehensive MariaDB/MySQL database management tool written in Go, designed for automated database operations including backup, restore, configuration, and health checks.
 
@@ -19,7 +19,7 @@ Download the latest pre-compiled binary for Linux:
 
 ```bash
 # Download the latest release
-curl -s https://api.github.com/repos/hadiy961/sfDBTools_new/releases/latest \
+curl -s https://api.github.com/repos/YOURUSERNAME/sfDBTools/releases/latest \
 | grep "browser_download_url.*linux_amd64" \
 | cut -d : -f 2,3 \
 | tr -d \" \
@@ -40,7 +40,7 @@ sfdbtools --version
 
 ```bash
 # For ARM64 systems (like Raspberry Pi, AWS Graviton, etc.)
-curl -s https://api.github.com/repos/hadiy961/sfDBTools_new/releases/latest \
+curl -s https://api.github.com/repos/YOURUSERNAME/sfDBTools/releases/latest \
 | grep "browser_download_url.*linux_arm64" \
 | cut -d : -f 2,3 \
 | tr -d \" \
@@ -59,8 +59,8 @@ sudo mv sfdbtools /usr/local/bin/
 ### Build from Source
 
 ```bash
-git clone https://github.com/hadiy961/sfDBTools_new.git
-cd sfDBTools_new
+git clone https://github.com/YOURUSERNAME/sfDBTools.git
+cd sfDBTools
 go build -o sfdbtools main.go
 ```
 
@@ -101,7 +101,7 @@ After installation, run the setup script to get started quickly:
 
 ```bash
 # Download and run setup script
-curl -sSL https://raw.githubusercontent.com/hadiy961/sfDBTools_new/main/setup.sh | bash
+curl -sSL https://raw.githubusercontent.com/YOURUSERNAME/sfDBTools/main/setup.sh | bash
 
 # Or if you cloned the repository
 ./setup.sh
@@ -170,8 +170,8 @@ The GitHub Actions workflow will automatically:
 ### Build from Source
 
 ```bash
-git clone https://github.com/hadiy961/sfDBTools_new.git
-cd sfDBTools_new
+git clone https://github.com/YOURUSERNAME/sfDBTools.git
+cd sfDBTools
 go mod download
 go build -o sfdbtools main.go
 ```
@@ -179,7 +179,7 @@ go build -o sfdbtools main.go
 ## Project Structure
 
 ```
-sfDBTools_new/
+sfDBTools/
 ├── cmd/                    # CLI commands
 │   └── mariadb/           # MariaDB-specific commands
 ├── internal/              # Core business logic
@@ -213,7 +213,7 @@ go test ./...
 
 ```bash
 go run main.go mariadb check
-tail -f logs/sfDBTools_new.log
+tail -f logs/sfDBTools.log
 ```
 
 ## Database Connection
@@ -235,7 +235,7 @@ lg.Info("Operation completed successfully")
 lg.Error("Error occurred", "error", err)
 ```
 
-Logs are saved to `logs/sfDBTools_new.log` for debugging and monitoring.
+Logs are saved to `logs/sfDBTools.log` for debugging and monitoring.
 
 ## Security Features
 
@@ -269,7 +269,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions and support:
 - Open an issue on GitHub
-- Check the logs in `logs/sfDBTools_new.log` for debugging
+- Check the logs in `logs/sfDBTools.log` for debugging
 - Review configuration examples in `config/`
 
 ## Roadmap
