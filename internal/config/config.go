@@ -47,12 +47,12 @@ func LoadConfig() (*model.Config, error) {
 func mergeWithDefaults(c *model.Config) {
 	// Get default config
 	defaults := getDefaultConfig()
-	
+
 	// Merge ConfigDir if empty
 	if c.ConfigDir.DatabaseConfig == "" {
 		c.ConfigDir.DatabaseConfig = defaults.ConfigDir.DatabaseConfig
 	}
-	
+
 	// Merge General config if empty
 	if c.General.ClientCode == "" {
 		c.General.ClientCode = defaults.General.ClientCode
@@ -66,7 +66,7 @@ func mergeWithDefaults(c *model.Config) {
 	if c.General.Author == "" {
 		c.General.Author = defaults.General.Author
 	}
-	
+
 	// Merge Log config if empty
 	if c.Log.Level == "" {
 		c.Log.Level = defaults.Log.Level
@@ -83,7 +83,7 @@ func mergeWithDefaults(c *model.Config) {
 	if c.Log.File.RetentionDays == 0 {
 		c.Log.File.RetentionDays = defaults.Log.File.RetentionDays
 	}
-	
+
 	// Merge MariaDB config if empty
 	if c.MariaDB.DefaultVersion == "" {
 		c.MariaDB.DefaultVersion = defaults.MariaDB.DefaultVersion
@@ -106,7 +106,7 @@ func mergeWithDefaults(c *model.Config) {
 	if c.MariaDB.Installation.KeyFile == "" {
 		c.MariaDB.Installation.KeyFile = defaults.MariaDB.Installation.KeyFile
 	}
-	
+
 	// Merge backup config if empty
 	if c.Backup.OutputDir == "" {
 		c.Backup.OutputDir = defaults.Backup.OutputDir
