@@ -212,6 +212,20 @@ setup_config() {
         return 1
     fi
     
+    # Create db_config subdirectory
+    if ! mkdir -p "$config_dir/db_config"; then
+        log_warn "Failed to create db_config directory $config_dir/db_config"
+    else
+        log_info "Created db_config directory at $config_dir/db_config"
+    fi
+    
+    # Create db_list subdirectory
+    if ! mkdir -p "$config_dir/db_list"; then
+        log_warn "Failed to create db_list directory $config_dir/db_list"
+    else
+        log_info "Created db_list directory at $config_dir/db_list"
+    fi
+    
     # Debug: List what's in temp directory
     log_info "Checking archive contents..."
     ls -la "$temp_dir"/ || log_warn "Failed to list temp directory contents"
@@ -239,29 +253,58 @@ setup_config() {
         else
             log_info "Config file already exists at $config_dir/config.yaml (keeping existing)"
         fi
-    else
-        log_warn "config.yaml not found in archive"
-        # Create default config from example if main config doesn't exist
-        if [[ ! -f "$config_dir/config.yaml" ]]; then
-            if [[ -f "$config_dir/config.example.yaml" ]]; then
-                if cp "$config_dir/config.example.yaml" "$config_dir/config.yaml"; then
-                    log_info "Created default config at $config_dir/config.yaml"
-                    log_info "Please edit $config_dir/config.yaml to configure your database settings"
-                else
-                    log_warn "Failed to create default config file"
-                fi
+    fi
+    
+    # Copy additional config files if they exist
+    for file in "key_maria_nbc.txt" "server.cnf"; do
+        if [[ -f "$temp_dir/config/$file" ]]; then
+            if cp "$temp_dir/config/$file" "$config_dir/"; then
+                log_info "Copied $file to $config_dir/"
             else
-                log_info "Generating default config file..."
-                # Create a minimal working config with proper paths
-                local log_dir
-                if [[ $EUID -eq 0 ]]; then
-                    log_dir="/var/log/sfdbtools"
-                else
-                    log_dir="$HOME/.local/share/sfdbtools/logs"
-                fi
-                
-                # Create log directory
-                mkdir -p "$log_dir"
+                log_warn "Failed to copy $file"
+            fi
+        fi
+    done
+    
+    # Copy db_config directory if it exists
+    if [[ -d "$temp_dir/config/db_config" ]]; then
+        if cp -r "$temp_dir/config/db_config"/* "$config_dir/db_config/" 2>/dev/null; then
+            log_info "Copied database config files to $config_dir/db_config/"
+        else
+            log_info "No database config files found in archive (this is normal)"
+        fi
+    fi
+    
+    # Copy db_list directory if it exists
+    if [[ -d "$temp_dir/config/db_list" ]]; then
+        if cp -r "$temp_dir/config/db_list"/* "$config_dir/db_list/" 2>/dev/null; then
+            log_info "Copied database list files to $config_dir/db_list/"
+        else
+            log_info "No database list files found in archive (this is normal)"
+        fi
+    fi
+    
+    # If no config exists, create one
+    if [[ ! -f "$config_dir/config.yaml" ]]; then
+        if [[ -f "$config_dir/config.example.yaml" ]]; then
+            if cp "$config_dir/config.example.yaml" "$config_dir/config.yaml"; then
+                log_info "Created default config at $config_dir/config.yaml"
+                log_info "Please edit $config_dir/config.yaml to configure your database settings"
+            else
+                log_warn "Failed to create default config file"
+            fi
+        else
+            log_info "Generating default config file..."
+            # Create a minimal working config with proper paths
+            local log_dir
+            if [[ $EUID -eq 0 ]]; then
+                log_dir="/var/log/sfdbtools"
+            else
+                log_dir="$HOME/.local/share/sfdbtools/logs"
+            fi
+            
+            # Create log directory
+            mkdir -p "$log_dir"
                 
                 cat > "$config_dir/config.yaml" << EOF
 general:

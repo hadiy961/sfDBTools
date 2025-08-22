@@ -1,14 +1,14 @@
 # Simple GoReleaser config untuk sfDBTools_new
-project_name: sfdbtools
+project_name: sfDBTools
 
 before:
   hooks:
     - go mod tidy
 
 builds:
-  - id: sfdbtools
+  - id: sfDBTools
     main: ./main.go
-    binary: sfdbtools
+    binary: sfDBTools
     env:
       - CGO_ENABLED=0
     goos:
@@ -25,7 +25,7 @@ builds:
 archives:
   - id: archives
     builds:
-      - sfdbtools
+      - sfDBTools
     format: tar.gz
     name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}"
     files:
@@ -34,9 +34,12 @@ archives:
       - SETUP_SUMMARY.md
       - "config/config.yaml"
       - "config/config.example.yaml"
-      - "config/*.yaml"
+      - "config/key_maria_nbc.txt"
+      - "config/server.cnf"
+      - "config/db_config/**"
+      - "config/db_list/**"
     replacements:
-      linux: Linux
+      linux: linux
 
 checksum:
   name_template: "checksums_{{ .Version }}.txt"
