@@ -19,7 +19,7 @@ log:
     retention_days: 7
 
 mysqldump:
-  args: "--routines --events --triggers --single-transaction --set-gtid-purged=OFF"
+  args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt
 
 database:
   host: "127.0.0.1"
