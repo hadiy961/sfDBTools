@@ -1,0 +1,65 @@
+# Contoh template konfigurasi sfDBTools_new
+general:
+  client_code: "CLIENT01"
+  app_name: "sfDBTools"
+  version: "1.0.0"
+  author: "Hadiyatna Muflihun"
+
+log:
+  level: "info"
+  format: "text"
+  timezone: "Asia/Jakarta"
+  output:
+    console: true
+    file: true
+    syslog: false
+  file:
+    dir: "./logs"
+    rotate_daily: true
+    retention_days: 7
+
+mysqldump:
+  args: "--routines --events --triggers --single-transaction --set-gtid-purged=OFF"
+
+database:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: ""        # Kosong karena akan pakai konfigurasi terenkripsi untuk operasi
+
+backup:
+  output_dir: "./backup"
+  compress: true
+  compression: "pgzip"
+  compression_level: "fast"
+  include_data: true
+  encrypt: false
+  verify_disk: true
+  retention_days: 30
+  calculate_checksum: true
+  include_dmart: false
+  include_archive: false
+  include_temp: false
+  progress: true
+  system_user: false
+
+system_users:
+  users: []
+
+config_dir:
+  database_config: "./config"
+
+mariadb:
+  default_version: "10.11"
+  installation:
+    base_dir: "/opt/mariadb"
+    data_dir: "/var/lib/mysql"
+    log_dir: "/var/log/mysql"
+    binlog_dir: "/var/lib/mysql/binlog"
+    port: 3306
+    key_file: ""
+
+# Cara pakai:
+# 1. Copy file ini ke config/config.yaml
+# 2. Generate kredensial terenkripsi:
+#    SFDB_ENCRYPTION_PASSWORD='Rahasia' ./sfdbtools config generate --auto --name primary --host 127.0.0.1 --port 3306 --user root
