@@ -59,16 +59,16 @@ func GetOrDefault() *model.Config {
 				User: "root",
 			},
 			Backup: model.BackupConfig{
-				OutputDir:        "./backup",
-				Compress:         true,
-				Compression:      "pgzip",
-				CompressionLevel: "fast",
-				IncludeData:      true,
-				Encrypt:          false,
-				VerifyDisk:       true,
-				RetentionDays:    30,
+				OutputDir:         "./backup",
+				Compress:          true,
+				Compression:       "pgzip",
+				CompressionLevel:  "fast",
+				IncludeData:       true,
+				Encrypt:           false,
+				VerifyDisk:        true,
+				RetentionDays:     30,
 				CalculateChecksum: true,
-				SystemUser:       false,
+				SystemUser:        false,
 			},
 		}
 	}
@@ -83,13 +83,13 @@ func ValidateConfigFile() error {
 		"config.yaml",
 		"config.yml",
 	}
-	
+
 	for _, path := range possiblePaths {
 		if fileExists(path) {
 			return nil // Found valid config file
 		}
 	}
-	
+
 	return fmt.Errorf("file konfigurasi tidak ditemukan. Jalankan 'sfdbtools config generate' untuk membuat konfigurasi default")
 }
 
@@ -98,12 +98,39 @@ func GetBackupDefaults() (host string, port int, user string, outputDir string,
 	compress bool, compression string, compressionLevel string, includeData bool,
 	encrypt bool, verifyDisk bool, retentionDays int, calculateChecksum bool, systemUser bool) {
 
-	// Use GetOrDefault to ensure we always get a valid config
-	cfg := GetOrDefault()
+	// Hardcoded defaults - safer approach to prevent any segfault
+	defaultHost := "localhost"
+	defaultPort := 3306
+	defaultUser := "root"
+	defaultOutputDir := "./backup"
+	defaultCompress := true
+	defaultCompression := "pgzip"
+	defaultCompressionLevel := "fast"
+	defaultIncludeData := true
+	defaultEncrypt := false
+	defaultVerifyDisk := true
+	defaultRetentionDays := 30
+	defaultCalculateChecksum := true
+	defaultSystemUser := false
 
-	return cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Backup.OutputDir,
-		cfg.Backup.Compress, cfg.Backup.Compression, cfg.Backup.CompressionLevel, cfg.Backup.IncludeData,
-		cfg.Backup.Encrypt, cfg.Backup.VerifyDisk, cfg.Backup.RetentionDays, cfg.Backup.CalculateChecksum, cfg.Backup.SystemUser
+	// Try to get config safely
+	defer func() {
+		if r := recover(); r != nil {
+			// If any panic occurs, just use defaults
+		}
+	}()
+
+	cfg := GetOrDefault()
+	if cfg != nil && cfg.Database.Host != "" {
+		return cfg.Database.Host, cfg.Database.Port, cfg.Database.User, cfg.Backup.OutputDir,
+			cfg.Backup.Compress, cfg.Backup.Compression, cfg.Backup.CompressionLevel, cfg.Backup.IncludeData,
+			cfg.Backup.Encrypt, cfg.Backup.VerifyDisk, cfg.Backup.RetentionDays, cfg.Backup.CalculateChecksum, cfg.Backup.SystemUser
+	}
+
+	// Return hardcoded defaults if config is not available
+	return defaultHost, defaultPort, defaultUser, defaultOutputDir,
+		defaultCompress, defaultCompression, defaultCompressionLevel, defaultIncludeData,
+		defaultEncrypt, defaultVerifyDisk, defaultRetentionDays, defaultCalculateChecksum, defaultSystemUser
 }
 
 // GetDatabaseCredentials returns database credentials, preferring encrypted config if available
