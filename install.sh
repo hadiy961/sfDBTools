@@ -12,7 +12,7 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 # Configuration
-REPO="YOURUSERNAME/sfDBTools"  # Replace with your actual GitHub username/organization
+REPO="hadiy961/sfDBTools"  # GitHub repository
 INSTALL_DIR="/usr/local/bin"
 BINARY_NAME="sfdbtools"
 
