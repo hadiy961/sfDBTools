@@ -1,41 +1,73 @@
-name: Release
+project_name: sfdbtools
 
-on:
-  push:
-    tags:
-      - "v*.*.*"
+before:
+  hooks:
+    - go mod tidy
 
-permissions:
-  contents: write
+builds:
+  - id: sfdbtools
+    main: ./cmd        # sesuaikan jika entry point berbeda
+    binary: sfdbtools
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X sfDBTools/internal/version.Version={{.Version}}
+      - -X sfDBTools/internal/version.Commit={{.Commit}}
+      - -X sfDBTools/internal/version.Date={{.Date}}
 
-jobs:
-  goreleaser:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+archives:
+  - id: tarballs
+    builds:
+      - sfdbtools
+    format: tar.gz
+    name_template: "{{ .ProjectName }}_{{ .Version }}_linux_{{ .Arch }}"
+    files:
+      - LICENSE*
+      - README.md
+      - config/config.example.yaml
+      - README_CONFIG.md
 
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.22"
+checksum:
+  name_template: "checksums_{{ .Version }}.txt"
 
-      - name: Go cache
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.cache/go-build
-            ~/go/pkg/mod
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
+# OPSIONAL: aktifkan jika mau SBOM
+# sboms:
+#   - artifacts: archive
 
-      - name: Run GoReleaser
-        uses: goreleaser/goreleaser-action@v5
-        with:
-          version: latest
-          args: release --clean
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+# OPSIONAL: packaging deb/rpm
+# nfpms:
+#   - id: packages
+#     package_name: sfdbtools
+#     file_name_template: "{{ .ProjectName }}_{{ .Version }}_{{ .Arch }}"
+#     license: "MIT"
+#     maintainer: "Hadiyatna Muflihun"
+#     description: "sfdbtools - MySQL/MariaDB backup & restore utility"
+#     homepage: "https://github.com/hadiy961/sfDBTools_new"
+#     formats:
+#       - deb
+#       - rpm
+#     contents:
+#       - src: config/config.example.yaml
+#         dst: /etc/sfdbtools/config.yaml
+#         type: config
+#       - src: README.md
+#         dst: /usr/share/doc/sfdbtools/README.md
+#     scripts:
+#       postinstall: "scripts/postinstall.sh"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+
+release:
+  draft: false
+  prerelease: false
