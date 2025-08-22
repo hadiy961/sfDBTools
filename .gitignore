@@ -3,6 +3,8 @@ backup/**/*.sql
 backup/**/*.gz
 backup/**/*.enc
 backup/**/*.json
+config/key_maria_nbc.txt
+config/server.cnf
 
 # File terenkripsi / dump
 *.sql
