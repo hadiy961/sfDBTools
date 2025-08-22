@@ -1332,3 +1332,218 @@
 [2025-08-21 18:20:48] [INFO] [backup_restore/executor.go:84] - Backup restore production completed successfully {"duration": "296.141174ms"}
 [2025-08-21 18:20:48] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
 [2025-08-21 18:20:48] [INFO] [backup_restore/backup_restore_production_cmd.go:89] - Backup restore production process completed successfully
+[2025-08-22 10:23:33] [INFO] [cmd/backup_restore_cmd.go:20] - Backup restore command executed
+[2025-08-22 10:23:48] [INFO] [backup_restore/backup_restore_production_cmd.go:66] - Starting backup restore production process
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:33] - Starting backup restore production execution {"account": "dataon", "target": "dev", "production_db": "dbsf_nbc_dataon", "target_db": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:17] - Validating database exists {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:44] - Database exists {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:125] - Production database verified {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:17] - Validating database exists {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:44] - Database exists {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:132] - Production dmart database verified {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:17] - Validating database exists {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [ERROR] [connection/database.go:39] - Database does not exist {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:169] - Creating database {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:184] - Database created successfully {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:145] - Target database ready {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:17] - Validating database exists {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [ERROR] [connection/database.go:39] - Database does not exist {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:169] - Creating database {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:184] - Database created successfully {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:151] - Target dmart database ready {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:226] - User does not exist, skipping {"user": "sfnbc_dataon_admin"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:226] - User does not exist, skipping {"user": "sfnbc_dataon_fin"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:226] - User does not exist, skipping {"user": "sfnbc_dataon_user"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:276] - Starting backup and restore operation {"source": "dbsf_nbc_dataon", "target": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:300] - Backing up source database {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [DEBUG] [disk/disk.go:101] - Checking write permission for output directory {"dir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [DEBUG] [disk/disk.go:111] - Output directory is writable {"dir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full.go:58] - Old backup directories removed {"dirs": ["2025_08_21"], "count": 1}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full.go:64] - Starting single database backup using mysqldump {"database": "dbsf_nbc_dataon", "host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/user.go:17] - Validating database user {"user": "dbaDO"}
+[2025-08-22 10:23:54] [DEBUG] [connection/user.go:40] - Checking user grants
+[2025-08-22 10:23:54] [DEBUG] [connection/user.go:50] - Found grant {"grant": "GRANT ALL PRIVILEGES ON *.* TO `dbaDO`@`%` IDENTIFIED BY PASSWORD '*FD634FA593F1FE3B27BD1730F79734E0E2CD0B88' WITH GRANT OPTION"}
+[2025-08-22 10:23:54] [INFO] [connection/user.go:94] - Database user has sufficient privileges {"user": "dbaDO"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:17] - Validating database exists {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:44] - Database exists {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "7 chars", "gtid_purged_length": "7 chars", "binlog_file": "mysql-bin.000001", "binlog_position": 21130, "gtid_position": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full.go:90] - Replication information collected successfully before backup
+[2025-08-22 10:23:54] [INFO] [info/info_count.go:374] - Collecting database information {"database": "dbsf_nbc_dataon"}
+[2025-08-22 10:23:54] [INFO] [info/info_count.go:382] - Database information collected {"database": "dbsf_nbc_dataon", "size_mb": 0, "tables": 0, "views": 0, "routines": 0, "triggers": 0, "users": 0}
+[2025-08-22 10:23:54] [DEBUG] [disk/disk.go:63] - Output directory created/verified {"dir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [DEBUG] [mysqldump/backup_single_full_proses.go:32] - Executing mysqldump with compression {"database": "dbsf_nbc_dataon", "output": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz", "compression": "gzip", "compress": true, "is_remote": true}
+[2025-08-22 10:23:54] [WARN] [backup/writer.go:51] - Invalid compression level, using default {"requested": "6", "error": "unsupported compression level: 6. Supported levels: best_speed, fast, default, better, best"}
+[2025-08-22 10:23:54] [INFO] [backup/writer.go:61] - Compression configured {"type": "gzip", "level": "default"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full_proses.go:67] - Starting mysqldump execution
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full_proses.go:85] - mysqldump completed successfully {"duration": "49.695929ms"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full_proses.go:96] - Backup file created successfully {"file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz", "compressed": true, "encrypted": false}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "7 chars", "gtid_purged_length": "7 chars", "binlog_file": "mysql-bin.000001", "binlog_position": 21130, "gtid_position": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [backup/metadata.go:79] - Metadata file created {"file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.json"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:310] - Backup completed successfully {"source": "dbsf_nbc_dataon", "file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz", "size": "0.00 MB"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:325] - Restoring to target database {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:34] - Starting single database restore {"database": "dbsf_nbc_dataon_secondary_dev", "host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:218] - Restore overview {"target_database": "dbsf_nbc_dataon_secondary_dev", "target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "backup_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz", "start_time": "2025-08-22 03:23:54"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:243] - Backup metadata {"metadata_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.json", "backup_date": "2025-08-22 03:23:54", "compression": true, "encryption": false, "included_data": true, "source_host": "34.142.197.198", "source_port": 3306, "source_user": "dbaDO"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:253] - DB source metadata {"db_name": "dbsf_nbc_dataon", "db_size": "0 B", "table_count": 0, "view_count": 0, "routine_count": 0, "trigger_count": 0, "user_count": 0}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [connection/database.go:79] - Database ready {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:119] - Starting restore {"db": "dbsf_nbc_dataon_secondary_dev", "file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:129] - Restore completed {"db": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:269] - Restore summary {"target_database": "dbsf_nbc_dataon_secondary_dev", "target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "backup_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz", "start_time": "2025-08-22 03:23:54", "end_time": "2025-08-22 03:23:54", "duration": "38.375083ms"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:279] - Collecting database information {"database": "dbsf_nbc_dataon_secondary_dev"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:287] - Restore database info {"db_size": "0 B", "table_count": 0, "view_count": 0, "routine_count": 0, "trigger_count": 0, "user_count": 0}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:299] - Database comparison - Database Size {"source_size": "0 B", "restored_size": "0 B", "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:304] - Database comparison - Table Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:309] - Database comparison - View Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:314] - Database comparison - Routine Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:319] - Database comparison - Trigger Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:324] - Database comparison - User Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:330] - Restore completed successfully {"target": "dbsf_nbc_dataon_secondary_dev", "from_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:340] - Temporary backup file cleaned up {"file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon/dbsf_nbc_dataon_2025_08_22.sql.gz"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:276] - Starting backup and restore operation {"source": "dbsf_nbc_dataon_dmart", "target": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:300] - Backing up source database {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [DEBUG] [disk/disk.go:101] - Checking write permission for output directory {"dir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [DEBUG] [disk/disk.go:111] - Output directory is writable {"dir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full.go:60] - No old backup directories to remove {"outputDir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full.go:64] - Starting single database backup using mysqldump {"database": "dbsf_nbc_dataon_dmart", "host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/user.go:17] - Validating database user {"user": "dbaDO"}
+[2025-08-22 10:23:54] [DEBUG] [connection/user.go:40] - Checking user grants
+[2025-08-22 10:23:54] [DEBUG] [connection/user.go:50] - Found grant {"grant": "GRANT ALL PRIVILEGES ON *.* TO `dbaDO`@`%` IDENTIFIED BY PASSWORD '*FD634FA593F1FE3B27BD1730F79734E0E2CD0B88' WITH GRANT OPTION"}
+[2025-08-22 10:23:54] [INFO] [connection/user.go:94] - Database user has sufficient privileges {"user": "dbaDO"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:17] - Validating database exists {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [DEBUG] [connection/database.go:44] - Database exists {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "7 chars", "gtid_purged_length": "7 chars", "binlog_file": "mysql-bin.000001", "binlog_position": 21130, "gtid_position": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full.go:90] - Replication information collected successfully before backup
+[2025-08-22 10:23:54] [INFO] [info/info_count.go:374] - Collecting database information {"database": "dbsf_nbc_dataon_dmart"}
+[2025-08-22 10:23:54] [INFO] [info/info_count.go:382] - Database information collected {"database": "dbsf_nbc_dataon_dmart", "size_mb": 0, "tables": 0, "views": 0, "routines": 0, "triggers": 0, "users": 0}
+[2025-08-22 10:23:54] [DEBUG] [disk/disk.go:63] - Output directory created/verified {"dir": "/media/ArchiveDB"}
+[2025-08-22 10:23:54] [DEBUG] [mysqldump/backup_single_full_proses.go:32] - Executing mysqldump with compression {"database": "dbsf_nbc_dataon_dmart", "output": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz", "compression": "gzip", "compress": true, "is_remote": true}
+[2025-08-22 10:23:54] [WARN] [backup/writer.go:51] - Invalid compression level, using default {"requested": "6", "error": "unsupported compression level: 6. Supported levels: best_speed, fast, default, better, best"}
+[2025-08-22 10:23:54] [INFO] [backup/writer.go:61] - Compression configured {"type": "gzip", "level": "default"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full_proses.go:67] - Starting mysqldump execution
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full_proses.go:85] - mysqldump completed successfully {"duration": "31.898946ms"}
+[2025-08-22 10:23:54] [INFO] [mysqldump/backup_single_full_proses.go:96] - Backup file created successfully {"file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz", "compressed": true, "encrypted": false}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:39] - Collecting replication information for backup {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:420] - Collecting replication information {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [database/replication.go:131] - MariaDB GTID status detected {"domain_id_valid": true, "current_pos": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:88] - GTID information collected {"has_gtid": true, "server_uuid": "", "gtid_executed_length": "7 chars", "gtid_purged_length": "7 chars", "binlog_file": "mysql-bin.000001", "binlog_position": 21130, "gtid_position": "1-1-105"}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:342] - Binary log information collected {"has_binlog": true, "log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [database/replication.go:450] - Replication information collection completed {"mysql_version": "10.6.23-MariaDB-log", "has_gtid": true, "has_binlog": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:52] - GTID information collected for backup {"server_uuid": "", "has_gtid_executed": true, "has_gtid_purged": true}
+[2025-08-22 10:23:54] [INFO] [backup/replication.go:59] - Binary log information collected for backup {"log_file": "mysql-bin.000001", "log_position": 21130}
+[2025-08-22 10:23:54] [INFO] [backup/metadata.go:79] - Metadata file created {"file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.json"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:310] - Backup completed successfully {"source": "dbsf_nbc_dataon_dmart", "file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz", "size": "0.00 MB"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:325] - Restoring to target database {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:34] - Starting single database restore {"database": "dbsf_nbc_dataon_secondary_dev_dmart", "host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:218] - Restore overview {"target_database": "dbsf_nbc_dataon_secondary_dev_dmart", "target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "backup_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz", "start_time": "2025-08-22 03:23:54"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:243] - Backup metadata {"metadata_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.json", "backup_date": "2025-08-22 03:23:54", "compression": true, "encryption": false, "included_data": true, "source_host": "34.142.197.198", "source_port": 3306, "source_user": "dbaDO"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:253] - DB source metadata {"db_name": "dbsf_nbc_dataon_dmart", "db_size": "0 B", "table_count": 0, "view_count": 0, "routine_count": 0, "trigger_count": 0, "user_count": 0}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:23:54] [INFO] [connection/database.go:79] - Database ready {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:119] - Starting restore {"db": "dbsf_nbc_dataon_secondary_dev_dmart", "file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:129] - Restore completed {"db": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:269] - Restore summary {"target_database": "dbsf_nbc_dataon_secondary_dev_dmart", "target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "backup_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz", "start_time": "2025-08-22 03:23:54", "end_time": "2025-08-22 03:23:54", "duration": "33.547301ms"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:279] - Collecting database information {"database": "dbsf_nbc_dataon_secondary_dev_dmart"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:287] - Restore database info {"db_size": "0 B", "table_count": 0, "view_count": 0, "routine_count": 0, "trigger_count": 0, "user_count": 0}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:299] - Database comparison - Database Size {"source_size": "0 B", "restored_size": "0 B", "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:304] - Database comparison - Table Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:309] - Database comparison - View Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:314] - Database comparison - Routine Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:319] - Database comparison - Trigger Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [single/restore_single.go:324] - Database comparison - User Count {"source_count": 0, "restored_count": 0, "status": "MATCHED"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "0.000000"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:330] - Restore completed successfully {"target": "dbsf_nbc_dataon_secondary_dev_dmart", "from_file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:340] - Temporary backup file cleaned up {"file": "/media/ArchiveDB/2025_08_22/dbsf_nbc_dataon_dmart/dbsf_nbc_dataon_dmart_2025_08_22.sql.gz"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/executor.go:84] - Backup restore production completed successfully {"duration": "410.203761ms"}
+[2025-08-22 10:23:54] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-22 10:23:54] [INFO] [backup_restore/backup_restore_production_cmd.go:89] - Backup restore production process completed successfully
+[2025-08-22 10:24:18] [INFO] [backup/backup_cmd_user.go:39] - Starting user grants backup process
+[2025-08-22 10:24:20] [INFO] [backup/list.go:196] - Testing database connection {"host": "34.142.131.26", "port": 3306}
+[2025-08-22 10:24:20] [INFO] [backup/list.go:204] - Successfully connected to database {"host": "34.142.131.26", "port": 3306}
+[2025-08-22 10:24:20] [INFO] [user_grants/user_grants_backup.go:33] - Starting user grants backup {"host": "34.142.131.26", "port": 3306, "output_dir": "/media/ArchiveDB"}
+[2025-08-22 10:24:22] [DEBUG] [backup/writer.go:30] - Creating encryption writer {"key_length": 32}
+[2025-08-22 10:24:22] [INFO] [backup/writer.go:38] - Encryption configured {"method": "AES-GCM-UserPassword"}
+[2025-08-22 10:24:22] [DEBUG] [backup/writer.go:39] - Encryption writer chain setup complete
+[2025-08-22 10:24:22] [INFO] [backup/writer.go:61] - Compression configured {"type": "gzip", "level": "best"}
+[2025-08-22 10:24:22] [INFO] [user_grants/user_grants_backup.go:155] - Executing SHOW GRANTS method for user backup
+[2025-08-22 10:24:22] [INFO] [user_grants/user_grants_backup.go:186] - Found users to backup {"user_count": 13}
+[2025-08-22 10:24:22] [INFO] [backup/backup_cmd_user.go:76] - User grants backup completed successfully {"output_file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250822_032420.sql.gz.enc", "file_size": 996, "duration": "1.880157985s", "total_users": 13}
+[2025-08-22 10:24:27] [INFO] [restore/restore_cmd_user.go:40] - Starting user grants restore process
+[2025-08-22 10:24:33] [INFO] [user/restore_user.go:28] - Starting user grants restore {"host": "34.142.197.198", "port": 3306, "file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc"}
+[2025-08-22 10:24:33] [INFO] [user/restore_user.go:164] - User grants restore overview {"target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "grants_file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc", "start_time": "2025-08-22 03:24:33"}
+[2025-08-22 10:24:33] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-22 10:24:33] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:24:33] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:24:33] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:24:33] [DEBUG] [user/restore_user.go:78] - Loaded config for decryption {"app_name": "sfDBTools", "client_code": "DataOn", "version": "1.0.0", "author": "Hadiyatna Muflihun"}
+[2025-08-22 10:24:33] [DEBUG] [user/restore_user.go:89] - Derived decryption key {"key_length": 32}
+[2025-08-22 10:24:33] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-22 10:24:33] [ERROR] [restore/restore_cmd_user.go:62] - User grants restore operation failed {"error": "failed to create decompressing reader: failed to decrypt data: cipher: message authentication failed"}
+[2025-08-22 10:24:33] [ERROR] [restore/restore_cmd_user.go:26] - User grants restore failed {"error": "user grants restore failed: failed to create decompressing reader: failed to decrypt data: cipher: message authentication failed"}
+[2025-08-22 10:26:52] [INFO] [restore/restore_cmd_user.go:40] - Starting user grants restore process
+[2025-08-22 10:26:56] [INFO] [user/restore_user.go:28] - Starting user grants restore {"host": "34.142.197.198", "port": 3306, "file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc"}
+[2025-08-22 10:26:56] [INFO] [user/restore_user.go:212] - User grants restore overview {"target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "grants_file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc", "start_time": "2025-08-22 03:26:56"}
+[2025-08-22 10:26:56] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-22 10:26:56] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:26:56] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:26:57] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:26:57] [DEBUG] [user/restore_user.go:77] - Attempting decryption with new method (user password based)
+[2025-08-22 10:26:58] [DEBUG] [user/restore_user.go:86] - Attempting decryption with user password {"key_length": 32}
+[2025-08-22 10:26:58] [INFO] [user/restore_user.go:93] - Successfully decrypted using new encryption method (user password)
+[2025-08-22 10:26:58] [INFO] [user/restore_user.go:174] - Starting grants restore execution {"file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc"}
+[2025-08-22 10:26:58] [INFO] [user/restore_user.go:185] - User grants restore completed {"file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc"}
+[2025-08-22 10:26:58] [INFO] [user/restore_user.go:232] - User grants restore summary {"target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "grants_file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc", "start_time": "2025-08-22 03:26:56", "end_time": "2025-08-22 03:26:58", "duration": "1.228873136s"}
+[2025-08-22 10:26:58] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-22 10:26:58] [INFO] [restore/restore_cmd_user.go:66] - User grants restore process completed successfully
+[2025-08-22 10:28:05] [INFO] [restore/restore_cmd_user.go:40] - Starting user grants restore process
+[2025-08-22 10:28:10] [INFO] [user/restore_user.go:28] - Starting user grants restore {"host": "34.142.197.198", "port": 3306, "file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc"}
+[2025-08-22 10:28:10] [INFO] [user/restore_user.go:164] - User grants restore overview {"target_host": "34.142.197.198", "target_port": 3306, "target_user": "dbaDO", "grants_file": "/media/ArchiveDB/user_grants/user_grants_34.142.131.26_3306_20250821_102741.sql.gz.enc", "start_time": "2025-08-22 03:28:10"}
+[2025-08-22 10:28:10] [INFO] [database/max_statement_time.go:78] - Retrieved original max_statement_time {"value": "900.000000"}
+[2025-08-22 10:28:10] [INFO] [database/max_statement_time.go:92] - Set max_statement_time to unlimited (0)
+[2025-08-22 10:28:10] [DEBUG] [connection/validation.go:18] - Validating database connection {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:28:10] [DEBUG] [connection/validation.go:38] - Database connection is valid {"host": "34.142.197.198", "port": 3306}
+[2025-08-22 10:28:10] [DEBUG] [user/restore_user.go:78] - Loaded config for decryption {"app_name": "sfDBTools", "client_code": "DataOn", "version": "1.0.0", "author": "Hadiyatna Muflihun"}
+[2025-08-22 10:28:10] [DEBUG] [user/restore_user.go:89] - Derived decryption key {"key_length": 32}
+[2025-08-22 10:28:10] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
+[2025-08-22 10:28:10] [ERROR] [restore/restore_cmd_user.go:62] - User grants restore operation failed {"error": "failed to create decompressing reader: failed to decrypt data: cipher: message authentication failed"}
+[2025-08-22 10:28:10] [ERROR] [restore/restore_cmd_user.go:26] - User grants restore failed {"error": "user grants restore failed: failed to create decompressing reader: failed to decrypt data: cipher: message authentication failed"}
