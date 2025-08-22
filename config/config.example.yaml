@@ -1,65 +1,57 @@
-# Contoh template konfigurasi sfDBTools_new
 general:
-  client_code: "CLIENT01"
+  client_code: "DataOn"
   app_name: "sfDBTools"
   version: "1.0.0"
   author: "Hadiyatna Muflihun"
-
 log:
-  level: "info"
+  level: "debug"
   format: "text"
-  timezone: "UTC"
+  timezone: "Asia/Jakarta"
   output:
     console: true
     file: true
     syslog: false
   file:
-    dir: "./logs"
-    rotate_daily: true
+    dir: "/var/log/sfDBTools"
+    rotate_daily: false
     retention_days: 7
-
 mysqldump:
-  args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt
-
-database:
-  host: "127.0.0.1"
-  port: 3306
-  user: "root"
-  password: ""        # Kosong karena akan pakai konfigurasi terenkripsi untuk operasi
-
+  args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
 backup:
-  output_dir: "./backup"
+  output_dir: "/media/ArchiveDB"
   compress: true
-  compression: "pgzip"
-  compression_level: "fast"
+  compression: "gzip"
+  compression_level: "best"
   include_data: true
-  encrypt: false
+  encrypt: true
   verify_disk: true
-  retention_days: 30
+  retention_days: 1
   calculate_checksum: true
-  include_dmart: false
-  include_archive: false
-  include_temp: false
-  progress: true
-  system_user: false
 
 system_users:
-  users: []
+  users:
+    - "sst_user"
+    - "papp"
+    - "sysadmin"
+    - "backup_user"
+    - "dbaDO"
+    - "maxscale"
 
 config_dir:
-  database_config: "./config"
+  database_config: "/etc/sfDBTools/config/db_config"
+  database_list: "/etc/sfDBTools/config/db_list"
+  mariadb_key: "/etc/sfDBTools/key_maria_nbc.txt"
+  mariadb_config: "/etc/sfDBTools/config/server.cnf"
 
+# MariaDB Installation Configuration
 mariadb:
-  default_version: "10.11"
+  # Default installation settings
+  default_version: "10.6.23"
+  
+  # Default directory configuration
   installation:
-    base_dir: "/opt/mariadb"
+    base_dir: "/var/lib/mysql"
     data_dir: "/var/lib/mysql"
-    log_dir: "/var/log/mysql"
-    binlog_dir: "/var/lib/mysql/binlog"
+    log_dir: "/var/lib/mysql"
+    binlog_dir: "/var/lib/mysqlbinlogs"
     port: 3306
-    key_file: ""
-
-# Cara pakai:
-# 1. Copy file ini ke config/config.yaml
-# 2. Generate kredensial terenkripsi:
-#    SFDB_ENCRYPTION_PASSWORD='Rahasia' ./sfdbtools config generate --auto --name primary --host 127.0.0.1 --port 3306 --user root

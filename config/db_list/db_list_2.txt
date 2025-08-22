@@ -1,4 +1,0 @@
-gmit_pelita
-teguhth
-test_db
-sample_db
