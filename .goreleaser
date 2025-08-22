@@ -31,9 +31,10 @@ archives:
     files:
       - LICENSE*
       - README.md
-      - config/config.yaml
-      - config/config.example.yaml
       - SETUP_SUMMARY.md
+      - "config/config.yaml"
+      - "config/config.example.yaml"
+      - "config/*.yaml"
     replacements:
       linux: Linux
 

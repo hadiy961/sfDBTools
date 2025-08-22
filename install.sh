@@ -212,19 +212,25 @@ setup_config() {
         return 1
     fi
     
-    # Copy example config if it exists in the archive
-    if [[ -f "$temp_dir/config/config.example.yaml" ]]; then
-        if ! cp "$temp_dir/config/config.example.yaml" "$config_dir/"; then
+    # Debug: List what's in temp directory
+    log_info "Checking archive contents..."
+    ls -la "$temp_dir"/ || log_warn "Failed to list temp directory contents"
+    
+    # Copy example config if it exists in the archive (direct in temp_dir)
+    if [[ -f "$temp_dir/config.example.yaml" ]]; then
+        if ! cp "$temp_dir/config.example.yaml" "$config_dir/"; then
             log_warn "Failed to copy example config file"
         else
             log_info "Example config copied to $config_dir/config.example.yaml"
         fi
+    else
+        log_warn "config.example.yaml not found in archive"
     fi
     
-    # Copy ready-to-use config if it exists in the archive
-    if [[ -f "$temp_dir/config/config.yaml" ]]; then
+    # Copy ready-to-use config if it exists in the archive (direct in temp_dir)
+    if [[ -f "$temp_dir/config.yaml" ]]; then
         if [[ ! -f "$config_dir/config.yaml" ]]; then
-            if ! cp "$temp_dir/config/config.yaml" "$config_dir/"; then
+            if ! cp "$temp_dir/config.yaml" "$config_dir/"; then
                 log_warn "Failed to copy config file"
             else
                 log_info "Default config copied to $config_dir/config.yaml"
@@ -234,6 +240,7 @@ setup_config() {
             log_info "Config file already exists at $config_dir/config.yaml (keeping existing)"
         fi
     else
+        log_warn "config.yaml not found in archive"
         # Create default config from example if main config doesn't exist
         if [[ ! -f "$config_dir/config.yaml" ]]; then
             if [[ -f "$config_dir/config.example.yaml" ]]; then
@@ -244,8 +251,72 @@ setup_config() {
                     log_warn "Failed to create default config file"
                 fi
             else
-                log_warn "No config files found in archive, you can generate it with:"
-                log_warn "  $BINARY_NAME config generate"
+                log_info "Generating default config file..."
+                # Create a minimal working config
+                cat > "$config_dir/config.yaml" << 'EOF'
+general:
+  client_code: "CLIENT01"
+  app_name: "sfDBTools"
+  version: "1.0.0"
+  author: "Hadiyatna Muflihun"
+
+log:
+  level: "info"
+  format: "text"
+  timezone: "UTC"
+  output:
+    console: true
+    file: true
+    syslog: false
+  file:
+    dir: "./logs"
+    rotate_daily: true
+    retention_days: 7
+
+mysqldump:
+  args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
+
+backup:
+  output_dir: "/backup"
+  compress: true
+  compression: "gzip"
+  compression_level: "best"
+  include_data: true
+  encrypt: true
+  verify_disk: true
+  retention_days: 7
+  calculate_checksum: true
+
+system_users:
+  users:
+    - "sst_user"
+    - "papp"
+    - "sysadmin"
+    - "backup_user"
+    - "dbaDO"
+    - "maxscale"
+
+config_dir:
+  database_config: "./config/db_config"
+
+mariadb:
+  default_version: "10.6.23"
+  installation:
+    base_dir: "/var/lib/mysql"
+    data_dir: "/var/lib/mysql"
+    log_dir: "/var/lib/mysql"
+    binlog_dir: "/var/lib/mysqlbinlogs"
+    port: 3306
+    key_file: "config/key_maria_nbc.txt"
+    separate_directories: true
+EOF
+                if [[ -f "$config_dir/config.yaml" ]]; then
+                    log_info "Created default config at $config_dir/config.yaml"
+                    log_info "Config is ready to use! You may customize it as needed."
+                else
+                    log_warn "Failed to create default config file"
+                    log_warn "You can generate it with: $BINARY_NAME config generate"
+                fi
             fi
         else
             log_info "Config file already exists at $config_dir/config.yaml"
