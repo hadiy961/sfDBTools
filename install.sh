@@ -252,8 +252,18 @@ setup_config() {
                 fi
             else
                 log_info "Generating default config file..."
-                # Create a minimal working config
-                cat > "$config_dir/config.yaml" << 'EOF'
+                # Create a minimal working config with proper paths
+                local log_dir
+                if [[ $EUID -eq 0 ]]; then
+                    log_dir="/var/log/sfdbtools"
+                else
+                    log_dir="$HOME/.local/share/sfdbtools/logs"
+                fi
+                
+                # Create log directory
+                mkdir -p "$log_dir"
+                
+                cat > "$config_dir/config.yaml" << EOF
 general:
   client_code: "CLIENT01"
   app_name: "sfDBTools"
@@ -269,7 +279,7 @@ log:
     file: true
     syslog: false
   file:
-    dir: "./logs"
+    dir: "$log_dir"
     rotate_daily: true
     retention_days: 7
 
@@ -297,7 +307,7 @@ system_users:
     - "maxscale"
 
 config_dir:
-  database_config: "./config/db_config"
+  database_config: "$config_dir/db_config"
 
 mariadb:
   default_version: "10.6.23"
@@ -307,11 +317,12 @@ mariadb:
     log_dir: "/var/lib/mysql"
     binlog_dir: "/var/lib/mysqlbinlogs"
     port: 3306
-    key_file: "config/key_maria_nbc.txt"
+    key_file: "$config_dir/key_maria_nbc.txt"
     separate_directories: true
 EOF
                 if [[ -f "$config_dir/config.yaml" ]]; then
                     log_info "Created default config at $config_dir/config.yaml"
+                    log_info "Log directory created at $log_dir"
                     log_info "Config is ready to use! You may customize it as needed."
                 else
                     log_warn "Failed to create default config file"
@@ -344,11 +355,13 @@ main() {
     install_binary
     
     # Determine config directory for final message
-    local config_dir
+    local config_dir log_dir
     if [[ $EUID -eq 0 ]]; then
         config_dir="/etc/sfdbtools"
+        log_dir="/var/log/sfdbtools"
     else
         config_dir="$HOME/.config/sfdbtools"
+        log_dir="$HOME/.local/share/sfdbtools/logs"
     fi
     
     log_info ""
@@ -361,6 +374,7 @@ main() {
     else
         log_info "  Generate config: $BINARY_NAME config generate"
     fi
+    log_info "  Log directory: $log_dir"
     log_info ""
     log_info "Quick start:"
     log_info "  $BINARY_NAME --help"
