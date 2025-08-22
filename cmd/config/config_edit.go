@@ -220,7 +220,11 @@ func saveUpdatedConfig(originalPath, currentName, newName string, dbConfig *conf
 	}
 
 	// Determine new file path
-	configDir := config.GetDatabaseConfigDirectory()
+	configDir, err := config.GetDatabaseConfigDirectory()
+	if err != nil {
+		return fmt.Errorf("failed to get database config directory: %w", err)
+	}
+
 	newFileName := newName + ".cnf.enc"
 	newFilePath := filepath.Join(configDir, newFileName)
 

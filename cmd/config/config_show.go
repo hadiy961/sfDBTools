@@ -49,7 +49,9 @@ func showConfig(cmd *cobra.Command) error {
 
 	// List all encrypted config files and let user choose
 	return showConfigWithSelection()
-} // showSpecificConfig shows configuration from a specific file
+}
+
+// showSpecificConfig shows configuration from a specific file
 func showSpecificConfig(filePath string) error {
 	// Validate config file
 	if err := common.ValidateConfigFile(filePath); err != nil {

@@ -171,7 +171,11 @@ func ResolveTargetDatabaseName(cmd *cobra.Command, host string, port int, user, 
 // selectConfigOrUseDefaults tries to select a config file interactively or returns empty for defaults
 func selectConfigOrUseDefaults(configType string) (string, error) {
 	// Try to find encrypted config files
-	configDir := config.GetDatabaseConfigDirectory()
+	configDir, err := config.GetDatabaseConfigDirectory()
+	if err != nil {
+		return "", fmt.Errorf("failed to get database config directory: %w", err)
+	}
+
 	encFiles, err := common.FindEncryptedConfigFiles(configDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to find encrypted config files: %w", err)

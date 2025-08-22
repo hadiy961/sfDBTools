@@ -117,7 +117,11 @@ func GenerateEncryptedConfig(cmd *cobra.Command, configName, dbHost string, dbPo
 	}
 
 	// Save encrypted configuration
-	configDir := config.GetDatabaseConfigDirectory()
+	configDir, err := config.GetDatabaseConfigDirectory()
+	if err != nil {
+		return fmt.Errorf("failed to get database config directory: %w", err)
+	}
+
 	if err := os.MkdirAll(configDir, 0755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}

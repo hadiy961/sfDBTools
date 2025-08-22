@@ -35,7 +35,11 @@ func FindEncryptedConfigFiles(dir string) ([]string, error) {
 
 // SelectConfigFileInteractive shows a list of encrypted config files and lets user choose one
 func SelectConfigFileInteractive() (string, error) {
-	configDir := config.GetDatabaseConfigDirectory()
+	configDir, err := config.GetDatabaseConfigDirectory()
+	if err != nil {
+		return "", fmt.Errorf("failed to get database config directory: %w", err)
+	}
+
 	encFiles, err := FindEncryptedConfigFiles(configDir)
 	if err != nil {
 		return "", fmt.Errorf("failed to find encrypted config files: %w", err)

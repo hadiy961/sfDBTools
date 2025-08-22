@@ -93,18 +93,20 @@ func GetDatabaseCredentials() (host string, port int, user, password string, err
 }
 
 // GetDatabaseConfigDirectory returns the directory path for database config files
-func GetDatabaseConfigDirectory() string {
+func GetDatabaseConfigDirectory() (string, error) {
 	cfg, err := Get()
-	if err != nil || cfg == nil {
-		// Return default path consistent with main config location
-		return "/etc/sfDBTools/config/db_config"
+	if err != nil {
+		return "", fmt.Errorf("gagal membaca config: %w", err)
 	}
 
-	// Use configured directory or fallback to default
-	if cfg.ConfigDir.DatabaseConfig != "" {
-		return cfg.ConfigDir.DatabaseConfig
+	if cfg == nil {
+		return "", fmt.Errorf("config tidak tersedia")
 	}
 
-	// Return default path consistent with main config location
-	return "/etc/sfDBTools/config/db_config"
+	// Wajib menggunakan configured directory dari config file
+	if cfg.ConfigDir.DatabaseConfig == "" {
+		return "", fmt.Errorf("config_dir.database_config tidak diset di config.yaml")
+	}
+
+	return cfg.ConfigDir.DatabaseConfig, nil
 }
