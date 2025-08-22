@@ -182,22 +182,22 @@ create_release() {
     fi
     
     log_step "Pushing to remote..."
-    git push origin $(git branch --show-current)
+    git push master $(git branch --show-current)
     
     log_step "Creating tag: $tag"
     git tag -a "$tag" -m "Release $tag"
     
     log_step "Pushing tag: $tag"
-    git push origin "$tag"
+    git push master "$tag"
     
     log_info "Release $tag created successfully!"
     log_info "GitHub Actions will now build and publish the release."
     log_info ""
     log_info "Monitor the build at:"
-    log_info "  https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"
+    log_info "  https://github.com/$(git config --get remote.master.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/actions"
     log_info ""
     log_info "Release will be available at:"
-    log_info "  https://github.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/releases/tag/$tag"
+    log_info "  https://github.com/$(git config --get remote.master.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/releases/tag/$tag"
 }
 
 # Generate release notes
@@ -272,7 +272,7 @@ main() {
     log_info "Next steps:"
     log_info "  1. Wait for GitHub Actions to complete (~2-5 minutes)"
     log_info "  2. Check the release page for published binaries"
-    log_info "  3. Test installation: curl -sSL https://raw.githubusercontent.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/main/install.sh | bash"
+    log_info "  3. Test installation: curl -sSL https://raw.githubusercontent.com/$(git config --get remote.master.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/main/install.sh | bash"
     log_info ""
 }
 
