@@ -3,15 +3,15 @@ logs/
 *.log
 
 # Direktori backup keseluruhan
-backup/
+# backup/
 config/db_list
 config/db_config
 
 # Jika ingin lebih spesifik (opsional):
-# backup/**/*.sql
-# backup/**/*.gz
-# backup/**/*.enc
-# backup/**/*.json
+backup/**/*.sql
+backup/**/*.gz
+backup/**/*.enc
+backup/**/*.json
 
 # File terenkripsi / dump
 *.sql
