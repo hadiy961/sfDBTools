@@ -54,8 +54,8 @@ func GetBackupDefaults() (host string, port int, user string, outputDir string,
 
 	// Load config with fallback values
 	cfg, err := Get()
-	if err != nil {
-		// Return hardcoded defaults if config fails
+	if err != nil || cfg == nil {
+		// Return hardcoded defaults if config fails or is nil
 		return "localhost", 3306, "root", "./backup",
 			true, "pgzip", "fast", true,
 			false, true, 30, true, false
