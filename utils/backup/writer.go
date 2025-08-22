@@ -1,8 +1,8 @@
 package backup_utils
 
 import (
+	"fmt"
 	"io"
-	"sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/compression"
 	"sfDBTools/utils/crypto"
@@ -15,14 +15,18 @@ func BuildWriterChain(base io.WriteCloser, options BackupOptions, lg *logger.Log
 
 	// Encryption (outer - closest to file)
 	if options.Encrypt {
-		cfg, err := config.LoadConfig()
+		// Get encryption password from user (same method as config generate)
+		encryptionPassword, err := crypto.GetEncryptionPassword("Enter encryption password for backup: ")
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to get encryption password: %w", err)
 		}
-		key, err := crypto.DeriveKeyFromAppConfig(cfg.General.AppName, cfg.General.ClientCode, cfg.General.Version, cfg.General.Author)
+
+		// Use the same key derivation method as config generate
+		key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 		if err != nil {
-			return nil, nil, err
+			return nil, nil, fmt.Errorf("failed to derive encryption key: %w", err)
 		}
+
 		lg.Debug("Creating encryption writer", logger.Int("key_length", len(key)))
 		ew, err := crypto.NewGCMEncryptingWriter(writer, key)
 		if err != nil {
@@ -31,7 +35,7 @@ func BuildWriterChain(base io.WriteCloser, options BackupOptions, lg *logger.Log
 		}
 		closers = append(closers, ew)
 		writer = ew
-		lg.Info("Encryption configured", logger.String("method", "AES-GCM"))
+		lg.Info("Encryption configured", logger.String("method", "AES-GCM-UserPassword"))
 		lg.Debug("Encryption writer chain setup complete")
 	}
 
