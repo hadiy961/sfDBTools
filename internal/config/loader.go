@@ -14,16 +14,20 @@ func fileExists(path string) bool {
 }
 
 func loadViper() (*viper.Viper, error) {
+	// First, check if config file exists at the required path
+	requiredPath := "/etc/sfDBTools/config/config.yaml"
+
+	if !fileExists(requiredPath) {
+		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s", requiredPath)
+	}
+
 	v := viper.New()
 
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
 
-	// Add multiple config paths
-	v.AddConfigPath("./config")                // default path: ./config/config.yaml
-	v.AddConfigPath("./")                      // current directory
-	v.AddConfigPath("/etc/sfdbtools")          // system-wide config (for root)
-	v.AddConfigPath("$HOME/.config/sfdbtools") // user config
+	// Add only the system-wide config path
+	v.AddConfigPath("/etc/sfDBTools/config") // system-wide config (for root)
 
 	// Default values (opsional)
 	v.SetDefault("log.level", "info")
@@ -31,30 +35,6 @@ func loadViper() (*viper.Viper, error) {
 
 	// ENV override (opsional)
 	bindEnvironment(v)
-
-	// Check if config file exists first
-	configFile := v.ConfigFileUsed()
-	if configFile == "" {
-		// Try to find config file manually
-		possiblePaths := []string{
-			"./config/config.yaml",
-			"./config/config.yml",
-			"config.yaml",
-			"config.yml",
-		}
-
-		var foundPath string
-		for _, path := range possiblePaths {
-			if fileExists(path) {
-				foundPath = path
-				break
-			}
-		}
-
-		if foundPath == "" {
-			return nil, fmt.Errorf("file konfigurasi tidak ditemukan. Pastikan file config.yaml ada di direktori ./config/")
-		}
-	}
 
 	if err := v.ReadInConfig(); err != nil {
 		return nil, fmt.Errorf("gagal membaca config dari %s: %w", v.ConfigFileUsed(), err)
