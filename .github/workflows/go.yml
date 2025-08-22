@@ -18,8 +18,8 @@ jobs:
     
     - name: Build binaries
       run: |
-        chmod +x scripts/build-release.sh
-        ./scripts/build-release.sh ${GITHUB_REF#refs/tags/}
+        chmod +x script/build-release.sh
+        ./script/build-release.sh ${GITHUB_REF#refs/tags/}
     
     - name: Create Release
       uses: softprops/action-gh-release@v1
