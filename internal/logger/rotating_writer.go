@@ -31,11 +31,11 @@ func newRotatingFileWriter(dir, appName, tz string, rotate bool, retention int) 
 			tz = "UTC"
 		}
 	}
-	
+
 	if err := os.MkdirAll(dir, 0o755); err != nil {
 		return nil, fmt.Errorf("failed to create log directory '%s': %w", dir, err)
 	}
-	
+
 	w := &rotatingFileWriter{
 		dir:           dir,
 		appName:       appName,
@@ -43,11 +43,11 @@ func newRotatingFileWriter(dir, appName, tz string, rotate bool, retention int) 
 		rotateDaily:   rotate,
 		retentionDays: retention,
 	}
-	
+
 	if err := w.rotate(); err != nil {
 		return nil, fmt.Errorf("failed to initialize log file: %w", err)
 	}
-	
+
 	w.cleanup()
 	return w, nil
 }
@@ -58,11 +58,11 @@ func (w *rotatingFileWriter) now() time.Time {
 	if w.timezone == "" {
 		return time.Now()
 	}
-	
+
 	if loc, err := time.LoadLocation(w.timezone); err == nil {
 		return time.Now().In(loc)
 	}
-	
+
 	// Fallback to UTC if timezone is invalid
 	return time.Now().UTC()
 }

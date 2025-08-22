@@ -19,7 +19,7 @@ func buildLogger(cfg *model.Config) (*Logger, error) {
 			panic(fmt.Errorf("buildLogger panicked: %v", r))
 		}
 	}()
-	
+
 	c := cfg.Log
 	level := parseLevel(c.Level)
 	// Buat encoder berdasarkan konfigurasi

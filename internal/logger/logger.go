@@ -49,7 +49,7 @@ func Get() (*Logger, error) {
 				lg = &Logger{zap.NewNop()}
 			}
 		}()
-		
+
 		var cfg *model.Config
 		cfg, err = config.LoadConfig()
 		if err != nil {
