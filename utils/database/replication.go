@@ -242,22 +242,6 @@ func getGTIDPurgedMySQL(db *sql.DB) (string, error) {
 	return "", nil
 }
 
-// getServerUUID retrieves the SERVER_UUID global variable
-func getServerUUID(db *sql.DB) (string, error) {
-	var serverUUID sql.NullString
-	query := "SELECT @@GLOBAL.SERVER_UUID"
-
-	err := db.QueryRow(query).Scan(&serverUUID)
-	if err != nil {
-		return "", err
-	}
-
-	if serverUUID.Valid {
-		return serverUUID.String, nil
-	}
-	return "", nil
-}
-
 // getBinlogGTIDPos gets GTID position for a specific binlog file and position
 // This function only works on MariaDB, returns empty for MySQL
 func getBinlogGTIDPos(db *sql.DB, binlogFile string, binlogPos int64) (string, error) {

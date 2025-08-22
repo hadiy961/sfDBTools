@@ -142,11 +142,7 @@ func isRelevantGrant(grant string, dbName string) bool {
 
 	// Also check without backticks for different MySQL versions
 	targetDBPatternNoBackticks := fmt.Sprintf("%s.*", dbName)
-	if strings.Contains(grant, targetDBPatternNoBackticks) {
-		return true
-	}
-
-	return false
+	return strings.Contains(grant, targetDBPatternNoBackticks)
 }
 
 // GetSystemUserHosts gets all hosts for a system user

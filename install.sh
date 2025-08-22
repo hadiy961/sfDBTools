@@ -221,21 +221,35 @@ setup_config() {
         fi
     fi
     
-    # Create default config if it doesn't exist
-    if [[ ! -f "$config_dir/config.yaml" ]]; then
-        if [[ -f "$config_dir/config.example.yaml" ]]; then
-            if cp "$config_dir/config.example.yaml" "$config_dir/config.yaml"; then
-                log_info "Created default config at $config_dir/config.yaml"
-                log_info "Please edit $config_dir/config.yaml to configure your database settings"
+    # Copy ready-to-use config if it exists in the archive
+    if [[ -f "$temp_dir/config/config.yaml" ]]; then
+        if [[ ! -f "$config_dir/config.yaml" ]]; then
+            if ! cp "$temp_dir/config/config.yaml" "$config_dir/"; then
+                log_warn "Failed to copy config file"
             else
-                log_warn "Failed to create default config file"
+                log_info "Default config copied to $config_dir/config.yaml"
+                log_info "Config is ready to use! You may customize it as needed."
             fi
         else
-            log_warn "Example config not found in archive, you can generate it with:"
-            log_warn "  $BINARY_NAME config generate"
+            log_info "Config file already exists at $config_dir/config.yaml (keeping existing)"
         fi
     else
-        log_info "Config file already exists at $config_dir/config.yaml"
+        # Create default config from example if main config doesn't exist
+        if [[ ! -f "$config_dir/config.yaml" ]]; then
+            if [[ -f "$config_dir/config.example.yaml" ]]; then
+                if cp "$config_dir/config.example.yaml" "$config_dir/config.yaml"; then
+                    log_info "Created default config at $config_dir/config.yaml"
+                    log_info "Please edit $config_dir/config.yaml to configure your database settings"
+                else
+                    log_warn "Failed to create default config file"
+                fi
+            else
+                log_warn "No config files found in archive, you can generate it with:"
+                log_warn "  $BINARY_NAME config generate"
+            fi
+        else
+            log_info "Config file already exists at $config_dir/config.yaml"
+        fi
     fi
 }
 

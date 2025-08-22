@@ -2,7 +2,6 @@ package backup_utils
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -327,25 +326,4 @@ func writeGrantsToFile(outputFile, content string, options BackupOptions) (*Back
 		logger.Bool("encrypted", options.Encrypt))
 
 	return result, nil
-}
-
-// saveGrantMetadata saves grant backup metadata to a JSON file
-func saveGrantMetadata(meta *BackupMetadata, metaFile string) error {
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(metaFile), 0755); err != nil {
-		return fmt.Errorf("failed to create metadata directory: %w", err)
-	}
-
-	// Marshal metadata to JSON
-	jsonData, err := json.MarshalIndent(meta, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal metadata: %w", err)
-	}
-
-	// Write to file
-	if err := os.WriteFile(metaFile, jsonData, 0644); err != nil {
-		return fmt.Errorf("failed to write metadata file: %w", err)
-	}
-
-	return nil
 }
