@@ -130,8 +130,11 @@ install_binary() {
     log_info "Latest version: $version"
     log_info "Detected OS: $os, Architecture: $arch"
     
-    # Construct download URL
-    local filename="${BINARY_NAME}_${version}_Linux_${arch}.tar.gz"
+    # Remove 'v' prefix from version if present
+    version_number=${version#v}
+    
+    # Construct download URL - match GoReleaser naming pattern
+    local filename="sfDBTools_${version_number}_linux_${arch}.tar.gz"
     download_url=$(echo "$release_info" | grep "browser_download_url.*$filename" | cut -d '"' -f 4)
     
     if [[ -z "$download_url" ]]; then
@@ -163,7 +166,8 @@ install_binary() {
     
     # Install
     log_info "Installing to $INSTALL_DIR/$BINARY_NAME..."
-    if ! cp "$temp_dir/$BINARY_NAME" "$INSTALL_DIR/$BINARY_NAME"; then
+    # Binary name in tar file is 'sfDBTools', but we want to install as 'sfdbtools'
+    if ! cp "$temp_dir/sfDBTools" "$INSTALL_DIR/$BINARY_NAME"; then
         log_error "Failed to copy binary to $INSTALL_DIR"
         exit 1
     fi
