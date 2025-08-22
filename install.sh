@@ -177,6 +177,9 @@ install_binary() {
     
     log_info "Successfully installed $BINARY_NAME $version"
     
+    # Setup configuration
+    setup_config "$temp_dir"
+    
     # Verify installation
     if command -v "$BINARY_NAME" >/dev/null 2>&1; then
         log_info "Installation verified. Version:"
@@ -186,6 +189,53 @@ install_binary() {
         log_warn "  1. Restart your terminal, or"
         log_warn "  2. Run: source ~/.bashrc"
         log_warn "  3. Or use full path: $INSTALL_DIR/$BINARY_NAME"
+    fi
+}
+
+# Setup configuration files
+setup_config() {
+    local temp_dir=$1
+    local config_dir
+    
+    # Determine config directory based on user
+    if [[ $EUID -eq 0 ]]; then
+        config_dir="/etc/sfdbtools"
+    else
+        config_dir="$HOME/.config/sfdbtools"
+    fi
+    
+    log_info "Setting up configuration in $config_dir..."
+    
+    # Create config directory
+    if ! mkdir -p "$config_dir"; then
+        log_warn "Failed to create config directory $config_dir"
+        return 1
+    fi
+    
+    # Copy example config if it exists in the archive
+    if [[ -f "$temp_dir/config/config.example.yaml" ]]; then
+        if ! cp "$temp_dir/config/config.example.yaml" "$config_dir/"; then
+            log_warn "Failed to copy example config file"
+        else
+            log_info "Example config copied to $config_dir/config.example.yaml"
+        fi
+    fi
+    
+    # Create default config if it doesn't exist
+    if [[ ! -f "$config_dir/config.yaml" ]]; then
+        if [[ -f "$config_dir/config.example.yaml" ]]; then
+            if cp "$config_dir/config.example.yaml" "$config_dir/config.yaml"; then
+                log_info "Created default config at $config_dir/config.yaml"
+                log_info "Please edit $config_dir/config.yaml to configure your database settings"
+            else
+                log_warn "Failed to create default config file"
+            fi
+        else
+            log_warn "Example config not found in archive, you can generate it with:"
+            log_warn "  $BINARY_NAME config generate"
+        fi
+    else
+        log_info "Config file already exists at $config_dir/config.yaml"
     fi
 }
 
@@ -208,12 +258,29 @@ main() {
     check_permissions
     install_binary
     
+    # Determine config directory for final message
+    local config_dir
+    if [[ $EUID -eq 0 ]]; then
+        config_dir="/etc/sfdbtools"
+    else
+        config_dir="$HOME/.config/sfdbtools"
+    fi
+    
     log_info ""
     log_info "Installation complete! 🎉"
     log_info ""
+    log_info "Configuration:"
+    log_info "  Config directory: $config_dir"
+    if [[ -f "$config_dir/config.yaml" ]]; then
+        log_info "  Edit config: $config_dir/config.yaml"
+    else
+        log_info "  Generate config: $BINARY_NAME config generate"
+    fi
+    log_info ""
     log_info "Quick start:"
     log_info "  $BINARY_NAME --help"
-    log_info "  $BINARY_NAME config generate"
+    log_info "  $BINARY_NAME config show"
+    log_info "  $BINARY_NAME mariadb versions"
     log_info ""
 }
 

@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"sync"
 
 	"sfDBTools/internal/config/model"
@@ -79,9 +80,19 @@ func GetOrDefault() *model.Config {
 func ValidateConfigFile() error {
 	possiblePaths := []string{
 		"./config/config.yaml",
-		"./config/config.yml",
-		"config.yaml",
-		"config.yml",
+		"./config/config.yml", 
+		"./config.yaml",
+		"./config.yml",
+		"/etc/sfdbtools/config.yaml",
+		"/etc/sfdbtools/config.yml",
+	}
+	
+	// Add user config path if HOME is set
+	if homeDir := os.Getenv("HOME"); homeDir != "" {
+		possiblePaths = append(possiblePaths,
+			homeDir+"/.config/sfdbtools/config.yaml",
+			homeDir+"/.config/sfdbtools/config.yml",
+		)
 	}
 
 	for _, path := range possiblePaths {
