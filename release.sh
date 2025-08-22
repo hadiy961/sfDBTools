@@ -272,7 +272,7 @@ main() {
     log_info "Next steps:"
     log_info "  1. Wait for GitHub Actions to complete (~2-5 minutes)"
     log_info "  2. Check the release page for published binaries"
-    log_info "  3. Test installation: curl -sSL https://raw.githubusercontent.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/main/install.sh | bash"
+    log_info "  3. Test installation: curl -sSL https://raw.githubusercontent.com/$(git config --get remote.origin.url | sed 's/.*github.com[:/]\([^.]*\).*/\1/')/master/install.sh | bash"
     log_info ""
 }
 
