@@ -1,7 +1,7 @@
-# Encryption Consistency in sfDBTools
+# Encryption Consistency in sfDBTools_new
 
 ## Overview
-sfDBTools now uses a unified encryption approach across all components to ensure consistency between configuration files and backup files.
+sfDBTools_new now uses a unified encryption approach across all components to ensure consistency between configuration files and backup files.
 
 ## Encryption Method
 - **Algorithm**: AES-256-GCM (authenticated encryption)
@@ -48,32 +48,32 @@ If you have backup files encrypted with the old method (using app config values)
 ### Config Generation
 ```bash
 # Generate encrypted config
-sfDBTools config generate --auto --config-name mydb --db-host localhost --db-port 3306 --db-user root
+sfDBTools_new config generate --auto --config-name mydb --db-host localhost --db-port 3306 --db-user root
 # Will prompt for encryption password
 
 # Or use environment variable
 export SFDB_ENCRYPTION_PASSWORD="your_secret_password"
-sfDBTools config generate --auto --config-name mydb --db-host localhost --db-port 3306 --db-user root
+sfDBTools_new config generate --auto --config-name mydb --db-host localhost --db-port 3306 --db-user root
 ```
 
 ### Backup with Encryption
 ```bash
 # Backup with encryption (will prompt for password)
-sfDBTools backup all --source_host localhost --source_user root --encrypt
+sfDBTools_new backup all --source_host localhost --source_user root --encrypt
 
 # Or use environment variable
 export SFDB_ENCRYPTION_PASSWORD="your_secret_password"
-sfDBTools backup all --source_host localhost --source_user root --encrypt
+sfDBTools_new backup all --source_host localhost --source_user root --encrypt
 ```
 
 ### Restore Encrypted Backup
 ```bash
 # Restore encrypted backup (will prompt for password)
-sfDBTools restore all --target_host localhost --target_user root --file backup_file.sql.gz.enc
+sfDBTools_new restore all --target_host localhost --target_user root --file backup_file.sql.gz.enc
 
 # Or use environment variable
 export SFDB_ENCRYPTION_PASSWORD="your_secret_password"
-sfDBTools restore all --target_host localhost --target_user root --file backup_file.sql.gz.enc
+sfDBTools_new restore all --target_host localhost --target_user root --file backup_file.sql.gz.enc
 ```
 
 ## Error Messages

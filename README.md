@@ -1,4 +1,4 @@
-# sfDBTools
+# sfDBTools_new
 
 A comprehensive MariaDB/MySQL database management tool written in Go, designed for automated database operations including backup, restore, configuration, and health checks.
 
@@ -13,24 +13,55 @@ A comprehensive MariaDB/MySQL database management tool written in Go, designed f
 
 ## Installation
 
+### Quick Install (Recommended)
+
+Download the latest pre-compiled binary for Linux:
+
+```bash
+# Download the latest release
+curl -s https://api.github.com/repos/hadiy961/sfDBTools_new/releases/latest \
+| grep "browser_download_url.*linux_amd64" \
+| cut -d : -f 2,3 \
+| tr -d \" \
+| wget -qi -
+
+# Extract the binary
+tar -xzf sfdbtools_*_Linux_amd64.tar.gz
+
+# Make it executable and move to PATH
+chmod +x sfdbtools
+sudo mv sfdbtools /usr/local/bin/
+
+# Verify installation
+sfdbtools --version
+```
+
+### ARM64 Linux
+
+```bash
+# For ARM64 systems (like Raspberry Pi, AWS Graviton, etc.)
+curl -s https://api.github.com/repos/hadiy961/sfDBTools_new/releases/latest \
+| grep "browser_download_url.*linux_arm64" \
+| cut -d : -f 2,3 \
+| tr -d \" \
+| wget -qi -
+
+tar -xzf sfdbtools_*_Linux_arm64.tar.gz
+chmod +x sfdbtools
+sudo mv sfdbtools /usr/local/bin/
+```
+
 ### Prerequisites
 
-- Go 1.19 or higher
 - MariaDB/MySQL server
 - Required system tools: `rsync`, `mysql_install_db`, `mariadb-install-db`, `systemctl`
 
 ### Build from Source
 
 ```bash
-git clone https://github.com/yourusername/sfDBTools.git
-cd sfDBTools
-go build ./...
-```
-
-### Run without Installing
-
-```bash
-go run main.go [command]
+git clone https://github.com/hadiy961/sfDBTools_new.git
+cd sfDBTools_new
+go build -o sfdbtools main.go
 ```
 
 ## Configuration
@@ -48,30 +79,107 @@ general:
 ### Basic Commands
 
 ```bash
+# Basic setup after installation
+sfdbtools config generate
+
 # Check database status
-./sfDBTools mariadb check
+sfdbtools mariadb check
 
 # Configure MariaDB server
-./sfDBTools mariadb configure
+sfdbtools mariadb configure
 
 # Create database backup
-./sfDBTools mariadb backup
+sfdbtools backup user <username>
 
 # Restore database from backup
-./sfDBTools mariadb restore
+sfdbtools restore user <username>
 ```
+
+## Quick Start for New Users
+
+After installation, run the setup script to get started quickly:
+
+```bash
+# Download and run setup script
+curl -sSL https://raw.githubusercontent.com/hadiy961/sfDBTools_new/main/setup.sh | bash
+
+# Or if you cloned the repository
+./setup.sh
+```
+
+This will:
+- Check prerequisites
+- Create configuration directory
+- Generate initial config file
+- Show next steps
 
 ### Available Commands
 
-- `mariadb check` - Perform health checks on MariaDB server
-- `mariadb configure` - Configure MariaDB server settings
-- `mariadb backup` - Create database backups
-- `mariadb restore` - Restore databases from backup files
+- `config` - Configuration management (generate, edit, validate)
+- `mariadb` - MariaDB server management (install, configure, versions)
+- `backup` - Database backup operations (user, selection, all)
+- `restore` - Database restore operations (user, single, all)
+- `migrate` - Database migration tools
+- `database` - Database operations (drop, test connection)
+
+### Command Examples
+
+```bash
+# Configuration
+sfdbtools config generate          # Generate config file
+sfdbtools config validate          # Validate configuration
+sfdbtools config show              # Show current config
+
+# MariaDB Management
+sfdbtools mariadb install          # Install MariaDB
+sfdbtools mariadb configure        # Configure MariaDB
+sfdbtools mariadb versions         # Show available versions
+
+# Backup Operations
+sfdbtools backup user myuser       # Backup specific user's databases
+sfdbtools backup all               # Backup all databases
+sfdbtools backup selection         # Interactive database selection
+
+# Restore Operations
+sfdbtools restore user myuser      # Restore user's databases
+sfdbtools restore single mydb      # Restore single database
+sfdbtools restore all              # Restore all databases from backup
+```
+
+## For Developers
+
+### Creating Releases
+
+This project uses automated releases via GitHub Actions. To create a new release:
+
+```bash
+# Using the release script (recommended)
+./release.sh 1.2.3
+
+# Or manually
+git tag v1.2.3
+git push origin v1.2.3
+```
+
+The GitHub Actions workflow will automatically:
+- Build binaries for Linux (amd64 and arm64)
+- Create compressed archives
+- Upload to GitHub Releases
+- Generate changelog
+
+### Build from Source
+
+```bash
+git clone https://github.com/hadiy961/sfDBTools_new.git
+cd sfDBTools_new
+go mod download
+go build -o sfdbtools main.go
+```
 
 ## Project Structure
 
 ```
-sfDBTools/
+sfDBTools_new/
 ├── cmd/                    # CLI commands
 │   └── mariadb/           # MariaDB-specific commands
 ├── internal/              # Core business logic
@@ -105,7 +213,7 @@ go test ./...
 
 ```bash
 go run main.go mariadb check
-tail -f logs/sfDBTools.log
+tail -f logs/sfDBTools_new.log
 ```
 
 ## Database Connection
@@ -127,7 +235,7 @@ lg.Info("Operation completed successfully")
 lg.Error("Error occurred", "error", err)
 ```
 
-Logs are saved to `logs/sfDBTools.log` for debugging and monitoring.
+Logs are saved to `logs/sfDBTools_new.log` for debugging and monitoring.
 
 ## Security Features
 
@@ -161,7 +269,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For questions and support:
 - Open an issue on GitHub
-- Check the logs in `logs/sfDBTools.log` for debugging
+- Check the logs in `logs/sfDBTools_new.log` for debugging
 - Review configuration examples in `config/`
 
 ## Roadmap

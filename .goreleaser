@@ -7,14 +7,12 @@ before:
 
 builds:
   - id: sfdbtools
-    main: ./cmd   # SESUAIKAN: jika entry point bukan ./cmd/main.go ganti ke path main sebenarnya
+    main: ./main.go
     binary: sfdbtools
     env:
       - CGO_ENABLED=0
     goos:
       - linux
-      - darwin
-      - windows
     goarch:
       - amd64
       - arm64
@@ -34,13 +32,8 @@ archives:
       - LICENSE*
       - README.md
       - config/config.example.yaml
-      - README_CONFIG.md
     replacements:
-      darwin: macOS
-    # Windows: tar.gz ok; jika mau zip:
-    # format_overrides:
-    #   - goos: windows
-    #     format: zip
+      linux: Linux
 
 checksum:
   name_template: "checksums_{{ .Version }}.txt"

@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"sfDBTools/cmd"
+	"sfDBTools_new/cmd"
 )
 
 func main() {

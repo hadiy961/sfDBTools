@@ -1547,3 +1547,4 @@
 [2025-08-22 10:28:10] [INFO] [database/max_statement_time.go:112] - Restored max_statement_time to original value {"value": "900.000000"}
 [2025-08-22 10:28:10] [ERROR] [restore/restore_cmd_user.go:62] - User grants restore operation failed {"error": "failed to create decompressing reader: failed to decrypt data: cipher: message authentication failed"}
 [2025-08-22 10:28:10] [ERROR] [restore/restore_cmd_user.go:26] - User grants restore failed {"error": "user grants restore failed: failed to create decompressing reader: failed to decrypt data: cipher: message authentication failed"}
+[2025-08-22 14:04:40] [INFO] [cmd/mariadb_cmd.go:20] - MariaDB command executed

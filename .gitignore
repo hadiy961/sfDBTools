@@ -37,3 +37,14 @@ config/db_config
 !LICENSE
 logs/sfDBTools.log
 sfDBTools
+
+# Build artifacts dan testing
+sfdbtools
+sfdbtools-*
+dist/
+coverage.out
+*.test
+*.cover
+
+# GoReleaser
+.goreleaser.yaml
