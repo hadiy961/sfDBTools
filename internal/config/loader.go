@@ -37,7 +37,7 @@ func loadViper() (*viper.Viper, error) {
 			"config.yaml",
 			"config.yml",
 		}
-		
+
 		var foundPath string
 		for _, path := range possiblePaths {
 			if fileExists(path) {
@@ -45,7 +45,7 @@ func loadViper() (*viper.Viper, error) {
 				break
 			}
 		}
-		
+
 		if foundPath == "" {
 			return nil, fmt.Errorf("file konfigurasi tidak ditemukan. Pastikan file config.yaml ada di direktori ./config/")
 		}
