@@ -110,10 +110,14 @@ install_binary() {
     arch=$(detect_arch)
     release_info=$(get_latest_release)
     
+    # Debug: show release info
+    # echo "DEBUG: Release info: $release_info" >&2
+    
     # Extract version
     version=$(echo "$release_info" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [[ -z "$version" ]]; then
         log_error "Could not determine latest version"
+        log_error "Release info received: $release_info"
         exit 1
     fi
     
