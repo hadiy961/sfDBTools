@@ -8,13 +8,13 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"regexp"
 	"strconv"
 	"strings"
 
 	_ "github.com/go-sql-driver/mysql"
 
 	"sfDBTools/internal/config"
+	"sfDBTools/internal/core/mariadb/templates"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/disk"
@@ -229,15 +229,50 @@ func getRootDB(port int) (*sql.DB, error) {
 	return nil, fmt.Errorf("unable to connect to MariaDB via TCP or common sockets")
 }
 
+// generateNumericServerID generates a numeric server ID based on client code
+func generateNumericServerID(clientCode string) string {
+	if clientCode == "" {
+		return "184" // Default numeric server ID
+	}
+
+	// Generate a numeric ID based on the hash of the client code
+	hash := 0
+	for _, char := range clientCode {
+		hash = hash*31 + int(char)
+	}
+
+	// Ensure positive number and reasonable range (1-4294967295)
+	if hash < 0 {
+		hash = -hash
+	}
+	serverID := (hash % 999999) + 1 // Range: 1 to 999999
+
+	return fmt.Sprintf("%d", serverID)
+}
+
 // getConfigurationOptions prompts user for configuration options
 func getConfigurationOptions() (*ConfigOptions, error) {
 	reader := bufio.NewReader(os.Stdin)
+	var input string
 
 	fmt.Println("\n🔧 MariaDB Configuration Setup")
 	fmt.Println("===============================")
 
+	// Load config to get default values
+	cfg, err := config.Get()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load config.yaml: %w", err)
+	}
+
+	// Get source key file from config.yaml - use consistent path
+	sourceKeyFile := cfg.ConfigDir.MariaDBKey
+	if sourceKeyFile == "" {
+		// Use the same fallback as defined in config.yaml structure
+		sourceKeyFile = "/etc/sfDBTools/key_maria_nbc.txt"
+	}
+
 	options := &ConfigOptions{
-		SourceKeyFile: "config/key_maria_nbc.txt",
+		SourceKeyFile: sourceKeyFile,
 	}
 
 	// Detect OS and set default config path
@@ -249,23 +284,43 @@ func getConfigurationOptions() (*ConfigOptions, error) {
 
 	fmt.Printf("Detected MariaDB config path: %s\n", configPath)
 
-	// Server ID
-	fmt.Print("Enter Server ID [PNM-184]: ")
-	input, _ := reader.ReadString('\n')
-	input = strings.TrimSpace(input)
-	if input == "" {
-		options.ServerID = "PNM-184"
-	} else {
-		options.ServerID = input
+	// Get default values from config.yaml
+	defaultServerID := generateNumericServerID(cfg.General.ClientCode)
+	defaultBinlogDir := cfg.MariaDB.Installation.BinlogDir
+	if defaultBinlogDir == "" {
+		defaultBinlogDir = "/var/lib/mysqlbinlogs"
+	}
+	defaultDataDir := cfg.MariaDB.Installation.DataDir
+	if defaultDataDir == "" {
+		defaultDataDir = "/var/lib/mysql"
+	}
+
+	// Server ID (must be numeric)
+	for {
+		fmt.Printf("Enter Server ID (numeric only) [%s]: ", defaultServerID)
+		input, _ := reader.ReadString('\n')
+		input = strings.TrimSpace(input)
+		if input == "" {
+			options.ServerID = defaultServerID
+			break
+		} else {
+			// Validate that the input is numeric
+			if _, err := strconv.Atoi(input); err != nil {
+				fmt.Printf("❌ Error: Server ID must be numeric. '%s' is not a valid number.\n", input)
+				continue
+			}
+			options.ServerID = input
+			break
+		}
 	}
 
 	// Log Bin Path
 	for {
-		fmt.Print("Enter Log Bin directory [/var/lib/mysqlbinlogs]: ")
+		fmt.Printf("Enter Log Bin directory [%s]: ", defaultBinlogDir)
 		input, _ = reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			options.LogBin = "/var/lib/mysqlbinlogs/mysql-bin"
+			options.LogBin = filepath.Join(defaultBinlogDir, "mysql-bin")
 			break
 		} else if strings.HasPrefix(input, "/home/") {
 			fmt.Println("❌ Error: /home/ paths are not allowed for security reasons. Please use system directories.")
@@ -279,11 +334,11 @@ func getConfigurationOptions() (*ConfigOptions, error) {
 
 	// Data Directory
 	for {
-		fmt.Print("Enter Data directory [/var/lib/mysql]: ")
+		fmt.Printf("Enter Data directory [%s]: ", defaultDataDir)
 		input, _ = reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 		if input == "" {
-			options.DataDir = "/var/lib/mysql"
+			options.DataDir = defaultDataDir
 			break
 		} else if strings.HasPrefix(input, "/home/") {
 			fmt.Println("❌ Error: /home/ paths are not allowed for security reasons. Please use system directories.")
@@ -306,17 +361,21 @@ func getConfigurationOptions() (*ConfigOptions, error) {
 	options.LogDir = options.DataDir
 	fmt.Printf("Log directory: %s (auto-configured same as Data directory)\n", options.LogDir)
 
-	// Port
-	fmt.Print("Enter Port [43306]: ")
+	// Port - use config.yaml default
+	defaultPort := cfg.MariaDB.Installation.Port
+	if defaultPort == 0 {
+		defaultPort = 43306
+	}
+	fmt.Printf("Enter Port [%d]: ", defaultPort)
 	input, _ = reader.ReadString('\n')
 	input = strings.TrimSpace(input)
 	if input == "" {
-		options.Port = 43306
+		options.Port = defaultPort
 	} else {
 		port, err := strconv.Atoi(input)
 		if err != nil {
-			fmt.Printf("Invalid port number, using default 43306\n")
-			options.Port = 43306
+			fmt.Printf("Invalid port number, using default %d\n", defaultPort)
+			options.Port = defaultPort
 		} else {
 			options.Port = port
 		}
@@ -329,13 +388,83 @@ func getConfigurationOptions() (*ConfigOptions, error) {
 	options.EnableEncryption = (input == "y" || input == "yes")
 
 	if options.EnableEncryption {
-		// Key file path
+		// Check if source key file exists before proceeding (use already configured path)
+		if _, err := os.Stat(options.SourceKeyFile); os.IsNotExist(err) {
+			fmt.Printf("\n⚠️  Warning: Source encryption key file not found: %s\n", options.SourceKeyFile)
+			fmt.Println("Without the source key file, encryption cannot be configured.")
+			fmt.Println("Options:")
+			fmt.Println("1. Continue without encryption (recommended)")
+			fmt.Println("2. Provide path to existing key file")
+			fmt.Println("3. Cancel configuration")
+
+			for {
+				fmt.Print("Choose option (1/2/3): ")
+				choice, _ := reader.ReadString('\n')
+				choice = strings.TrimSpace(choice)
+
+				switch choice {
+				case "1":
+					fmt.Println("✅ Continuing without encryption...")
+					options.EnableEncryption = false
+					return options, nil
+
+				case "2":
+					fmt.Print("Enter path to existing key file: ")
+					keyPath, _ := reader.ReadString('\n')
+					keyPath = strings.TrimSpace(keyPath)
+
+					if keyPath == "" {
+						fmt.Println("❌ No path provided. Continuing without encryption...")
+						options.EnableEncryption = false
+						return options, nil
+					}
+
+					if strings.HasPrefix(keyPath, "/home/") {
+						fmt.Println("❌ Error: /home/ paths are not allowed for security reasons.")
+						continue
+					}
+
+					// Check if the provided file exists
+					if _, err := os.Stat(keyPath); os.IsNotExist(err) {
+						fmt.Printf("❌ Key file not found: %s\n", keyPath)
+						continue
+					}
+
+					fmt.Printf("✅ Key file found: %s\n", keyPath)
+					options.SourceKeyFile = keyPath
+					goto continueWithEncryption
+
+				case "3":
+					return nil, fmt.Errorf("configuration cancelled by user")
+
+				default:
+					fmt.Println("❌ Invalid option. Please choose 1, 2, or 3.")
+					continue
+				}
+			}
+		} else {
+			// Source key file exists and already configured in options.SourceKeyFile
+		}
+
+	continueWithEncryption:
+
+		// Key file path - get default from config.yaml (consistent with source key file)
+		defaultKeyFile := cfg.ConfigDir.MariaDBKey
+		if defaultKeyFile == "" {
+			// Try installation key file as fallback
+			if cfg.MariaDB.Installation.KeyFile != "" {
+				defaultKeyFile = cfg.MariaDB.Installation.KeyFile
+			} else {
+				defaultKeyFile = "/etc/sfDBTools/key_maria_nbc.txt"
+			}
+		}
+
 		for {
-			fmt.Print("Enter encryption key file path [/var/lib/mysql/key_maria_nbc.txt]: ")
+			fmt.Printf("Enter encryption key file path [%s]: ", defaultKeyFile)
 			input, _ = reader.ReadString('\n')
 			input = strings.TrimSpace(input)
 			if input == "" {
-				options.FileKeyManagementFilename = "/var/lib/mysql/key_maria_nbc.txt"
+				options.FileKeyManagementFilename = defaultKeyFile
 				break
 			} else if strings.HasPrefix(input, "/home/") {
 				fmt.Println("❌ Error: /home/ paths are not allowed for security reasons. Please use system directories.")
@@ -382,10 +511,7 @@ func applyConfiguration(options *ConfigOptions) (*ConfigResult, error) {
 
 	// Copy encryption key if enabled
 	if options.EnableEncryption {
-		if err := copyEncryptionKey(options); err != nil {
-			result.Error = fmt.Errorf("failed to copy encryption key: %w", err)
-			return result, result.Error
-		}
+
 		result.KeyFileCopied = true
 		lg.Info("Encryption key copied successfully")
 	}
@@ -551,91 +677,55 @@ func setDirectoryOwnershipSafely(dir, owner, group string) error {
 	return common.SetDirectoryPermissions(dir, 0755, owner, group)
 }
 
-// copyEncryptionKey copies the encryption key file
-func copyEncryptionKey(options *ConfigOptions) error {
-	lg, _ := logger.Get()
-
-	sourceFile := options.SourceKeyFile
-	destFile := options.FileKeyManagementFilename
-
-	// Check if source file exists
-	if _, err := os.Stat(sourceFile); os.IsNotExist(err) {
-		return fmt.Errorf("source key file does not exist: %s", sourceFile)
-	}
-
-	// Create destination directory if it doesn't exist
-	destDir := filepath.Dir(destFile)
-	if err := os.MkdirAll(destDir, 0755); err != nil {
-		return fmt.Errorf("failed to create key file directory: %w", err)
-	}
-
-	// Copy the file
-	source, err := os.Open(sourceFile)
-	if err != nil {
-		return fmt.Errorf("failed to open source key file: %w", err)
-	}
-	defer source.Close()
-
-	dest, err := os.Create(destFile)
-	if err != nil {
-		return fmt.Errorf("failed to create destination key file: %w", err)
-	}
-	defer dest.Close()
-
-	if _, err := io.Copy(dest, source); err != nil {
-		return fmt.Errorf("failed to copy key file: %w", err)
-	}
-
-	// Set proper permissions using common utility
-	if err := common.SetFilePermissions(destFile, 0600, "mysql", "mysql"); err != nil {
-		lg.Warn("Failed to set key file permissions", logger.Error(err))
-	}
-
-	lg.Info("Encryption key copied",
-		logger.String("from", sourceFile),
-		logger.String("to", destFile))
-
-	return nil
-}
-
-// generateConfigFile generates the MariaDB configuration file
+// generateConfigFile generates the MariaDB configuration file using template from server_template.go
 func generateConfigFile(options *ConfigOptions) error {
 	lg, _ := logger.Get()
 
-	// Read the template server.cnf
-	templatePath := "config/server.cnf"
-	content, err := os.ReadFile(templatePath)
-	if err != nil {
-		return fmt.Errorf("failed to read config template: %w", err)
+	// Use the template from server_template.go
+	configContent := templates.MariaDBServerTemplate
+
+	// Create template parameters matching the template structure
+	params := templates.MariaDBConfigParams{
+		ServerID:       options.ServerID,
+		KeyFilePath:    options.FileKeyManagementFilename,
+		BinLogPath:     options.LogBin,
+		DataDir:        options.DataDir,
+		MaxConnections: "10000",
+		Port:           fmt.Sprintf("%d", options.Port),
+		BindAddress:    "0.0.0.0",
+		BufferPoolSize: "10G",
 	}
 
-	configContent := string(content)
+	// Replace template placeholders with actual values
+	configContent = strings.ReplaceAll(configContent, "{{.ServerID}}", params.ServerID)
+	configContent = strings.ReplaceAll(configContent, "{{.KeyFilePath}}", params.KeyFilePath)
+	configContent = strings.ReplaceAll(configContent, "{{.BinLogPath}}", params.BinLogPath)
+	configContent = strings.ReplaceAll(configContent, "{{.DataDir}}", params.DataDir)
+	configContent = strings.ReplaceAll(configContent, "{{.MaxConnections}}", params.MaxConnections)
+	configContent = strings.ReplaceAll(configContent, "{{.Port}}", params.Port)
+	configContent = strings.ReplaceAll(configContent, "{{.BindAddress}}", params.BindAddress)
+	configContent = strings.ReplaceAll(configContent, "{{.BufferPoolSize}}", params.BufferPoolSize)
 
-	// Replace configuration values
-	configContent = replaceConfigValue(configContent, "server_id", options.ServerID)
-	configContent = replaceConfigValue(configContent, "log_bin", options.LogBin)
-	configContent = replaceConfigValue(configContent, "datadir", options.DataDir)
-	configContent = replaceConfigValue(configContent, "innodb_data_home_dir", options.InnoDBDataHomeDir)
-	configContent = replaceConfigValue(configContent, "innodb_log_group_home_dir", options.InnoDBLogGroupHomeDir)
-	configContent = replaceConfigValue(configContent, "port", fmt.Sprintf("%d", options.Port))
+	// Handle encryption settings - if encryption is disabled, remove encryption-related lines
+	if !options.EnableEncryption {
+		// Remove encryption-related lines from the template
+		lines := strings.Split(configContent, "\n")
+		var filteredLines []string
+		skipNext := false
 
-	// Update log file paths
-	logErrorPath := filepath.Join(options.LogDir, "mysql_error.log")
-	slowLogPath := filepath.Join(options.LogDir, "mysql_slow.log")
-	configContent = replaceConfigValue(configContent, "log_error", logErrorPath)
-	configContent = replaceConfigValue(configContent, "slow_query_log_file", slowLogPath)
-
-	// Handle encryption settings
-	if options.EnableEncryption {
-		configContent = replaceConfigValue(configContent, "file_key_management_filename", options.FileKeyManagementFilename)
-		configContent = replaceConfigValue(configContent, "file_key_management_encryption_algorithm", options.FileKeyManagementAlgorithm)
-		configContent = replaceConfigValue(configContent, "innodb-encrypt-tables", "ON")
-	} else {
-		// Remove or comment out encryption-related lines
-		configContent = commentOutConfig(configContent, "plugin-load-add")
-		configContent = commentOutConfig(configContent, "file_key_management_encryption_algorithm")
-		configContent = commentOutConfig(configContent, "file_key_management_filename")
-		configContent = commentOutConfig(configContent, "innodb-encrypt-tables")
+		for _, line := range lines {
+			if strings.Contains(line, "plugin-load-add") ||
+				strings.Contains(line, "file_key_management") ||
+				strings.Contains(line, "innodb-encrypt-tables") {
+				skipNext = true
+				continue
+			}
+			if !skipNext {
+				filteredLines = append(filteredLines, line)
+			}
+			skipNext = false
+		}
+		configContent = strings.Join(filteredLines, "\n")
 	}
 
 	// Write the new configuration file
@@ -643,27 +733,8 @@ func generateConfigFile(options *ConfigOptions) error {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 
-	lg.Info("Configuration file generated", logger.String("path", options.ConfigFilePath))
+	lg.Info("Configuration file generated using server_template.go", logger.String("path", options.ConfigFilePath))
 	return nil
-}
-
-// replaceConfigValue replaces a configuration value in the config content
-func replaceConfigValue(content, key, value string) string {
-	// Pattern to match key = value or key = "value"
-	pattern := fmt.Sprintf(`(?m)^(\s*%s\s*=\s*)[^\n]*`, regexp.QuoteMeta(key))
-	replacement := fmt.Sprintf("${1}%s", value)
-
-	re := regexp.MustCompile(pattern)
-	return re.ReplaceAllString(content, replacement)
-}
-
-// commentOutConfig comments out a configuration line
-func commentOutConfig(content, key string) string {
-	pattern := fmt.Sprintf(`(?m)^(\s*)(%s.*?)$`, regexp.QuoteMeta(key))
-	replacement := "${1}#${2}"
-
-	re := regexp.MustCompile(pattern)
-	return re.ReplaceAllString(content, replacement)
 }
 
 // setConfigPermissions sets proper permissions for the config file using common utility

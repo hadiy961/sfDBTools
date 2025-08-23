@@ -73,6 +73,9 @@ type SystemUsers struct {
 
 type ConfigDirConfig struct {
 	DatabaseConfig string `mapstructure:"database_config"`
+	MariaDBConfig  string `mapstructure:"mariadb_config"`
+	MariaDBKey     string `mapstructure:"mariadb_key"`
+	DatabaseList   string `mapstructure:"database_list"`
 }
 
 type MariaDBConfig struct {
