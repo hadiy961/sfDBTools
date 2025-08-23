@@ -154,16 +154,6 @@ func ShowUninstallWarning() {
 	fmt.Println()
 	fmt.Println("💡 RECOMMENDED: Backup your databases first!")
 	fmt.Println()
-	fmt.Println("📝 Backup commands:")
-	fmt.Println("  # Backup all databases:")
-	fmt.Println("  sfDBTools backup all --output-dir ./backup")
-	fmt.Println()
-	fmt.Println("  # Backup with encryption:")
-	fmt.Println("  sfDBTools backup all --output-dir ./backup --encrypt")
-	fmt.Println()
-	fmt.Println("  # Backup specific database:")
-	fmt.Println("  sfDBTools backup single --target_db mydb --output-dir ./backup")
-	fmt.Println()
 }
 
 // PromptConfirmation prompts user for confirmation
