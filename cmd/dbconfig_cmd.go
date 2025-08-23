@@ -8,16 +8,17 @@ import (
 )
 
 var ConfigCmd = &cobra.Command{
-	Use:   "config",
-	Short: "Configuration management commands",
-	Long:  "Configuration management commands for generating and managing encrypted database configurations.",
+	Use:   "dbconfig",
+	Short: "Database configuration management commands",
+	Long: `Database configuration management commands for generating, validating, editing, viewing, and deleting encrypted database configurations.
+All database configurations are stored in encrypted format for security.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		lg, err := logger.Get()
 		if err != nil {
 			lg.Error("Failed to get logger", logger.Error(err))
 			return
 		}
-		lg.Info("Config command executed")
+		lg.Info("Database config command executed")
 		cmd.Help()
 	},
 	Annotations: map[string]string{
@@ -32,4 +33,5 @@ func init() {
 	ConfigCmd.AddCommand(command_config.ValidateCmd)
 	ConfigCmd.AddCommand(command_config.ShowCmd)
 	ConfigCmd.AddCommand(command_config.EditCmd)
+	ConfigCmd.AddCommand(command_config.DeleteCmd)
 }
