@@ -1,10 +1,10 @@
-package config
+package dbconfig
 
 import (
 	"fmt"
 	"os"
 
-	"sfDBTools/cmd/config/generate"
+	"sfDBTools/cmd/dbconfig/generate"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
