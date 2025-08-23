@@ -31,7 +31,7 @@ func ClearScreen() error {
 		return ClearScreenANSI()
 	}
 
-	lg.Debug("Terminal screen cleared", logger.String("method", "system_command"))
+	// Only log if there are issues, not for successful operations
 	return nil
 }
 
@@ -46,7 +46,7 @@ func ClearScreenANSI() error {
 		return err
 	}
 
-	lg.Debug("Terminal screen cleared", logger.String("method", "ansi_escape"))
+	// Only log if there are issues, not for successful operations
 	return nil
 }
 
@@ -79,7 +79,7 @@ func ClearCurrentLine() error {
 		return err
 	}
 
-	lg.Debug("Current line cleared")
+	// Clear current line without debug logging for cleaner output
 	return nil
 }
 
@@ -162,7 +162,7 @@ func HideCursor() error {
 		return err
 	}
 
-	lg.Debug("Cursor hidden")
+	// Hide cursor without debug logging for cleaner output
 	return nil
 }
 
@@ -190,7 +190,7 @@ func GetTerminalSize() (width, height int, err error) {
 			var w, h int
 			if _, err := fmt.Sscanf(cols, "%d", &w); err == nil {
 				if _, err := fmt.Sscanf(lines, "%d", &h); err == nil {
-					lg.Debug("Terminal size from environment", logger.Int("width", w), logger.Int("height", h))
+					// Only log terminal size detection failures, not successes for cleaner output
 					return w, h, nil
 				}
 			}
@@ -245,8 +245,6 @@ func GetTerminalSize() (width, height int, err error) {
 
 // getTputSize tries to get terminal size using tput command
 func getTputSize() (width, height int, err error) {
-	lg, _ := logger.Get()
-
 	// Get columns
 	colsCmd := exec.Command("tput", "cols")
 	colsOutput, err := colsCmd.Output()
@@ -270,7 +268,7 @@ func getTputSize() (width, height int, err error) {
 		return 0, 0, err
 	}
 
-	lg.Debug("Terminal size detected via tput", logger.Int("width", w), logger.Int("height", h))
+	// Remove debug logging for terminal size detection success for cleaner output
 	return w, h, nil
 }
 

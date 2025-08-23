@@ -3,9 +3,11 @@ package dbconfig
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"sfDBTools/cmd/dbconfig/generate"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -27,12 +29,36 @@ Sensitive data (passwords) must be provided via environment variables:
 
 If environment variables are not set, you will be prompted interactively.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		// Clear screen and show header
+		terminal.ClearAndShowHeader("🔐 Generate Database Configuration")
+
+		// Show generation info
+		terminal.PrintSubHeader("📋 Configuration Generation")
+		terminal.PrintInfo("This will create an encrypted database configuration file.")
+		terminal.PrintInfo("You'll be prompted for database connection details.")
+		fmt.Println()
+
+		// Show spinner while preparing
+		spinner := terminal.NewProgressSpinner("Preparing configuration generator...")
+		spinner.Start()
+
+		// Brief delay to show preparation
+		time.Sleep(500 * time.Millisecond)
+
+		// Stop spinner before interactive generation
+		spinner.Stop()
+		fmt.Println()
+
 		if err := generate.GenerateEncryptedConfig(cmd, configName, dbHost, dbPort, dbUser, autoMode); err != nil {
 			lg, _ := logger.Get()
 			lg.Error("Failed to generate encrypted config", logger.Error(err))
-			fmt.Printf("Error: %v\n", err)
+			terminal.PrintError(fmt.Sprintf("Failed to generate configuration: %v", err))
+			terminal.WaitForEnterWithMessage("Press Enter to continue...")
 			os.Exit(1)
 		}
+
+		terminal.PrintSuccess("✅ Configuration generated successfully!")
+		terminal.WaitForEnterWithMessage("Press Enter to continue...")
 	},
 }
 

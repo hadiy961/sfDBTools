@@ -8,11 +8,13 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/crypto"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -25,10 +27,14 @@ If no file is specified, it will list all available encrypted config files
 and allow you to choose one. You can modify name, host, port, user, and password.
 If the name changes, the file will be renamed accordingly.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := editConfigCommand(cmd); err != nil {
+		// Clear screen and show header
+		terminal.ClearAndShowHeader("✏️ Edit Database Configuration")
+
+		if err := editConfigCommandEnhanced(cmd); err != nil {
 			lg, _ := logger.Get()
 			lg.Error("Failed to edit config", logger.Error(err))
-			// Don't print error again since edit functions already print informative messages
+			terminal.PrintError(fmt.Sprintf("Edit failed: %v", err))
+			terminal.WaitForEnterWithMessage("Press Enter to continue...")
 			os.Exit(1)
 		}
 	},
@@ -40,7 +46,8 @@ func init() {
 	EditCmd.Flags().StringVarP(&editFilePath, "file", "f", "", "Specific encrypted config file to edit")
 }
 
-func editConfigCommand(cmd *cobra.Command) error {
+// editConfigCommandEnhanced is the enhanced version with terminal utilities
+func editConfigCommandEnhanced(cmd *cobra.Command) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -48,17 +55,63 @@ func editConfigCommand(cmd *cobra.Command) error {
 
 	lg.Info("Starting database configuration editing")
 
+	// Show edit info
+	terminal.PrintSubHeader("✏️ Configuration Editor")
+	terminal.PrintInfo("This will allow you to modify database connection details.")
+	terminal.PrintInfo("You can change host, port, username, password, and configuration name.")
+	fmt.Println()
+
+	// Show spinner while preparing
+	spinner := terminal.NewProgressSpinner("Preparing configuration editor...")
+	spinner.Start()
+
+	// Brief delay for preparation
+	time.Sleep(300 * time.Millisecond)
+
 	// If specific file is provided via flag
 	if editFilePath != "" {
-		return editSpecificConfig(editFilePath)
+		spinner.Stop()
+		fmt.Println()
+		terminal.PrintInfo(fmt.Sprintf("Editing file: %s", editFilePath))
+		return editSpecificConfigEnhanced(editFilePath)
 	}
 
+	spinner.Stop()
+	fmt.Println()
+
 	// List all encrypted config files and let user choose
+	terminal.PrintSubHeader("📂 Select Configuration File")
 	selectedFile, err := common.SelectConfigFileInteractive()
 	if err != nil {
 		return err
 	}
-	return editSpecificConfig(selectedFile)
+	return editSpecificConfigEnhanced(selectedFile)
+}
+
+// editSpecificConfigEnhanced edits specific config with enhanced display
+func editSpecificConfigEnhanced(filePath string) error {
+	// Show loading with spinner
+	terminal.PrintSubHeader("🔧 Loading Configuration")
+	spinner := terminal.NewProgressSpinner("Loading configuration for editing...")
+	spinner.Start()
+
+	// Brief delay to show loading
+	time.Sleep(500 * time.Millisecond)
+
+	// Stop spinner before interactive editing
+	spinner.Stop()
+	fmt.Println()
+
+	err := editSpecificConfig(filePath)
+
+	if err != nil {
+		terminal.PrintError(fmt.Sprintf("Edit failed: %v", err))
+		return err
+	}
+
+	terminal.PrintSuccess("✅ Configuration updated successfully!")
+	terminal.WaitForEnterWithMessage("Press Enter to continue...")
+	return nil
 }
 
 func editSpecificConfig(filePath string) error {

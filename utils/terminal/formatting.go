@@ -2,10 +2,14 @@ package terminal
 
 import (
 	"fmt"
+	"os"
+	"regexp"
 	"strings"
 	"time"
 
 	"sfDBTools/internal/logger"
+
+	"github.com/olekukonko/tablewriter"
 )
 
 // Colors for terminal output
@@ -43,8 +47,6 @@ func NewProgressSpinner(message string) *ProgressSpinner {
 
 // Start begins the spinner animation
 func (ps *ProgressSpinner) Start() {
-	lg, _ := logger.Get()
-
 	if ps.active {
 		return
 	}
@@ -66,13 +68,11 @@ func (ps *ProgressSpinner) Start() {
 		}
 	}()
 
-	lg.Debug("Progress spinner started", logger.String("message", ps.message))
+	// Start spinner without debug logging for cleaner output
 }
 
 // Stop stops the spinner animation
 func (ps *ProgressSpinner) Stop() {
-	lg, _ := logger.Get()
-
 	if !ps.active {
 		return
 	}
@@ -82,7 +82,7 @@ func (ps *ProgressSpinner) Stop() {
 	ClearCurrentLine()
 	ShowCursor()
 
-	lg.Debug("Progress spinner stopped")
+	// Stop spinner without debug logging for cleaner output
 }
 
 // UpdateMessage updates the spinner message
@@ -245,59 +245,78 @@ func PadRight(text string, width int) string {
 	return text + strings.Repeat(" ", width-textLen)
 }
 
-// TruncateText truncates text to fit within the specified width
+// TruncateText truncates text to fit within the specified width considering display width
 func TruncateText(text string, width int) string {
-	if len(text) <= width {
+	displayWidth := GetDisplayWidth(text)
+	if displayWidth <= width {
 		return text
 	}
 	if width <= 3 {
-		return text[:width]
+		// Remove ANSI codes and truncate
+		ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+		cleanText := ansiRegex.ReplaceAllString(text, "")
+		if len(cleanText) <= width {
+			return cleanText
+		}
+		return cleanText[:width]
 	}
-	return text[:width-3] + "..."
+
+	// For text with ANSI codes, we need to be more careful
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	cleanText := ansiRegex.ReplaceAllString(text, "")
+
+	if len(cleanText) <= width-3 {
+		return text // Original text fits
+	}
+
+	// Truncate clean text and add ellipsis
+	truncated := cleanText[:width-3] + "..."
+	return truncated
 }
 
-// FormatTable formats data as a table
+// GetDisplayWidth calculates the actual display width of text, ignoring ANSI escape sequences
+func GetDisplayWidth(text string) int {
+	// Remove ANSI escape sequences to get actual display width
+	ansiRegex := regexp.MustCompile(`\x1b\[[0-9;]*m`)
+	cleanText := ansiRegex.ReplaceAllString(text, "")
+	return len(cleanText)
+}
+
+// PadRightWithDisplay pads text to the right considering ANSI color codes
+func PadRightWithDisplay(text string, width int) string {
+	displayWidth := GetDisplayWidth(text)
+	if displayWidth >= width {
+		return text
+	}
+	padding := width - displayWidth
+	return text + strings.Repeat(" ", padding)
+}
+
+// FormatTable formats data as a table using tablewriter library for better appearance
 func FormatTable(headers []string, rows [][]string) {
 	if len(headers) == 0 || len(rows) == 0 {
 		return
 	}
 
-	// Calculate column widths
-	colWidths := make([]int, len(headers))
-	for i, header := range headers {
-		colWidths[i] = len(header)
-	}
+	table := tablewriter.NewWriter(os.Stdout)
 
+	// Set table headers using the correct method
+	headerInterface := make([]interface{}, len(headers))
+	for i, v := range headers {
+		headerInterface[i] = v
+	}
+	table.Header(headerInterface...)
+
+	// Add all rows
 	for _, row := range rows {
-		for i, cell := range row {
-			if i < len(colWidths) && len(cell) > colWidths[i] {
-				colWidths[i] = len(cell)
-			}
+		// Convert row to interface slice
+		rowInterface := make([]interface{}, len(row))
+		for i, v := range row {
+			rowInterface[i] = v
 		}
+		table.Append(rowInterface...)
 	}
 
-	// Print headers
-	fmt.Print("|")
-	for i, header := range headers {
-		fmt.Printf(" %s |", PadRight(header, colWidths[i]))
-	}
-	fmt.Println()
-
-	// Print separator
-	fmt.Print("|")
-	for _, width := range colWidths {
-		fmt.Printf("%s|", strings.Repeat("-", width+2))
-	}
-	fmt.Println()
-
-	// Print rows
-	for _, row := range rows {
-		fmt.Print("|")
-		for i, cell := range row {
-			if i < len(colWidths) {
-				fmt.Printf(" %s |", PadRight(cell, colWidths[i]))
-			}
-		}
-		fmt.Println()
-	}
+	// Render the table
+	table.Render()
 }
