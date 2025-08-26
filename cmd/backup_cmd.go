@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	backup_cmd "sfDBTools/cmd/backup"
+	backup_cmd "sfDBTools/cmd/backup_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"

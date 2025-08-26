@@ -17,7 +17,9 @@ Fokus: CLI Go untuk backup, restore, dan manajemen MariaDB/MySQL.
 ## Struktur Direktori
 ```
 cmd/{module}                 -> Definisi Cobra command (flag, binding, UX entry)
-internal/core/{domain}       -> Logic bisnis utama (backup, restore, validation, orchestration)
+cmd/{module}/{features}      -> Fitur spesifik untuk modul / fitur
+internal/core/{modul}/features  -> Logic bisnis utama (backup, restore, validation, orchestration)
+internal/core/{modul}        -> Helper / utilitas khusus modul
 internal/config              -> Konfigurasi (Viper)
 internal/logger              -> Logging terstruktur
 utils/{area} (atau common)  -> Helper stateless & generic (terminal, io, network, flag helpers)
