@@ -157,7 +157,7 @@ func validateSpecificConfig(filePath string) error {
 	fmt.Println("\n🔗 Testing Database Connection:")
 	fmt.Println("===============================")
 
-	err = testDatabaseConnection(dbConfig)
+	err = testDatabaseConnectionEnhanced(dbConfig)
 	if err != nil {
 		fmt.Printf("❌ Connection Failed: %v\n", err)
 		return fmt.Errorf("database connection test failed")
@@ -238,29 +238,6 @@ func testDatabaseConnectionEnhanced(dbConfig *config.EncryptedDatabaseConfig) er
 
 	terminal.PrintSuccess("🎉 Configuration validation completed successfully!")
 	terminal.WaitForEnterWithMessage("\nPress Enter to continue...")
-
-	return nil
-}
-
-func testDatabaseConnection(dbConfig *config.EncryptedDatabaseConfig) error {
-	// Build DSN for MySQL connection
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/", dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port)
-
-	// Open database connection
-	db, err := sql.Open("mysql", dsn)
-	if err != nil {
-		return fmt.Errorf("failed to open database connection: %w", err)
-	}
-	defer db.Close()
-
-	// Set connection timeout
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-
-	// Test the connection
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("failed to ping database: %w", err)
-	}
 
 	return nil
 }
