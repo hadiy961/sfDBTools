@@ -1,4 +1,4 @@
-package dbconfig
+package dbconfig_cmd
 
 import (
 	"bufio"

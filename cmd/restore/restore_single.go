@@ -1,4 +1,4 @@
-package command_restore
+package restore_cmd
 
 import (
 	"fmt"

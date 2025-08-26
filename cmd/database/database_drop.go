@@ -1,4 +1,4 @@
-package command_database
+package database_cmd
 
 import (
 	"bufio"

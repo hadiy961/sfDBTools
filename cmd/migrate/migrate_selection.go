@@ -1,4 +1,4 @@
-package command_migrate
+package migrate_cmd
 
 import (
 	"fmt"

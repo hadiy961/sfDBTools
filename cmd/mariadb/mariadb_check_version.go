@@ -1,1 +1,1 @@
-package mariadbCMD
+package mariadb_cmd
