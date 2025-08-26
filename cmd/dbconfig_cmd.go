@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	command_config "sfDBTools/cmd/dbconfig"
+	config_cmd "sfDBTools/cmd/dbconfig_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
@@ -29,9 +29,9 @@ All database configurations are stored in encrypted format for security.`,
 
 func init() {
 	rootCmd.AddCommand(ConfigCmd)
-	ConfigCmd.AddCommand(command_config.GenerateCmd)
-	ConfigCmd.AddCommand(command_config.ValidateCmd)
-	ConfigCmd.AddCommand(command_config.ShowCmd)
-	ConfigCmd.AddCommand(command_config.EditCmd)
-	ConfigCmd.AddCommand(command_config.DeleteCmd)
+	ConfigCmd.AddCommand(config_cmd.GenerateCmd)
+	ConfigCmd.AddCommand(config_cmd.ValidateCmd)
+	ConfigCmd.AddCommand(config_cmd.ShowCmd)
+	ConfigCmd.AddCommand(config_cmd.EditCmd)
+	ConfigCmd.AddCommand(config_cmd.DeleteCmd)
 }

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	command_config "sfDBTools/cmd/dbconfig"
 	mariadb_cmd "sfDBTools/cmd/mariadb_cmd"
 	"sfDBTools/internal/logger"
 
@@ -30,12 +29,6 @@ All database configurations are stored in encrypted format for security.`,
 
 func init() {
 	rootCmd.AddCommand(MariaDBCMD)
-	MariaDBCMD.AddCommand(command_config.GenerateCmd)
-	MariaDBCMD.AddCommand(command_config.ValidateCmd)
-	MariaDBCMD.AddCommand(command_config.ShowCmd)
-	MariaDBCMD.AddCommand(command_config.EditCmd)
-	MariaDBCMD.AddCommand(command_config.DeleteCmd)
-
 	// MariaDB-specific commands
 	MariaDBCMD.AddCommand(mariadb_cmd.CheckVersionCmd)
 	MariaDBCMD.AddCommand(mariadb_cmd.InstallCmd)

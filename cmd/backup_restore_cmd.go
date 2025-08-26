@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	command_backup_restore "sfDBTools/cmd/backup_restore"
+	backup_restore_cmd "sfDBTools/cmd/backup_restore_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
@@ -28,5 +28,5 @@ var BackupRestoreCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(BackupRestoreCmd)
-	BackupRestoreCmd.AddCommand(command_backup_restore.BackupRestoreProductionCmd)
+	BackupRestoreCmd.AddCommand(backup_restore_cmd.BackupRestoreProductionCmd)
 }

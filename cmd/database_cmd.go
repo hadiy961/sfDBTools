@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	database_cmd "sfDBTools/cmd/database"
+	database_cmd "sfDBTools/cmd/database_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"

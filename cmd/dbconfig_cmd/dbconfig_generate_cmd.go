@@ -5,7 +5,7 @@ import (
 	"os"
 	"time"
 
-	"sfDBTools/cmd/dbconfig/generate"
+	"sfDBTools/cmd/dbconfig_cmd/generate"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/terminal"
 
