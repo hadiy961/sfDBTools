@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	command_restore "sfDBTools/cmd/restore"
+	restore_cmd "sfDBTools/cmd/restore_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
@@ -28,7 +28,7 @@ var RestoreCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(RestoreCmd)
-	RestoreCmd.AddCommand(command_restore.AllRestoreCMD)
-	RestoreCmd.AddCommand(command_restore.SingleRestoreCmd)
-	RestoreCmd.AddCommand(command_restore.RestoreUserCMD)
+	RestoreCmd.AddCommand(restore_cmd.AllRestoreCMD)
+	RestoreCmd.AddCommand(restore_cmd.SingleRestoreCmd)
+	RestoreCmd.AddCommand(restore_cmd.RestoreUserCMD)
 }

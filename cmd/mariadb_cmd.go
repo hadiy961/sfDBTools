@@ -2,6 +2,7 @@ package cmd
 
 import (
 	command_config "sfDBTools/cmd/dbconfig"
+	mariadb_cmd "sfDBTools/cmd/mariadb_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
@@ -18,12 +19,12 @@ All database configurations are stored in encrypted format for security.`,
 			lg.Error("Failed to get logger", logger.Error(err))
 			return
 		}
-		lg.Info("Database config command executed")
+		lg.Info("MariaDB command executed")
 		cmd.Help()
 	},
 	Annotations: map[string]string{
-		"command":  "config",
-		"category": "configuration",
+		"command":  "mariadb",
+		"category": "mariadb",
 	},
 }
 
@@ -34,4 +35,14 @@ func init() {
 	MariaDBCMD.AddCommand(command_config.ShowCmd)
 	MariaDBCMD.AddCommand(command_config.EditCmd)
 	MariaDBCMD.AddCommand(command_config.DeleteCmd)
+
+	// MariaDB-specific commands
+	MariaDBCMD.AddCommand(mariadb_cmd.CheckVersionCmd)
+	MariaDBCMD.AddCommand(mariadb_cmd.InstallCmd)
+	MariaDBCMD.AddCommand(mariadb_cmd.RemoveCmd)
+	MariaDBCMD.AddCommand(mariadb_cmd.CheckConfigCmd)
+	// TODO: Add more commands as they are implemented
+	// MariaDBCMD.AddCommand(mariadb_cmd.TuneConfigCmd)
+	// MariaDBCMD.AddCommand(mariadb_cmd.MonitorCmd)
+	// MariaDBCMD.AddCommand(mariadb_cmd.EditConfigCmd)
 }

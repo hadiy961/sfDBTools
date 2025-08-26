@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	command_migrate "sfDBTools/cmd/migrate"
+	migrate_cmd "sfDBTools/cmd/migrate_cmd"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
@@ -28,5 +28,5 @@ var MigrateCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(MigrateCmd)
-	MigrateCmd.AddCommand(command_migrate.SelectionMigrateCmd)
+	MigrateCmd.AddCommand(migrate_cmd.SelectionMigrateCmd)
 }

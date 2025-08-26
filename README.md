@@ -116,7 +116,7 @@ This will:
 ### Available Commands
 
 - `config` - Configuration management (generate, edit, validate)
-- `mariadb` - MariaDB server management (install, configure, versions)
+- `mariadb` - MariaDB server management (check_version, install, remove, check_config)
 - `backup` - Database backup operations (user, selection, all)
 - `restore` - Database restore operations (user, single, all)
 - `migrate` - Database migration tools
@@ -131,9 +131,10 @@ sfdbtools config validate          # Validate configuration
 sfdbtools config show              # Show current config
 
 # MariaDB Management
-sfdbtools mariadb install          # Install MariaDB
-sfdbtools mariadb configure        # Configure MariaDB
-sfdbtools mariadb versions         # Show available versions
+sfdbtools mariadb check_version     # Check available MariaDB versions
+sfdbtools mariadb install          # Install MariaDB (coming soon)
+sfdbtools mariadb remove           # Remove MariaDB (coming soon)
+sfdbtools mariadb check_config     # Check MariaDB configuration (coming soon)
 
 # Backup Operations
 sfdbtools backup user myuser       # Backup specific user's databases
