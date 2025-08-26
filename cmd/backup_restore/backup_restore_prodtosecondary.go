@@ -1,4 +1,4 @@
-package command_backup_restore
+package backup_restore
 
 import (
 	"fmt"
@@ -11,7 +11,7 @@ import (
 )
 
 var BackupRestoreProductionCmd = &cobra.Command{
-	Use:   "production",
+	Use:   "prod_to_secondary",
 	Short: "Backup and restore production databases to secondary within the same server",
 	Long: `This command copies production databases to secondary databases within the same server.
 

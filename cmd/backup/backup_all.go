@@ -1,4 +1,4 @@
-package command_backup
+package backup_cmd
 
 import (
 	"fmt"
