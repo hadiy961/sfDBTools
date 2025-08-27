@@ -33,7 +33,7 @@ func init() {
 	MariaDBCMD.AddCommand(mariadb_cmd.CheckVersionCmd)
 	MariaDBCMD.AddCommand(mariadb_cmd.InstallCmd)
 	MariaDBCMD.AddCommand(mariadb_cmd.RemoveCmd)
-	MariaDBCMD.AddCommand(mariadb_cmd.CheckConfigCmd)
+	MariaDBCMD.AddCommand(mariadb_cmd.ConfigureMariadbCMD)
 	// TODO: Add more commands as they are implemented
 	// MariaDBCMD.AddCommand(mariadb_cmd.TuneConfigCmd)
 	// MariaDBCMD.AddCommand(mariadb_cmd.MonitorCmd)

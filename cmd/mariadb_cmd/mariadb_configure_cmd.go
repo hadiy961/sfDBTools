@@ -9,9 +9,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// CheckConfigCmd represents the check_config command
-var CheckConfigCmd = &cobra.Command{
-	Use:   "check_config",
+// ConfigureMariadbCMD represents the configure command
+var ConfigureMariadbCMD = &cobra.Command{
+	Use:   "configure",
 	Short: "Check MariaDB configuration",
 	Long: `Check MariaDB configuration file for syntax errors and optimal settings.
 Validates configuration parameters and suggests improvements.`,
