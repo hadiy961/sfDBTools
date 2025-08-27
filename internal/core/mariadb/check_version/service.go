@@ -76,7 +76,7 @@ func (s *VersionService) processReleases(releases []Release) []VersionInfo {
 
 	for _, release := range releases {
 		// Only include versions meeting our criteria
-		if !s.isVersionEligible(release.ID, release.Status) {
+		if !s.isVersionEligible(release.ID, release.Status, release.SupportType) {
 			continue
 		}
 
@@ -108,9 +108,14 @@ func (s *VersionService) processReleases(releases []Release) []VersionInfo {
 }
 
 // isVersionEligible checks if a version should be included in the results
-func (s *VersionService) isVersionEligible(versionID, status string) bool {
+func (s *VersionService) isVersionEligible(versionID, status, supportType string) bool {
 	// Only include stable releases
 	if status != "Stable" {
+		return false
+	}
+
+	// Only include Long Term Support versions
+	if supportType != "Long Term Support" {
 		return false
 	}
 

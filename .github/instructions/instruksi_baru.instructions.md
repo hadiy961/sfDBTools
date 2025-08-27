@@ -120,7 +120,7 @@ Gunakan: `RequireInternetForOperation()`, `CheckMariaDBConnectivity()`
 - Tambah test saat ekstrak util baru (mencegah regresi duplikasi)
 
 ## Tambah Fitur Baru (Checklist)
-1. Definisikan domain → folder `internal/core/<domain>/`
+1. Definisikan modul → folder `internal/core/<modul>/`
 2. Buat interface bila butuh substitusi eksternal
 3. Command baru di `cmd/<command>/`
 4. Daftarkan flags + help
@@ -131,7 +131,7 @@ Gunakan: `RequireInternetForOperation()`, `CheckMariaDBConnectivity()`
 
 ## Refactor Bertahap (Migrasi ke `internal/core`)
 1. Identifikasi cluster fungsi/logic di command
-2. Ekstrak ke file `internal/core/<domain>/<role>.go`
+2. Ekstrak ke file `internal/core/<modul>/<role>.go`
 3. Ganti pemanggilan di command
 4. Tambah test sederhana
 5. Hapus versi lama
