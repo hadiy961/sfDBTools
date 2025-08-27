@@ -146,15 +146,15 @@ func promptYesNo(question string, defaultValue bool) bool {
 	} else {
 		fmt.Printf("%s (y/N): ", question)
 	}
-	
+
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	response := strings.ToLower(strings.TrimSpace(scanner.Text()))
-	
+
 	if response == "" {
 		return defaultValue
 	}
-	
+
 	return response == "y" || response == "yes"
 }
 
@@ -165,14 +165,14 @@ func promptString(question, defaultValue string) string {
 	} else {
 		fmt.Printf("%s: ", question)
 	}
-	
+
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	response := strings.TrimSpace(scanner.Text())
-	
+
 	if response == "" {
 		return defaultValue
 	}
-	
+
 	return response
 }
