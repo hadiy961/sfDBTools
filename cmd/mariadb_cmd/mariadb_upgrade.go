@@ -20,6 +20,9 @@ var (
 	upgradeForceUpgrade    bool
 	upgradeSkipPostUpgrade bool
 	upgradeTestMode        bool
+	upgradeRemoveExisting  bool
+	upgradeStartService    bool
+	upgradeEnableSecurity  bool
 )
 
 // UpgradeMariaDBCMD represents the upgrade command
@@ -39,19 +42,20 @@ This command will:
 8. Verify upgrade success
 
 Examples:
-  # Upgrade to latest available LTS version
+  # Interactive upgrade to latest available LTS version
   sfdbtools mariadb upgrade
 
-  # Upgrade to specific version
-  sfdbtools mariadb upgrade --target-version=11.4
+  # Auto-confirm upgrade to specific version
+  sfdbtools mariadb upgrade --target-version=10.11 --auto-confirm
 
-  # Upgrade with auto-confirmation (no prompts)
-  sfdbtools mariadb upgrade --auto-confirm
+  # Upgrade and remove existing installation
+  sfdbtools mariadb upgrade --remove-existing --auto-confirm
 
   # Upgrade without backup (dangerous)
-  sfdbtools mariadb upgrade --skip-backup
+  sfdbtools mariadb upgrade --skip-backup --auto-confirm
 
-  # Test mode (dry-run)
+  # Test mode (dry-run) to see what would be upgraded
+  sfdbtools mariadb upgrade --test-mode
   sfdbtools mariadb upgrade --test-mode
 
 Safety Features:
@@ -78,6 +82,9 @@ Safety Features:
 			ForceUpgrade:    upgradeForceUpgrade,
 			SkipPostUpgrade: upgradeSkipPostUpgrade,
 			TestMode:        upgradeTestMode,
+			RemoveExisting:  upgradeRemoveExisting,
+			StartService:    upgradeStartService,
+			EnableSecurity:  upgradeEnableSecurity,
 		}
 
 		// Create and run upgrade runner
@@ -97,9 +104,9 @@ Safety Features:
 }
 
 func init() {
-	// Target version
-	UpgradeMariaDBCMD.Flags().StringVar(&upgradeTargetVersion, "target-version", "",
-		"Target MariaDB version to upgrade to (default: latest LTS)")
+	// Version selection (consistent with install command)
+	UpgradeMariaDBCMD.Flags().StringVarP(&upgradeTargetVersion, "target-version", "v", "",
+		"MariaDB version to upgrade to (e.g., 10.11, 11.4, default: latest LTS)")
 
 	// Confirmation options
 	UpgradeMariaDBCMD.Flags().BoolVarP(&upgradeAutoConfirm, "auto-confirm", "y", false,
@@ -125,4 +132,15 @@ func init() {
 	// Testing options
 	UpgradeMariaDBCMD.Flags().BoolVar(&upgradeTestMode, "test-mode", false,
 		"Run in test mode (dry-run) - validate and plan but don't execute")
+
+	// Installation options (similar to install command)
+	UpgradeMariaDBCMD.Flags().BoolVar(&upgradeRemoveExisting, "remove-existing", false,
+		"Remove existing MariaDB installation before upgrade")
+
+	// Service options
+	UpgradeMariaDBCMD.Flags().BoolVar(&upgradeStartService, "start-service", true,
+		"Start MariaDB service after upgrade (default: true)")
+
+	UpgradeMariaDBCMD.Flags().BoolVar(&upgradeEnableSecurity, "enable-security", true,
+		"Enable security setup after upgrade (mysql_secure_installation will need to be run manually)")
 }

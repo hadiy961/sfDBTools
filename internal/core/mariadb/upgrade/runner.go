@@ -3,6 +3,8 @@ package upgrade
 import (
 	"fmt"
 
+	"sfDBTools/internal/core/mariadb/check_version"
+	"sfDBTools/internal/core/mariadb/install"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/terminal"
 )
@@ -12,6 +14,9 @@ type UpgradeRunner struct {
 	config            *UpgradeConfig
 	validationService *ValidationService
 	plannerService    *PlannerService
+	versionService    *check_version.VersionService
+	versionSelector   *install.VersionSelector
+	selectedVersion   *install.SelectableVersion
 }
 
 // NewUpgradeRunner creates a new upgrade runner
@@ -24,6 +29,7 @@ func NewUpgradeRunner(config *UpgradeConfig) *UpgradeRunner {
 		config:            config,
 		validationService: NewValidationService(),
 		plannerService:    NewPlannerService(),
+		versionService:    check_version.NewVersionService(check_version.DefaultCheckVersionConfig()),
 	}
 }
 
@@ -39,24 +45,33 @@ func (r *UpgradeRunner) Run() error {
 		return fmt.Errorf("upgrade validation failed: %w", err)
 	}
 
-	// Step 2: Create upgrade plan
+	// Step 2: Select target version (if not specified)
+	if r.config.TargetVersion == "" {
+		if err := r.selectTargetVersion(); err != nil {
+			return fmt.Errorf("target version selection failed: %w", err)
+		}
+	} else {
+		terminal.PrintInfo(fmt.Sprintf("Using specified target version: %s", r.config.TargetVersion))
+	}
+
+	// Step 3: Create upgrade plan
 	plan, err := r.createUpgradePlan()
 	if err != nil {
 		return fmt.Errorf("upgrade planning failed: %w", err)
 	}
 
-	// Step 3: Display upgrade plan and get confirmation
+	// Step 4: Display upgrade plan and get confirmation
 	if err := r.confirmUpgradePlan(plan); err != nil {
 		return fmt.Errorf("upgrade confirmation failed: %w", err)
 	}
 
-	// Step 4: Execute upgrade
+	// Step 5: Execute upgrade
 	result, err := r.executeUpgrade(plan)
 	if err != nil {
 		return fmt.Errorf("upgrade execution failed: %w", err)
 	}
 
-	// Step 5: Handle upgrade result
+	// Step 6: Handle upgrade result
 	if err := r.handleUpgradeResult(result); err != nil {
 		return fmt.Errorf("upgrade result handling failed: %w", err)
 	}
@@ -71,20 +86,26 @@ func (r *UpgradeRunner) Run() error {
 func (r *UpgradeRunner) validateUpgrade() error {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Validating upgrade prerequisites...")
+	spinner := terminal.NewProgressSpinner("Validating upgrade prerequisites...")
+	spinner.Start()
 
 	validation, err := r.validationService.ValidateUpgrade(r.config)
 	if err != nil {
+		spinner.Stop()
 		return fmt.Errorf("validation error: %w", err)
 	}
 
 	if !validation.Valid {
+		spinner.Stop()
 		terminal.PrintError("Upgrade validation failed:")
 		for _, error := range validation.Errors {
 			terminal.PrintError(fmt.Sprintf("  ❌ %s", error))
 		}
 		return fmt.Errorf("upgrade validation failed")
 	}
+
+	spinner.Stop()
+	terminal.PrintSuccess("Upgrade prerequisites validated")
 
 	// Display warnings if any
 	if len(validation.Warnings) > 0 {
@@ -112,12 +133,17 @@ func (r *UpgradeRunner) validateUpgrade() error {
 func (r *UpgradeRunner) createUpgradePlan() (*UpgradePlan, error) {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Creating upgrade plan...")
+	spinner := terminal.NewProgressSpinner("Creating upgrade plan...")
+	spinner.Start()
 
 	plan, err := r.plannerService.CreateUpgradePlan(r.config)
 	if err != nil {
+		spinner.Stop()
 		return nil, fmt.Errorf("failed to create upgrade plan: %w", err)
 	}
+
+	spinner.Stop()
+	terminal.PrintSuccess("Upgrade plan created")
 
 	lg.Info("Upgrade plan created",
 		logger.String("current_version", plan.CurrentVersion),
@@ -207,7 +233,8 @@ func (r *UpgradeRunner) confirmUpgrade() bool {
 func (r *UpgradeRunner) executeUpgrade(plan *UpgradePlan) (*UpgradeResult, error) {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Executing upgrade...")
+	spinner := terminal.NewProgressSpinner("Executing MariaDB upgrade...")
+	spinner.Start()
 
 	// Create executor
 	executor := NewExecutorService(r.config, plan)
@@ -215,9 +242,13 @@ func (r *UpgradeRunner) executeUpgrade(plan *UpgradePlan) (*UpgradeResult, error
 	// Execute upgrade
 	result, err := executor.ExecuteUpgrade()
 	if err != nil {
+		spinner.Stop()
 		lg.Error("Upgrade execution failed", logger.Error(err))
 		return result, fmt.Errorf("upgrade execution failed: %w", err)
 	}
+
+	spinner.Stop()
+	terminal.PrintSuccess("MariaDB upgrade executed successfully")
 
 	lg.Info("Upgrade execution completed",
 		logger.Bool("success", result.Success),
@@ -265,4 +296,48 @@ func (r *UpgradeRunner) handleUpgradeResult(result *UpgradeResult) error {
 
 		return fmt.Errorf("upgrade failed: %w", result.Error)
 	}
+}
+
+// selectTargetVersion handles interactive target version selection
+func (r *UpgradeRunner) selectTargetVersion() error {
+	lg, _ := logger.Get()
+
+	spinner := terminal.NewProgressSpinner("Fetching available MariaDB versions...")
+	spinner.Start()
+
+	// Fetch available versions
+	versions, err := r.versionService.FetchAvailableVersions()
+	if err != nil {
+		spinner.Stop()
+		return fmt.Errorf("failed to fetch available versions: %w", err)
+	}
+
+	spinner.Stop()
+	terminal.PrintSuccess("Available versions fetched")
+
+	// Convert to SelectableVersion format using the converter
+	selectableVersions := install.ConvertVersionInfo(versions)
+
+	// Create version selector
+	r.versionSelector = install.NewVersionSelector(selectableVersions)
+
+	terminal.PrintInfo("Please select a target MariaDB version for upgrade:")
+
+	// Select version
+	selectedVersion, err := r.versionSelector.SelectVersion(r.config.AutoConfirm, r.config.TargetVersion)
+	if err != nil {
+		return fmt.Errorf("version selection failed: %w", err)
+	}
+
+	r.selectedVersion = selectedVersion
+	r.config.TargetVersion = selectedVersion.Version
+
+	terminal.PrintSuccess(fmt.Sprintf("Selected target version: %s (%s)",
+		selectedVersion.Version, selectedVersion.LatestVersion))
+
+	lg.Info("Target version selected",
+		logger.String("target_version", selectedVersion.Version),
+		logger.String("latest_version", selectedVersion.LatestVersion))
+
+	return nil
 }

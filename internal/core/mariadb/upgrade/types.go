@@ -25,6 +25,15 @@ type UpgradeConfig struct {
 
 	// TestMode performs dry-run without actual upgrade
 	TestMode bool
+
+	// RemoveExisting removes existing installation before upgrade
+	RemoveExisting bool
+
+	// StartService starts MariaDB service after upgrade
+	StartService bool
+
+	// EnableSecurity enables security setup after upgrade
+	EnableSecurity bool
 }
 
 // DefaultUpgradeConfig returns default upgrade configuration
@@ -38,6 +47,9 @@ func DefaultUpgradeConfig() *UpgradeConfig {
 		ForceUpgrade:    false,
 		SkipPostUpgrade: false,
 		TestMode:        false,
+		RemoveExisting:  false,
+		StartService:    true,
+		EnableSecurity:  true,
 	}
 }
 

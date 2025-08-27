@@ -53,7 +53,14 @@ func (b *BackupService) BackupData(installation *DetectedInstallation, backupPat
 	}
 
 	// Create compressed backup of data directory
-	dataDir := "/var/lib/mysql" // Default, could be configurable
+	// Use actual detected data directory if available, otherwise use default
+	dataDir := "/var/lib/mysql" // Default fallback
+	if installation.ActualDataDir != "" {
+		dataDir = installation.ActualDataDir
+	}
+
+	lg.Info("Creating backup of data directory", logger.String("data_dir", dataDir))
+
 	cmd := exec.Command("tar", "-czf", backupFile, "-C", filepath.Dir(dataDir), filepath.Base(dataDir))
 
 	output, err := cmd.CombinedOutput()

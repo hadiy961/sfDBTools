@@ -396,8 +396,8 @@ func (r *InstallRunner) configureRepository() error {
 	// 	return fmt.Errorf("failed to update package cache: %w", err)
 	// }
 
-	spinner.Stop()
-	terminal.PrintSuccess("Package cache updated successfully")
+	// spinner.Stop()
+	// terminal.PrintSuccess("Package cache updated successfully")
 
 	lg.Info("Repository configuration completed",
 		logger.String("version", r.selectedVersion.Version))
