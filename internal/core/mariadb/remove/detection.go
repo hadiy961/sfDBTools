@@ -177,23 +177,183 @@ func (d *DetectionService) isServiceEnabled(serviceName string) bool {
 	return err == nil && strings.TrimSpace(string(output)) == "enabled"
 }
 
-// detectDataDirectories detects MariaDB data directories
+// detectDataDirectories detects MariaDB data directories from actual configuration
 func (d *DetectionService) detectDataDirectories(installation *DetectedInstallation) error {
-	dataPaths := []string{
-		"/var/lib/mysql",
-		"/var/lib/mariadb",
-		"/opt/mariadb/data",
+	lg, _ := logger.Get()
+
+	// First try to get actual directories from MariaDB configuration
+	actualDirs, err := d.getActualMariaDBDirectories()
+	if err != nil {
+		lg.Warn("Failed to get actual directories from MariaDB config, using defaults", logger.Error(err))
+		// Fallback to default paths
+		dataPaths := []string{
+			"/var/lib/mysql",
+			"/var/lib/mariadb",
+			"/opt/mariadb/data",
+			"/data/mysql", // Custom path from configure
+		}
+
+		for _, path := range dataPaths {
+			if stat, err := os.Stat(path); err == nil && stat.IsDir() {
+				installation.DataDirectoryExists = true
+
+				// Calculate directory size
+				if size, err := d.calculateDirectorySize(path); err == nil {
+					installation.DataDirectorySize = size
+				}
+				break
+			}
+		}
+	} else {
+		// Use actual detected directories
+		if actualDirs.DataDir != "" {
+			if stat, err := os.Stat(actualDirs.DataDir); err == nil && stat.IsDir() {
+				installation.DataDirectoryExists = true
+				installation.ActualDataDir = actualDirs.DataDir
+
+				if size, err := d.calculateDirectorySize(actualDirs.DataDir); err == nil {
+					installation.DataDirectorySize = size
+				}
+			}
+		}
+
+		if actualDirs.BinlogDir != "" {
+			installation.ActualBinlogDir = actualDirs.BinlogDir
+		}
+
+		if actualDirs.LogDir != "" {
+			installation.ActualLogDir = actualDirs.LogDir
+		}
+
+		lg.Info("Detected actual MariaDB directories",
+			logger.String("datadir", actualDirs.DataDir),
+			logger.String("binlogdir", actualDirs.BinlogDir),
+			logger.String("logdir", actualDirs.LogDir))
 	}
 
-	for _, path := range dataPaths {
-		if stat, err := os.Stat(path); err == nil && stat.IsDir() {
-			installation.DataDirectoryExists = true
+	return nil
+}
 
-			// Calculate directory size
-			if size, err := d.calculateDirectorySize(path); err == nil {
-				installation.DataDirectorySize = size
+// MariaDBDirectories holds actual directory paths from configuration
+type MariaDBDirectories struct {
+	DataDir   string
+	BinlogDir string
+	LogDir    string
+}
+
+// getActualMariaDBDirectories reads actual directory paths from MariaDB configuration
+func (d *DetectionService) getActualMariaDBDirectories() (*MariaDBDirectories, error) {
+	dirs := &MariaDBDirectories{}
+
+	// Method 1: Try to get from running MariaDB instance
+	if runningDirs, err := d.getDirectoriesFromRunningMariaDB(); err == nil {
+		return runningDirs, nil
+	}
+
+	// Method 2: Try to parse from configuration files
+	if configDirs, err := d.getDirectoriesFromConfigFiles(); err == nil {
+		return configDirs, nil
+	}
+
+	return dirs, fmt.Errorf("could not determine actual MariaDB directories")
+}
+
+// getDirectoriesFromRunningMariaDB gets directories from running MariaDB instance
+func (d *DetectionService) getDirectoriesFromRunningMariaDB() (*MariaDBDirectories, error) {
+	dirs := &MariaDBDirectories{}
+
+	// Check if MariaDB is running
+	if !d.isServiceActive("mariadb") {
+		return dirs, fmt.Errorf("MariaDB service is not running")
+	}
+
+	// Try to connect and get variables
+	queries := map[string]*string{
+		"SELECT @@datadir":          &dirs.DataDir,
+		"SELECT @@log_bin_basename": &dirs.BinlogDir,
+		"SELECT @@log_error":        &dirs.LogDir,
+	}
+
+	for query, target := range queries {
+		cmd := exec.Command("mariadb", "-e", query, "-s", "-N")
+		if output, err := cmd.CombinedOutput(); err == nil {
+			result := strings.TrimSpace(string(output))
+			if result != "" {
+				if target == &dirs.BinlogDir {
+					// Extract directory from binlog path
+					*target = filepath.Dir(result)
+				} else if target == &dirs.LogDir {
+					// Extract directory from log file path
+					*target = filepath.Dir(result)
+				} else {
+					*target = result
+				}
 			}
-			break
+		}
+	}
+
+	if dirs.DataDir == "" {
+		return dirs, fmt.Errorf("could not get datadir from running MariaDB")
+	}
+
+	return dirs, nil
+}
+
+// getDirectoriesFromConfigFiles parses directories from MariaDB config files
+func (d *DetectionService) getDirectoriesFromConfigFiles() (*MariaDBDirectories, error) {
+	dirs := &MariaDBDirectories{}
+
+	configFiles := []string{
+		"/etc/my.cnf.d/server.cnf",
+		"/etc/mysql/mariadb.conf.d/50-server.cnf",
+		"/etc/my.cnf",
+		"/etc/mysql/my.cnf",
+	}
+
+	for _, configFile := range configFiles {
+		if _, err := os.Stat(configFile); err == nil {
+			if err := d.parseConfigFile(configFile, dirs); err == nil {
+				if dirs.DataDir != "" {
+					return dirs, nil
+				}
+			}
+		}
+	}
+
+	return dirs, fmt.Errorf("could not parse directories from config files")
+}
+
+// parseConfigFile parses a MariaDB configuration file for directory settings
+func (d *DetectionService) parseConfigFile(configFile string, dirs *MariaDBDirectories) error {
+	content, err := os.ReadFile(configFile)
+	if err != nil {
+		return err
+	}
+
+	lines := strings.Split(string(content), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if strings.HasPrefix(line, "#") || line == "" {
+			continue
+		}
+
+		if strings.HasPrefix(line, "datadir") {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				dirs.DataDir = strings.TrimSpace(parts[1])
+			}
+		} else if strings.HasPrefix(line, "log_bin") {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				binlogPath := strings.TrimSpace(parts[1])
+				dirs.BinlogDir = filepath.Dir(binlogPath)
+			}
+		} else if strings.HasPrefix(line, "log_error") {
+			parts := strings.SplitN(line, "=", 2)
+			if len(parts) == 2 {
+				logPath := strings.TrimSpace(parts[1])
+				dirs.LogDir = filepath.Dir(logPath)
+			}
 		}
 	}
 
@@ -219,38 +379,102 @@ func (d *DetectionService) calculateDirectorySize(path string) (int64, error) {
 
 // detectConfigFiles detects MariaDB configuration files
 func (d *DetectionService) detectConfigFiles(installation *DetectedInstallation) error {
-	configPaths := []string{
-		"/etc/mysql",
-		"/etc/my.cnf",
-		"/etc/mysql/my.cnf",
-		"/etc/mariadb",
-		"/usr/local/etc/my.cnf",
+	lg, _ := logger.Get()
+
+	// First try to get from actual config locations that are being used
+	actualConfigFiles := []string{}
+
+	// Add the actual config file being used (if we can detect it)
+	if _, err := d.getActualMariaDBDirectories(); err == nil {
+		// These are the files we actually parsed, so they exist
+		configFiles := []string{
+			"/etc/my.cnf.d/server.cnf",
+			"/etc/mysql/mariadb.conf.d/50-server.cnf",
+			"/etc/my.cnf",
+			"/etc/mysql/my.cnf",
+		}
+
+		for _, configFile := range configFiles {
+			if _, err := os.Stat(configFile); err == nil {
+				actualConfigFiles = append(actualConfigFiles, configFile)
+			}
+		}
+
+		lg.Info("Detected config files from actual configuration",
+			logger.Int("count", len(actualConfigFiles)))
 	}
 
-	for _, path := range configPaths {
-		if _, err := os.Stat(path); err == nil {
-			installation.ConfigFiles = append(installation.ConfigFiles, path)
+	// Fallback to default paths if nothing detected
+	if len(actualConfigFiles) == 0 {
+		lg.Info("No actual config files detected, using default paths")
+		configPaths := []string{
+			"/etc/mysql",
+			"/etc/my.cnf",
+			"/etc/mysql/my.cnf",
+			"/etc/mariadb",
+			"/usr/local/etc/my.cnf",
+			"/etc/my.cnf.d", // Directory with config files
+		}
+
+		for _, path := range configPaths {
+			if _, err := os.Stat(path); err == nil {
+				actualConfigFiles = append(actualConfigFiles, path)
+			}
 		}
 	}
 
+	installation.ConfigFiles = actualConfigFiles
 	return nil
 }
 
 // detectLogFiles detects MariaDB log files
 func (d *DetectionService) detectLogFiles(installation *DetectedInstallation) error {
-	logPaths := []string{
-		"/var/log/mysql",
-		"/var/log/mariadb",
-		"/var/log/mysqld.log",
-		"/var/log/mysql.log",
-	}
+	lg, _ := logger.Get()
 
-	for _, path := range logPaths {
-		if _, err := os.Stat(path); err == nil {
-			installation.LogFiles = append(installation.LogFiles, path)
+	actualLogFiles := []string{}
+
+	// First try to get actual log directory from detected configuration
+	if installation.ActualLogDir != "" {
+		if _, err := os.Stat(installation.ActualLogDir); err == nil {
+			actualLogFiles = append(actualLogFiles, installation.ActualLogDir)
+			lg.Info("Using detected log directory", logger.String("path", installation.ActualLogDir))
 		}
 	}
 
+	// Try to get log files from running MariaDB
+	if d.isServiceActive("mariadb") {
+		cmd := exec.Command("mariadb", "-e", "SELECT @@log_error", "-s", "-N")
+		if output, err := cmd.CombinedOutput(); err == nil {
+			logFile := strings.TrimSpace(string(output))
+			if logFile != "" && logFile != "stderr" {
+				if _, err := os.Stat(logFile); err == nil {
+					actualLogFiles = append(actualLogFiles, logFile)
+					lg.Info("Detected actual log file from MariaDB", logger.String("file", logFile))
+				}
+			}
+		}
+	}
+
+	// Fallback to common log locations if nothing detected
+	if len(actualLogFiles) == 0 {
+		lg.Info("No actual log files detected, using default paths")
+		logPaths := []string{
+			"/var/log/mysql",
+			"/var/log/mariadb",
+			"/var/log/mysqld.log",
+			"/var/log/mysql.log",
+			"/var/log/mysql/error.log",
+			"/var/log/mariadb/mariadb.log",
+		}
+
+		for _, path := range logPaths {
+			if _, err := os.Stat(path); err == nil {
+				actualLogFiles = append(actualLogFiles, path)
+			}
+		}
+	}
+
+	installation.LogFiles = actualLogFiles
 	return nil
 }
 
@@ -262,7 +486,7 @@ func (d *DetectionService) GetInstallationSummary(installation *DetectedInstalla
 
 	var summary strings.Builder
 
-	summary.WriteString(fmt.Sprintf("MariaDB Installation Detected:\n"))
+	summary.WriteString("MariaDB Installation Detected:\n")
 	summary.WriteString(fmt.Sprintf("  Package: %s\n", installation.PackageName))
 	summary.WriteString(fmt.Sprintf("  Version: %s\n", installation.Version))
 
@@ -280,7 +504,7 @@ func (d *DetectionService) GetInstallationSummary(installation *DetectedInstalla
 	}
 
 	if installation.DataDirectoryExists {
-		summary.WriteString(fmt.Sprintf("  Data Directory: exists"))
+		summary.WriteString("  Data Directory: exists")
 		if installation.DataDirectorySize > 0 {
 			summary.WriteString(fmt.Sprintf(" (%s)", d.formatSize(installation.DataDirectorySize)))
 		}

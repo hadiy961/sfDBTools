@@ -72,6 +72,15 @@ type DetectedInstallation struct {
 	// DataDirectorySize is the size of data directory in bytes
 	DataDirectorySize int64
 
+	// ActualDataDir is the actual data directory path from configuration
+	ActualDataDir string
+
+	// ActualBinlogDir is the actual binlog directory path from configuration
+	ActualBinlogDir string
+
+	// ActualLogDir is the actual log directory path from configuration
+	ActualLogDir string
+
 	// ConfigFiles lists found configuration files
 	ConfigFiles []string
 

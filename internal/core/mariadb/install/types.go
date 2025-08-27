@@ -11,8 +11,6 @@ import (
 type InstallConfig struct {
 	Version        string
 	AutoConfirm    bool
-	DataDir        string
-	ConfigFile     string
 	RootPassword   string
 	RemoveExisting bool
 	Timeout        time.Duration
@@ -24,8 +22,6 @@ type InstallConfig struct {
 func DefaultInstallConfig() *InstallConfig {
 	return &InstallConfig{
 		AutoConfirm:    false,
-		DataDir:        "/var/lib/mysql",
-		ConfigFile:     "/etc/mysql/mariadb.conf.d/50-server.cnf",
 		RemoveExisting: false,
 		Timeout:        30 * time.Minute,
 		EnableSecurity: true,

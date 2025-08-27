@@ -14,8 +14,6 @@ import (
 var (
 	installVersion        string
 	installAutoConfirm    bool
-	installDataDir        string
-	installConfigFile     string
 	installRemoveExisting bool
 	installEnableSecurity bool
 	installStartService   bool
@@ -51,9 +49,6 @@ Examples:
   # Auto-confirm with specific version
   sfdbtools mariadb install --version 10.11 --auto-confirm
 
-  # Install with custom data directory
-  sfdbtools mariadb install --data-dir /var/lib/mysql-custom
-
   # Install and remove existing installation
   sfdbtools mariadb install --remove-existing --auto-confirm`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -69,8 +64,6 @@ Examples:
 		config := &install.InstallConfig{
 			Version:        installVersion,
 			AutoConfirm:    installAutoConfirm,
-			DataDir:        installDataDir,
-			ConfigFile:     installConfigFile,
 			RemoveExisting: installRemoveExisting,
 			EnableSecurity: installEnableSecurity,
 			StartService:   installStartService,
@@ -100,12 +93,6 @@ func init() {
 	// Installation options
 	InstallCmd.Flags().BoolVarP(&installAutoConfirm, "auto-confirm", "y", false,
 		"Automatically confirm all prompts")
-
-	InstallCmd.Flags().StringVar(&installDataDir, "data-dir", "/var/lib/mysql",
-		"MariaDB data directory path")
-
-	InstallCmd.Flags().StringVar(&installConfigFile, "config-file", "",
-		"Custom MariaDB configuration file path")
 
 	InstallCmd.Flags().BoolVar(&installRemoveExisting, "remove-existing", false,
 		"Remove existing MariaDB installation if found")

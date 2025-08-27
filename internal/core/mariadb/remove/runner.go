@@ -165,12 +165,49 @@ func (r *RemovalRunner) detectInstallation() error {
 		return fmt.Errorf("no MariaDB installation found to remove")
 	}
 
+	// Update config with actual detected directories
+	r.updateConfigWithDetectedDirectories()
+
 	terminal.PrintSuccess("MariaDB installation detected")
 	lg.Info("MariaDB installation detected",
 		logger.String("package", installation.PackageName),
-		logger.String("version", installation.Version))
+		logger.String("version", installation.Version),
+		logger.String("actual_datadir", installation.ActualDataDir),
+		logger.String("actual_binlogdir", installation.ActualBinlogDir),
+		logger.String("actual_logdir", installation.ActualLogDir))
 
 	return nil
+}
+
+// updateConfigWithDetectedDirectories updates config with actual detected directories
+func (r *RemovalRunner) updateConfigWithDetectedDirectories() {
+	lg, _ := logger.Get()
+
+	// Update data directory
+	if r.installation.ActualDataDir != "" {
+		r.config.DataDirectory = r.installation.ActualDataDir
+		lg.Info("Using detected data directory", logger.String("path", r.installation.ActualDataDir))
+	} else {
+		// Fallback to default
+		r.config.DataDirectory = "/var/lib/mysql"
+		lg.Info("Using default data directory", logger.String("path", r.config.DataDirectory))
+	}
+
+	// Update log directory
+	if r.installation.ActualLogDir != "" {
+		r.config.LogDirectory = r.installation.ActualLogDir
+		lg.Info("Using detected log directory", logger.String("path", r.installation.ActualLogDir))
+	} else {
+		// Fallback to default
+		r.config.LogDirectory = "/var/log/mysql"
+		lg.Info("Using default log directory", logger.String("path", r.config.LogDirectory))
+	}
+
+	// Set config directory (usually standard location)
+	if r.config.ConfigDirectory == "" {
+		r.config.ConfigDirectory = "/etc/mysql"
+		lg.Info("Using default config directory", logger.String("path", r.config.ConfigDirectory))
+	}
 }
 
 // confirmRemoval shows installation details and confirms removal
@@ -195,7 +232,16 @@ func (r *RemovalRunner) confirmRemoval() error {
 
 	if r.config.RemoveData && r.installation.DataDirectoryExists {
 		size := r.detectionService.formatSize(r.installation.DataDirectorySize)
-		terminal.PrintInfo(fmt.Sprintf("  ✓ Data directories (%s)", size))
+		dataDir := r.config.DataDirectory
+		if dataDir == "" {
+			dataDir = "detected data directory"
+		}
+		terminal.PrintInfo(fmt.Sprintf("  ✓ Data directories (%s) - %s", size, dataDir))
+
+		// Also show binlog directory if different
+		if r.installation.ActualBinlogDir != "" && r.installation.ActualBinlogDir != dataDir {
+			terminal.PrintInfo(fmt.Sprintf("  ✓ Binlog directory - %s", r.installation.ActualBinlogDir))
+		}
 	}
 
 	if len(r.installation.ConfigFiles) > 0 {

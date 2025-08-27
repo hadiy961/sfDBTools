@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"sfDBTools/internal/core/mariadb/check_version"
+	"sfDBTools/internal/core/mariadb/configure"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/terminal"
@@ -213,10 +214,25 @@ func (r *InstallRunner) checkExistingInstallation() error {
 	}
 
 	// Check if MariaDB is installed
-	isInstalled, version, err := r.packageManager.IsInstalled("mariadb-server")
-	if err != nil {
+	// Try different package names that might be used
+	packageNames := []string{"MariaDB-server", "mariadb-server", "mariadb"}
+
+	var isInstalled bool
+	var version string
+	var checkErr error
+
+	for _, pkgName := range packageNames {
+		isInstalled, version, checkErr = r.packageManager.IsInstalled(pkgName)
+		if checkErr == nil && isInstalled {
+			break // Found installed package
+		}
+	}
+
+	if checkErr != nil {
 		spinner.Stop()
-		lg.Warn("Failed to check existing installation", logger.Error(err))
+		lg.Warn("Failed to check existing installation", logger.Error(checkErr))
+		// Return error to avoid proceeding with installation when check fails
+		return fmt.Errorf("unable to verify existing installation status: %w", checkErr)
 	}
 
 	spinner.Stop()
@@ -301,38 +317,67 @@ func (r *InstallRunner) stopMariaDBService() error {
 func (r *InstallRunner) configureRepository() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Configuring MariaDB repository...")
+	terminal.PrintInfo("Configuring MariaDB repository...")
+
+	// Step 1: Initialize repository setup manager
+	spinner := terminal.NewProgressSpinner("Initializing repository setup...")
 	spinner.Start()
 
 	// Create repository setup manager
 	r.repoSetupManager = NewRepoSetupManager(r.osInfo)
 
-	// Clean existing repositories to avoid conflicts
+	spinner.Stop()
+	terminal.PrintSuccess("Repository setup manager initialized")
+
+	// Step 2: Clean existing repositories
+	spinner = terminal.NewProgressSpinner("Cleaning existing MariaDB repositories...")
+	spinner.Start()
+
 	if err := r.repoSetupManager.CleanRepositories(); err != nil {
+		spinner.Stop()
 		lg.Warn("Failed to clean existing repositories", logger.Error(err))
+		terminal.PrintWarning("Failed to clean existing repositories, continuing...")
+	} else {
+		spinner.Stop()
+		terminal.PrintSuccess("Existing MariaDB repositories cleaned")
 	}
 
-	// Check if setup script is available
+	// Step 3: Check repository setup script availability
+	spinner = terminal.NewProgressSpinner("Verifying MariaDB repository setup script...")
+	spinner.Start()
+
 	available, err := r.repoSetupManager.IsScriptAvailable()
 	if err != nil || !available {
 		spinner.Stop()
 		return fmt.Errorf("MariaDB repository setup script is not available: %w", err)
 	}
 
-	// Setup repository using official script
+	spinner.Stop()
+	terminal.PrintSuccess("Repository setup script verified")
+
+	// Step 4: Setup repository using official script
+	spinner = terminal.NewProgressSpinner(fmt.Sprintf("Setting up MariaDB %s repository (this may take a moment)...", r.selectedVersion.Version))
+	spinner.Start()
+
 	if err := r.repoSetupManager.SetupRepository(r.selectedVersion.Version); err != nil {
 		spinner.Stop()
 		return fmt.Errorf("failed to setup repository: %w", err)
 	}
 
-	// Update package cache
+	spinner.Stop()
+	terminal.PrintSuccess("MariaDB repository configured successfully")
+
+	// Step 5: Update package cache
+	spinner = terminal.NewProgressSpinner("Updating package cache...")
+	spinner.Start()
+
 	if err := r.repoSetupManager.UpdatePackageCache(); err != nil {
 		spinner.Stop()
 		return fmt.Errorf("failed to update package cache: %w", err)
 	}
 
 	spinner.Stop()
-	terminal.PrintSuccess("MariaDB repository configured successfully")
+	terminal.PrintSuccess("Package cache updated successfully")
 
 	lg.Info("Repository configuration completed",
 		logger.String("version", r.selectedVersion.Version))
@@ -344,10 +389,21 @@ func (r *InstallRunner) configureRepository() error {
 func (r *InstallRunner) installMariaDB() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner(fmt.Sprintf("Installing MariaDB %s...", r.selectedVersion.LatestVersion))
+	terminal.PrintInfo("Installing MariaDB packages...")
+
+	// Step 1: Determine package name
+	spinner := terminal.NewProgressSpinner("Determining MariaDB package name...")
 	spinner.Start()
 
 	packageName := r.packageManager.GetPackageName(r.selectedVersion.Version)
+
+	spinner.Stop()
+	terminal.PrintSuccess(fmt.Sprintf("Package determined: %s", packageName))
+
+	// Step 2: Install MariaDB packages
+	spinner = terminal.NewProgressSpinner(fmt.Sprintf("Installing MariaDB %s (this may take several minutes)...", r.selectedVersion.LatestVersion))
+	spinner.Start()
+
 	if err := r.packageManager.Install(packageName, r.selectedVersion.Version); err != nil {
 		spinner.Stop()
 		return fmt.Errorf("failed to install MariaDB: %w", err)
@@ -391,6 +447,20 @@ func (r *InstallRunner) postInstallationSetup() error {
 		terminal.PrintInfo("Security setup will need to be run manually using: mysql_secure_installation")
 	}
 
+	// Ask if user wants to configure MariaDB with custom settings
+	if r.shouldRunConfiguration() {
+		if err := r.runMariaDBConfiguration(); err != nil {
+			lg.Warn("MariaDB configuration failed", logger.Error(err))
+			terminal.PrintWarning("MariaDB configuration had issues, but installation was successful")
+			terminal.PrintInfo("You can run configuration manually using: sfdbtools mariadb configure")
+		} else {
+			terminal.PrintSuccess("MariaDB configuration completed successfully")
+		}
+	} else {
+		terminal.PrintInfo("MariaDB configuration skipped")
+		terminal.PrintInfo("You can run configuration later using: sfdbtools mariadb configure")
+	}
+
 	lg.Info("Post-installation setup completed")
 	return nil
 }
@@ -421,6 +491,56 @@ func (r *InstallRunner) enableMariaDBService() error {
 	}
 
 	return fmt.Errorf("failed to enable any MariaDB service")
+}
+
+// shouldRunConfiguration asks user if they want to configure MariaDB
+func (r *InstallRunner) shouldRunConfiguration() bool {
+	// Skip prompt if auto-confirm is enabled (don't auto-configure)
+	if r.config.AutoConfirm {
+		return false // Let user run configuration manually later
+	}
+
+	terminal.PrintInfo("\nMariaDB has been installed successfully!")
+	terminal.PrintInfo("Would you like to configure MariaDB with custom settings now?")
+	terminal.PrintInfo("This will setup:")
+	terminal.PrintInfo("  • Custom data and binlog directories")
+	terminal.PrintInfo("  • Configuration file optimization")
+	terminal.PrintInfo("  • Firewall and SELinux settings")
+	terminal.PrintInfo("  • Default databases and users")
+
+	fmt.Print("Run MariaDB configuration now? (y/N): ")
+
+	var response string
+	fmt.Scanln(&response)
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	return response == "y" || response == "yes"
+}
+
+// runMariaDBConfiguration executes the MariaDB configuration process
+func (r *InstallRunner) runMariaDBConfiguration() error {
+	lg, _ := logger.Get()
+
+	lg.Info("Starting MariaDB configuration from install process")
+	terminal.PrintInfo("Configuring MariaDB with optimized settings...")
+
+	// Create configure config with auto-confirm mode to avoid double prompting
+	configureConfig := &configure.ConfigureConfig{
+		AutoConfirm:   false, // Auto-confirm since user already agreed
+		SkipUserSetup: false, // Include user setup
+		SkipDBSetup:   false, // Include database setup
+	}
+
+	// Create configure runner
+	configRunner := configure.NewConfigureRunner(configureConfig)
+
+	// Run configuration
+	if err := configRunner.Run(); err != nil {
+		return fmt.Errorf("MariaDB configuration failed: %w", err)
+	}
+
+	lg.Info("MariaDB configuration completed from install process")
+	return nil
 }
 
 // GetInstallationSteps returns the list of installation steps for progress tracking

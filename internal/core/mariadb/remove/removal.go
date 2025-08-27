@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path/filepath"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
@@ -123,13 +124,40 @@ func (r *RemovalService) RemoveDataDirectories(installation *DetectedInstallatio
 		return nil
 	}
 
-	dataDirs := []string{
-		config.DataDirectory,
-		"/var/lib/mysql",
-		"/var/lib/mariadb",
+	// Collect all directories to remove (detected + fallback)
+	dirsToRemove := make(map[string]bool) // Use map to avoid duplicates
+
+	// Add detected directories
+	if installation.ActualDataDir != "" {
+		dirsToRemove[installation.ActualDataDir] = true
+	}
+	if installation.ActualBinlogDir != "" && installation.ActualBinlogDir != installation.ActualDataDir {
+		dirsToRemove[installation.ActualBinlogDir] = true
 	}
 
-	for _, dataDir := range dataDirs {
+	// Add configured directory
+	if config.DataDirectory != "" {
+		dirsToRemove[config.DataDirectory] = true
+	}
+
+	// Add fallback directories (only if they exist and look like MariaDB data dirs)
+	fallbackDirs := []string{
+		"/var/lib/mysql",
+		"/var/lib/mariadb",
+		"/data/mysql", // Custom directory from configure
+	}
+
+	for _, dir := range fallbackDirs {
+		if stat, err := os.Stat(dir); err == nil && stat.IsDir() {
+			// Check if it looks like a MariaDB data directory (has mysql system db)
+			if r.isMariaDBDataDirectory(dir) {
+				dirsToRemove[dir] = true
+			}
+		}
+	}
+
+	// Remove each directory
+	for dataDir := range dirsToRemove {
 		if stat, err := os.Stat(dataDir); err == nil && stat.IsDir() {
 			lg.Info("Removing data directory",
 				logger.String("directory", dataDir),
@@ -147,6 +175,21 @@ func (r *RemovalService) RemoveDataDirectories(installation *DetectedInstallatio
 	}
 
 	return nil
+}
+
+// isMariaDBDataDirectory checks if a directory looks like a MariaDB data directory
+func (r *RemovalService) isMariaDBDataDirectory(dir string) bool {
+	// Check for common MariaDB system database directories
+	systemDirs := []string{"mysql", "performance_schema", "information_schema"}
+
+	for _, sysDir := range systemDirs {
+		sysPath := filepath.Join(dir, sysDir)
+		if stat, err := os.Stat(sysPath); err == nil && stat.IsDir() {
+			return true
+		}
+	}
+
+	return false
 }
 
 // RemoveConfigFiles removes MariaDB configuration files
