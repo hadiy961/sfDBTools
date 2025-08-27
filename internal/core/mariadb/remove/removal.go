@@ -127,16 +127,17 @@ func (r *RemovalService) RemoveDataDirectories(installation *DetectedInstallatio
 	// Collect all directories to remove (detected + fallback)
 	dirsToRemove := make(map[string]bool) // Use map to avoid duplicates
 
-	// Add detected directories
-	if installation.ActualDataDir != "" {
+	// Add detected directories with validation
+	if installation.ActualDataDir != "" && installation.ActualDataDir != "." && filepath.IsAbs(installation.ActualDataDir) {
 		dirsToRemove[installation.ActualDataDir] = true
 	}
-	if installation.ActualBinlogDir != "" && installation.ActualBinlogDir != installation.ActualDataDir {
+	if installation.ActualBinlogDir != "" && installation.ActualBinlogDir != "." &&
+		filepath.IsAbs(installation.ActualBinlogDir) && installation.ActualBinlogDir != installation.ActualDataDir {
 		dirsToRemove[installation.ActualBinlogDir] = true
 	}
 
-	// Add configured directory
-	if config.DataDirectory != "" {
+	// Add configured directory with validation
+	if config.DataDirectory != "" && config.DataDirectory != "." && filepath.IsAbs(config.DataDirectory) {
 		dirsToRemove[config.DataDirectory] = true
 	}
 
@@ -158,6 +159,12 @@ func (r *RemovalService) RemoveDataDirectories(installation *DetectedInstallatio
 
 	// Remove each directory
 	for dataDir := range dirsToRemove {
+		// Additional safety check - skip invalid paths
+		if dataDir == "" || dataDir == "." || dataDir == "/" || !filepath.IsAbs(dataDir) {
+			lg.Warn("Skipping invalid directory path", logger.String("directory", dataDir))
+			continue
+		}
+
 		if stat, err := os.Stat(dataDir); err == nil && stat.IsDir() {
 			lg.Info("Removing data directory",
 				logger.String("directory", dataDir),

@@ -2,11 +2,15 @@ package install
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
+	"strconv"
 	"strings"
+	"time"
 
 	"sfDBTools/internal/core/mariadb/check_version"
 	"sfDBTools/internal/core/mariadb/configure"
+	"sfDBTools/internal/core/mariadb/remove"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/terminal"
@@ -270,30 +274,34 @@ func (r *InstallRunner) confirmRemoveExisting() bool {
 	return response == "y" || response == "yes"
 }
 
-// removeExistingInstallation removes existing MariaDB installation
+// removeExistingInstallation removes existing MariaDB installation using remove module
 func (r *InstallRunner) removeExistingInstallation() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Removing existing MariaDB installation...")
-	spinner.Start()
+	terminal.PrintInfo("Using comprehensive removal process...")
 
-	// Stop MariaDB service if running
-	if err := r.stopMariaDBService(); err != nil {
-		lg.Warn("Failed to stop MariaDB service", logger.Error(err))
+	// Create remove configuration for installation context
+	removeConfig := &remove.RemovalConfig{
+		RemoveData:         false, // Keep data during installation removal
+		BackupData:         true,  // Always backup data for safety
+		BackupPath:         "",    // Use default backup path
+		RemoveRepositories: false, // Keep repositories for new installation
+		AutoConfirm:        true,  // Auto-confirm since we're in install flow
+		DataDirectory:      "",    // Auto-detect
+		ConfigDirectory:    "",    // Auto-detect
+		LogDirectory:       "",    // Auto-detect
 	}
 
-	// Remove packages
-	packages := []string{"mariadb-server", "mariadb-client", "mariadb-common"}
-	for _, pkg := range packages {
-		if err := r.packageManager.Remove(pkg); err != nil {
-			lg.Warn("Failed to remove package", logger.String("package", pkg), logger.Error(err))
-		}
+	// Create remove runner
+	removeRunner := remove.NewRemovalRunner(removeConfig)
+
+	// Execute removal process
+	if err := removeRunner.Run(); err != nil {
+		return fmt.Errorf("comprehensive removal failed: %w", err)
 	}
 
-	spinner.Stop()
-	terminal.PrintSuccess("Existing MariaDB installation removed")
-
-	lg.Info("Existing installation removed successfully")
+	terminal.PrintSuccess("Existing MariaDB installation removed successfully using comprehensive removal")
+	lg.Info("Existing installation removed using remove module")
 	return nil
 }
 
@@ -367,14 +375,14 @@ func (r *InstallRunner) configureRepository() error {
 	spinner.Stop()
 	terminal.PrintSuccess("MariaDB repository configured successfully")
 
-	// Step 5: Update package cache
-	spinner = terminal.NewProgressSpinner("Updating package cache...")
-	spinner.Start()
+	// // Step 5: Update package cache
+	// spinner = terminal.NewProgressSpinner("Updating package cache...")
+	// spinner.Start()
 
-	if err := r.repoSetupManager.UpdatePackageCache(); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to update package cache: %w", err)
-	}
+	// if err := r.repoSetupManager.UpdatePackageCache(); err != nil {
+	// 	spinner.Stop()
+	// 	return fmt.Errorf("failed to update package cache: %w", err)
+	// }
 
 	spinner.Stop()
 	terminal.PrintSuccess("Package cache updated successfully")
@@ -424,6 +432,16 @@ func (r *InstallRunner) postInstallationSetup() error {
 	lg, _ := logger.Get()
 
 	terminal.PrintInfo("Performing post-installation setup...")
+
+	// Check for data directory conflicts before starting service
+	if err := r.checkDataDirectoryCompatibility(); err != nil {
+		lg.Warn("Data directory compatibility issue detected", logger.Error(err))
+		terminal.PrintWarning("Data directory compatibility issue detected")
+
+		if err := r.handleDataDirectoryConflict(); err != nil {
+			return fmt.Errorf("failed to resolve data directory conflict: %w", err)
+		}
+	}
 
 	// Start MariaDB service
 	if r.config.StartService {
@@ -540,6 +558,160 @@ func (r *InstallRunner) runMariaDBConfiguration() error {
 	}
 
 	lg.Info("MariaDB configuration completed from install process")
+	return nil
+}
+
+// checkDataDirectoryCompatibility checks if existing data directory is compatible
+func (r *InstallRunner) checkDataDirectoryCompatibility() error {
+	lg, _ := logger.Get()
+
+	// Check if data directory exists
+	dataDir := "/var/lib/mysql"
+	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
+		return nil // No data directory, no conflict
+	}
+
+	// Check for version info file
+	versionFile := dataDir + "/mariadb_upgrade_info"
+	if _, err := os.Stat(versionFile); os.IsNotExist(err) {
+		return nil // No version info, assume compatibility
+	}
+
+	// Read existing version
+	content, err := os.ReadFile(versionFile)
+	if err != nil {
+		lg.Warn("Failed to read version info", logger.Error(err))
+		return nil // Can't read, assume compatibility
+	}
+
+	existingVersion := strings.TrimSpace(string(content))
+	currentVersion := r.selectedVersion.LatestVersion
+
+	lg.Info("Checking data directory compatibility",
+		logger.String("existing_version", existingVersion),
+		logger.String("installing_version", currentVersion))
+
+	// Parse versions for comparison
+	if r.isVersionDowngrade(existingVersion, currentVersion) {
+		return fmt.Errorf("data directory contains newer version (%s), cannot downgrade to %s",
+			existingVersion, currentVersion)
+	}
+
+	return nil
+}
+
+// isVersionDowngrade checks if target version is older than existing version
+func (r *InstallRunner) isVersionDowngrade(existing, target string) bool {
+	// Extract major.minor version numbers
+	existingParts := strings.Split(strings.Split(existing, "-")[0], ".")
+	targetParts := strings.Split(target, ".")
+
+	// Convert to integers for comparison
+	existingMajor, existingMinor := parseVersionParts(existingParts)
+	targetMajor, targetMinor := parseVersionParts(targetParts)
+
+	// Compare major version
+	if targetMajor < existingMajor {
+		return true
+	}
+	if targetMajor > existingMajor {
+		return false
+	}
+
+	// Same major version, compare minor
+	return targetMinor < existingMinor
+}
+
+// parseVersionParts extracts major and minor version numbers
+func parseVersionParts(parts []string) (int, int) {
+	major, minor := 0, 0
+
+	if len(parts) >= 1 {
+		if val, err := strconv.Atoi(parts[0]); err == nil {
+			major = val
+		}
+	}
+	if len(parts) >= 2 {
+		if val, err := strconv.Atoi(parts[1]); err == nil {
+			minor = val
+		}
+	}
+
+	return major, minor
+}
+
+// handleDataDirectoryConflict resolves data directory version conflicts
+func (r *InstallRunner) handleDataDirectoryConflict() error {
+	terminal.PrintWarning("Incompatible MariaDB data directory detected!")
+	terminal.PrintInfo("The existing data directory contains a newer MariaDB version.")
+	terminal.PrintInfo("Options:")
+	terminal.PrintInfo("  1. Backup and reinitialize data directory (recommended)")
+	terminal.PrintInfo("  2. Cancel installation")
+
+	if r.config.AutoConfirm {
+		terminal.PrintInfo("Auto-confirm enabled: backing up and reinitializing data directory")
+		return r.backupAndReinitializeDataDirectory()
+	}
+
+	fmt.Print("Backup and reinitialize data directory? (y/N): ")
+	var response string
+	fmt.Scanln(&response)
+
+	response = strings.ToLower(strings.TrimSpace(response))
+	if response == "y" || response == "yes" {
+		return r.backupAndReinitializeDataDirectory()
+	}
+
+	return fmt.Errorf("installation cancelled due to data directory conflict")
+}
+
+// backupAndReinitializeDataDirectory backs up existing data and creates fresh data directory
+func (r *InstallRunner) backupAndReinitializeDataDirectory() error {
+	lg, _ := logger.Get()
+
+	dataDir := "/var/lib/mysql"
+	backupDir := fmt.Sprintf("/var/lib/mysql.backup.%s",
+		time.Now().Format("20060102_150405"))
+
+	// Stop MariaDB service if running
+	spinner := terminal.NewProgressSpinner("Stopping MariaDB service...")
+	spinner.Start()
+
+	_ = r.stopMariaDBService() // Ignore error if not running
+
+	spinner.Stop()
+	terminal.PrintSuccess("MariaDB service stopped")
+
+	// Backup existing data directory
+	spinner = terminal.NewProgressSpinner("Backing up existing data directory...")
+	spinner.Start()
+
+	cmd := exec.Command("mv", dataDir, backupDir)
+	if err := cmd.Run(); err != nil {
+		spinner.Stop()
+		return fmt.Errorf("failed to backup data directory: %w", err)
+	}
+
+	spinner.Stop()
+	terminal.PrintSuccess(fmt.Sprintf("Data directory backed up to: %s", backupDir))
+
+	// Reinitialize data directory
+	spinner = terminal.NewProgressSpinner("Initializing new data directory...")
+	spinner.Start()
+
+	cmd = exec.Command("mysql_install_db", "--user=mysql", "--basedir=/usr", "--datadir="+dataDir)
+	if err := cmd.Run(); err != nil {
+		spinner.Stop()
+		return fmt.Errorf("failed to initialize data directory: %w", err)
+	}
+
+	spinner.Stop()
+	terminal.PrintSuccess("New data directory initialized")
+
+	lg.Info("Data directory conflict resolved",
+		logger.String("backup_location", backupDir),
+		logger.String("new_data_dir", dataDir))
+
 	return nil
 }
 

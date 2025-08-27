@@ -116,19 +116,32 @@ func (c *ConfigFileManager) processTemplate(template string) (string, error) {
 		processed = strings.ReplaceAll(processed, "/var/lib/mysql/key_maria_nbc.txt", c.settings.FileKeyManagementFile)
 	}
 
-	// General path replacements
+	// General path replacements - order matters!
 	replacements := map[string]string{
 		"SERVER-1":                        c.settings.ServerID,
 		"/var/lib/mysqlbinlogs/mysql-bin": fmt.Sprintf("%s/mysql-bin", c.settings.BinlogDir),
 		"/var/lib/mysql/mysql_error.log":  fmt.Sprintf("%s/mysql_error.log", c.settings.LogDir),
 		"/var/lib/mysql/mysql_slow.log":   fmt.Sprintf("%s/mysql_slow.log", c.settings.LogDir),
-		"/var/lib/mysql":                  c.settings.DataDir, // Do this LAST to avoid affecting other paths
 		"3306":                            fmt.Sprintf("%d", c.settings.Port),
 	}
 
-	// Apply replacements in order
+	// Apply specific replacements first
 	for old, new := range replacements {
 		processed = strings.ReplaceAll(processed, old, new)
+	}
+
+	// Do datadir replacement LAST and more specifically to avoid affecting other paths
+	specificDatadirReplacements := []struct {
+		old string
+		new string
+	}{
+		{"datadir                                         = /var/lib/mysql", fmt.Sprintf("datadir                                         = %s", c.settings.DataDir)},
+		{"innodb_data_home_dir                            = /var/lib/mysql", fmt.Sprintf("innodb_data_home_dir                            = %s", c.settings.DataDir)},
+		{"innodb_log_group_home_dir                       = /var/lib/mysql", fmt.Sprintf("innodb_log_group_home_dir                       = %s", c.settings.DataDir)},
+	}
+
+	for _, replacement := range specificDatadirReplacements {
+		processed = strings.ReplaceAll(processed, replacement.old, replacement.new)
 	}
 
 	lg.Info("Template processed with user settings",

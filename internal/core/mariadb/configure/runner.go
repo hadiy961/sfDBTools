@@ -2,11 +2,16 @@ package configure
 
 import (
 	"fmt"
+	"os"
+	"os/exec"
+	"path/filepath"
 
 	"sfDBTools/internal/config"
 	"sfDBTools/internal/config/model"
 	"sfDBTools/internal/core/mariadb"
+	"sfDBTools/internal/core/mariadb/remove"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/common"
 	"sfDBTools/utils/terminal"
 )
 
@@ -51,29 +56,29 @@ func (r *ConfigureRunner) Run() error {
 		return fmt.Errorf("user prompt failed: %w", err)
 	}
 
-	// Step 5: Setup directories
+	// Step 5: Migrate data FIRST - before creating new directories
+	if err := r.migrateData(); err != nil {
+		return fmt.Errorf("data migration failed: %w", err)
+	}
+
+	// Step 6: Setup directories (ensure permissions are correct after migration)
 	if err := r.setupDirectories(); err != nil {
 		return fmt.Errorf("directory setup failed: %w", err)
 	}
 
-	// Step 6: Process configuration file
+	// Step 7: Process configuration file
 	if err := r.processConfigFile(appConfig); err != nil {
 		return fmt.Errorf("config file processing failed: %w", err)
 	}
 
-	// Step 7: Configure systemd
+	// Step 8: Configure systemd
 	if err := r.configureSystemd(); err != nil {
 		return fmt.Errorf("systemd configuration failed: %w", err)
 	}
 
-	// Step 8: Setup firewall
+	// Step 9: Setup firewall
 	if err := r.setupFirewall(); err != nil {
 		return fmt.Errorf("firewall setup failed: %w", err)
-	}
-
-	// Step 9: Migrate data
-	if err := r.migrateData(); err != nil {
-		return fmt.Errorf("data migration failed: %w", err)
 	}
 
 	// Step 10: Configure SELinux (if applicable)
@@ -81,12 +86,17 @@ func (r *ConfigureRunner) Run() error {
 		return fmt.Errorf("SELinux configuration failed: %w", err)
 	}
 
-	// Step 11: Start MariaDB service
+	// Step 11: Initialize database if needed
+	if err := r.initializeDatabaseIfNeeded(); err != nil {
+		return fmt.Errorf("database initialization failed: %w", err)
+	}
+
+	// Step 12: Start MariaDB service
 	if err := r.startMariaDBService(); err != nil {
 		return fmt.Errorf("failed to start MariaDB service: %w", err)
 	}
 
-	// Step 12: Setup databases and users
+	// Step 13: Setup databases and users
 	if !r.config.SkipUserSetup && !r.config.SkipDBSetup {
 		if err := r.setupDatabasesAndUsers(appConfig); err != nil {
 			return fmt.Errorf("database setup failed: %w", err)
@@ -170,8 +180,11 @@ func (r *ConfigureRunner) promptUserSettings(appConfig *model.Config) error {
 
 	terminal.PrintInfo("Collecting MariaDB configuration settings...")
 
-	// Create default settings from config
-	defaults := DefaultMariaDBSettings(appConfig)
+	// Create dynamic default settings from existing config or app config
+	defaults, err := CreateDynamicDefaults(appConfig)
+	if err != nil {
+		return fmt.Errorf("failed to create dynamic defaults: %w", err)
+	}
 
 	// Prompt user for settings
 	prompt := NewUserPrompt(defaults)
@@ -218,13 +231,127 @@ func (r *ConfigureRunner) setupFirewall() error {
 	return firewallManager.ConfigureFirewall()
 }
 
-// migrateData migrates data from default location to new location
+// migrateData migrates data from current active location to new location and cleans up old directories
 func (r *ConfigureRunner) migrateData() error {
-	terminal.PrintInfo("Migrating MariaDB data...")
+	terminal.PrintInfo("Detecting current MariaDB directories and migrating if needed...")
 
-	sourceDir := "/var/lib/mysql"
-	dataMigrator := NewDataMigrator(sourceDir, r.settings.DataDir)
-	return dataMigrator.MigrateData()
+	// Use detection service to find current MariaDB directories
+	osDetector := common.NewOSDetector()
+	osInfo, err := osDetector.DetectOS()
+	if err != nil {
+		return fmt.Errorf("failed to detect OS: %w", err)
+	}
+
+	detectionService := remove.NewDetectionService(osInfo)
+	installation, err := detectionService.DetectInstallation()
+	if err != nil {
+		// If detection fails, fallback to config defaults
+		terminal.PrintWarning("Could not detect existing MariaDB installation, using config defaults")
+		return r.migrateFromConfigDefaults()
+	}
+
+	// Get actual directories from detection
+	sourceDataDir := installation.ActualDataDir
+	sourceBinlogDir := installation.ActualBinlogDir
+	sourceLogDir := installation.ActualLogDir
+
+	// Fallback to standard paths if detection didn't find specific paths or found invalid paths
+	if sourceDataDir == "" || sourceDataDir == "." || !filepath.IsAbs(sourceDataDir) {
+		sourceDataDir = "/var/lib/mysql"
+	}
+	if sourceBinlogDir == "" || sourceBinlogDir == "." || !filepath.IsAbs(sourceBinlogDir) {
+		sourceBinlogDir = "/var/lib/mysqlbinlogs"
+	}
+	if sourceLogDir == "" || sourceLogDir == "." || !filepath.IsAbs(sourceLogDir) {
+		sourceLogDir = "/var/log/mysql"
+	}
+
+	// Migrate data directory
+	if sourceDataDir != r.settings.DataDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating data: %s → %s", sourceDataDir, r.settings.DataDir))
+		dataMigrator := NewDataMigratorWithCleanup(sourceDataDir, r.settings.DataDir)
+		if err := dataMigrator.MigrateData(); err != nil {
+			return fmt.Errorf("failed to migrate data directory: %w", err)
+		}
+	} else {
+		terminal.PrintInfo("Data directory is already at target location")
+	}
+
+	// Migrate binlog directory
+	if sourceBinlogDir != r.settings.BinlogDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating binlog: %s → %s", sourceBinlogDir, r.settings.BinlogDir))
+		binlogMigrator := NewDataMigratorWithCleanup(sourceBinlogDir, r.settings.BinlogDir)
+		if err := binlogMigrator.MigrateBinlogData(); err != nil {
+			// Log warning but don't fail - binlog directory might not exist
+			terminal.PrintWarning("Failed to migrate binlog directory (this is usually okay)")
+		}
+	} else {
+		terminal.PrintInfo("Binlog directory is already at target location")
+	}
+
+	// Migrate log directory (if it contains important logs)
+	if sourceLogDir != r.settings.LogDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating logs: %s → %s", sourceLogDir, r.settings.LogDir))
+		logMigrator := NewDataMigratorWithCleanup(sourceLogDir, r.settings.LogDir)
+		if err := logMigrator.MigrateData(); err != nil {
+			// Log warning but don't fail - log directory might not exist or be empty
+			terminal.PrintWarning("Failed to migrate log directory (this is usually okay)")
+		}
+	} else {
+		terminal.PrintInfo("Log directory is already at target location")
+	}
+
+	return nil
+}
+
+// migrateFromConfigDefaults migrates using configuration defaults when detection fails
+func (r *ConfigureRunner) migrateFromConfigDefaults() error {
+	// Get default directories from config or fallback to standard paths
+	appConfig, err := config.Get()
+	if err != nil {
+		return fmt.Errorf("failed to get configuration: %w", err)
+	}
+
+	sourceDataDir := "/var/lib/mysql"
+	sourceBinlogDir := "/var/lib/mysqlbinlogs"
+	sourceLogDir := "/var/log/mysql"
+
+	if appConfig.MariaDB.Installation.DataDir != "" {
+		sourceDataDir = appConfig.MariaDB.Installation.DataDir
+	}
+	if appConfig.MariaDB.Installation.BinlogDir != "" {
+		sourceBinlogDir = appConfig.MariaDB.Installation.BinlogDir
+	}
+	if appConfig.MariaDB.Installation.LogDir != "" {
+		sourceLogDir = appConfig.MariaDB.Installation.LogDir
+	}
+
+	// Migrate directories (same logic as above)
+	if sourceDataDir != r.settings.DataDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating data: %s → %s", sourceDataDir, r.settings.DataDir))
+		dataMigrator := NewDataMigratorWithCleanup(sourceDataDir, r.settings.DataDir)
+		if err := dataMigrator.MigrateData(); err != nil {
+			return fmt.Errorf("failed to migrate data directory: %w", err)
+		}
+	}
+
+	if sourceBinlogDir != r.settings.BinlogDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating binlog: %s → %s", sourceBinlogDir, r.settings.BinlogDir))
+		binlogMigrator := NewDataMigratorWithCleanup(sourceBinlogDir, r.settings.BinlogDir)
+		if err := binlogMigrator.MigrateBinlogData(); err != nil {
+			terminal.PrintWarning("Failed to migrate binlog directory (this is usually okay)")
+		}
+	}
+
+	if sourceLogDir != r.settings.LogDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating logs: %s → %s", sourceLogDir, r.settings.LogDir))
+		logMigrator := NewDataMigratorWithCleanup(sourceLogDir, r.settings.LogDir)
+		if err := logMigrator.MigrateData(); err != nil {
+			terminal.PrintWarning("Failed to migrate log directory (this is usually okay)")
+		}
+	}
+
+	return nil
 }
 
 // configureSELinux configures SELinux contexts
@@ -235,7 +362,7 @@ func (r *ConfigureRunner) configureSELinux() error {
 
 // startMariaDBService starts and enables MariaDB service
 func (r *ConfigureRunner) startMariaDBService() error {
-	serviceManager := NewServiceManager()
+	serviceManager := NewServiceManagerWithSettings(r.settings)
 
 	// Start service
 	if err := serviceManager.StartService(); err != nil {
@@ -249,6 +376,60 @@ func (r *ConfigureRunner) startMariaDBService() error {
 
 	// Show status
 	return serviceManager.GetServiceStatus()
+}
+
+// initializeDatabaseIfNeeded checks if system tables exist and initializes database if needed
+func (r *ConfigureRunner) initializeDatabaseIfNeeded() error {
+	lg, _ := logger.Get()
+
+	// Check if mysql system database exists
+	mysqlDbPath := filepath.Join(r.settings.DataDir, "mysql")
+	if _, err := os.Stat(mysqlDbPath); err == nil {
+		// MySQL system database exists, check if it has required tables
+		if r.hasRequiredSystemTables() {
+			lg.Info("MariaDB system tables already exist, skipping initialization")
+			terminal.PrintInfo("MariaDB system tables already exist")
+			return nil
+		}
+	}
+
+	terminal.PrintInfo("Initializing MariaDB system database...")
+	lg.Info("Initializing MariaDB system database",
+		logger.String("data_dir", r.settings.DataDir))
+
+	// Run mysql_install_db to initialize system tables
+	cmd := exec.Command("mysql_install_db",
+		"--user=mysql",
+		"--basedir=/usr",
+		"--datadir="+r.settings.DataDir)
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		lg.Error("Failed to initialize MariaDB database",
+			logger.Error(err),
+			logger.String("output", string(output)))
+		return fmt.Errorf("failed to initialize MariaDB database: %w", err)
+	}
+
+	lg.Info("MariaDB database initialized successfully",
+		logger.String("data_dir", r.settings.DataDir))
+	terminal.PrintSuccess("MariaDB database initialized successfully")
+
+	return nil
+}
+
+// hasRequiredSystemTables checks if required system tables exist
+func (r *ConfigureRunner) hasRequiredSystemTables() bool {
+	requiredTables := []string{"mysql/db.frm", "mysql/user.frm", "mysql/plugin.frm"}
+
+	for _, table := range requiredTables {
+		tablePath := filepath.Join(r.settings.DataDir, table)
+		if _, err := os.Stat(tablePath); err != nil {
+			return false
+		}
+	}
+
+	return true
 }
 
 // setupDatabasesAndUsers creates default databases and users

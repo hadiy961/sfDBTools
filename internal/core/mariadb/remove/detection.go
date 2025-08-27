@@ -281,12 +281,21 @@ func (d *DetectionService) getDirectoriesFromRunningMariaDB() (*MariaDBDirectori
 			if result != "" {
 				if target == &dirs.BinlogDir {
 					// Extract directory from binlog path
-					*target = filepath.Dir(result)
+					dir := filepath.Dir(result)
+					if dir != "." && filepath.IsAbs(dir) {
+						*target = dir
+					}
 				} else if target == &dirs.LogDir {
 					// Extract directory from log file path
-					*target = filepath.Dir(result)
+					dir := filepath.Dir(result)
+					if dir != "." && filepath.IsAbs(dir) {
+						*target = dir
+					}
 				} else {
-					*target = result
+					// Validate datadir path
+					if result != "." && filepath.IsAbs(result) {
+						*target = result
+					}
 				}
 			}
 		}
@@ -346,7 +355,13 @@ func (d *DetectionService) parseConfigFile(configFile string, dirs *MariaDBDirec
 			parts := strings.SplitN(line, "=", 2)
 			if len(parts) == 2 {
 				binlogPath := strings.TrimSpace(parts[1])
-				dirs.BinlogDir = filepath.Dir(binlogPath)
+				// Only set if it's a valid absolute path with directory component
+				if binlogPath != "" {
+					dir := filepath.Dir(binlogPath)
+					if dir != "." && filepath.IsAbs(dir) {
+						dirs.BinlogDir = dir
+					}
+				}
 			}
 		} else if strings.HasPrefix(line, "log_error") {
 			parts := strings.SplitN(line, "=", 2)
