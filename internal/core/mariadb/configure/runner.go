@@ -56,47 +56,52 @@ func (r *ConfigureRunner) Run() error {
 		return fmt.Errorf("user prompt failed: %w", err)
 	}
 
-	// Step 5: Migrate data FIRST - before creating new directories
+	// Step 5: Create target directories (without setting ownership yet)
+	if err := r.createTargetDirectories(); err != nil {
+		return fmt.Errorf("target directory creation failed: %w", err)
+	}
+
+	// Step 6: Migrate data - now that target directories exist
 	if err := r.migrateData(); err != nil {
 		return fmt.Errorf("data migration failed: %w", err)
 	}
 
-	// Step 6: Setup directories (ensure permissions are correct after migration)
+	// Step 7: Setup directories ownership (after migration)
 	if err := r.setupDirectories(); err != nil {
 		return fmt.Errorf("directory setup failed: %w", err)
 	}
 
-	// Step 7: Process configuration file
+	// Step 8: Process configuration file
 	if err := r.processConfigFile(appConfig); err != nil {
 		return fmt.Errorf("config file processing failed: %w", err)
 	}
 
-	// Step 8: Configure systemd
+	// Step 9: Configure systemd
 	if err := r.configureSystemd(); err != nil {
 		return fmt.Errorf("systemd configuration failed: %w", err)
 	}
 
-	// Step 9: Setup firewall
+	// Step 10: Setup firewall
 	if err := r.setupFirewall(); err != nil {
 		return fmt.Errorf("firewall setup failed: %w", err)
 	}
 
-	// Step 10: Configure SELinux (if applicable)
+	// Step 11: Configure SELinux (if applicable)
 	if err := r.configureSELinux(); err != nil {
 		return fmt.Errorf("SELinux configuration failed: %w", err)
 	}
 
-	// Step 11: Initialize database if needed
+	// Step 12: Initialize database if needed
 	if err := r.initializeDatabaseIfNeeded(); err != nil {
 		return fmt.Errorf("database initialization failed: %w", err)
 	}
 
-	// Step 12: Start MariaDB service
+	// Step 13: Start MariaDB service
 	if err := r.startMariaDBService(); err != nil {
 		return fmt.Errorf("failed to start MariaDB service: %w", err)
 	}
 
-	// Step 13: Setup databases and users
+	// Step 14: Setup databases and users
 	if !r.config.SkipUserSetup && !r.config.SkipDBSetup {
 		if err := r.setupDatabasesAndUsers(appConfig); err != nil {
 			return fmt.Errorf("database setup failed: %w", err)
@@ -206,6 +211,36 @@ func (r *ConfigureRunner) setupDirectories() error {
 
 	dirManager := NewDirectoryManager(r.settings)
 	return dirManager.SetupDirectories()
+}
+
+// createTargetDirectories creates target directories without setting ownership (for migration)
+func (r *ConfigureRunner) createTargetDirectories() error {
+	lg, _ := logger.Get()
+
+	terminal.PrintInfo("Creating target directories...")
+
+	directories := []string{
+		r.settings.DataDir,
+		r.settings.BinlogDir,
+		r.settings.LogDir,
+	}
+
+	// Create directories without setting ownership yet
+	for _, dir := range directories {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			lg.Error("Failed to create directory",
+				logger.String("directory", dir),
+				logger.Error(err))
+			return fmt.Errorf("failed to create directory %s: %w", dir, err)
+		}
+
+		lg.Info("Directory created successfully", logger.String("path", dir))
+		terminal.PrintInfo(fmt.Sprintf("Created directory: %s", dir))
+	}
+
+	lg.Info("All target directories created successfully")
+	terminal.PrintSuccess("Target directories created")
+	return nil
 }
 
 // processConfigFile processes and deploys the configuration file

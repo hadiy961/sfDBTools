@@ -244,13 +244,25 @@ func (r *InstallRunner) checkExistingInstallation() error {
 	if isInstalled {
 		terminal.PrintWarning(fmt.Sprintf("MariaDB is already installed (version: %s)", version))
 
-		if !r.config.RemoveExisting && !r.config.AutoConfirm {
-			if !r.confirmRemoveExisting() {
+		var shouldRemove bool
+
+		// Determine if we should remove existing installation
+		if r.config.RemoveExisting {
+			// Flag explicitly set
+			shouldRemove = true
+		} else if r.config.AutoConfirm {
+			// Auto-confirm mode - remove existing
+			shouldRemove = true
+		} else {
+			// Ask user for confirmation
+			shouldRemove = r.confirmRemoveExisting()
+			if !shouldRemove {
 				return fmt.Errorf("installation cancelled: MariaDB is already installed")
 			}
 		}
 
-		if r.config.RemoveExisting || r.config.AutoConfirm {
+		// Remove existing installation if confirmed
+		if shouldRemove {
 			if err := r.removeExistingInstallation(); err != nil {
 				return fmt.Errorf("failed to remove existing installation: %w", err)
 			}
