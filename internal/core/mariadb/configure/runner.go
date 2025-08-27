@@ -91,6 +91,22 @@ func (r *ConfigureRunner) Run() error {
 		return fmt.Errorf("SELinux configuration failed: %w", err)
 	}
 
+	// Skip database initialization and user setup in migration-only mode
+	if r.config.MigrationOnly {
+		lg.Info("Migration-only mode: skipping database initialization and user setup")
+		terminal.PrintInfo("Migration-only mode: starting service with migrated configuration...")
+
+		// Step 13: Start MariaDB service to validate new configuration
+		if err := r.startMariaDBService(); err != nil {
+			return fmt.Errorf("failed to start MariaDB service with new configuration: %w", err)
+		}
+
+		terminal.PrintSuccess("Directory migration completed successfully!")
+		terminal.PrintInfo("MariaDB service started with new directory configuration")
+		lg.Info("Migration-only mode completed: directories migrated and service started")
+		return nil
+	}
+
 	// Step 12: Initialize database if needed
 	if err := r.initializeDatabaseIfNeeded(); err != nil {
 		return fmt.Errorf("database initialization failed: %w", err)
