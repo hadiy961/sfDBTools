@@ -73,9 +73,8 @@ func (d *DatabaseManager) connectToMariaDB() (*sql.DB, error) {
 	lg, _ := logger.Get()
 
 	// Try different connection methods for root user
-	socketPath := fmt.Sprintf("%s/mysql.sock", d.settings.DataDir)
 	connectionMethods := []string{
-		fmt.Sprintf("root@unix(%s)/", socketPath),               // Unix socket (preferred)
+		"root@unix(/var/lib/mysql/mysql.sock)/",                 // Unix socket (preferred)
 		"root:@tcp(localhost:%d)/",                              // TCP without password
 		fmt.Sprintf("root@tcp(localhost:%d)/", d.settings.Port), // TCP without password (explicit port)
 	}
@@ -278,8 +277,7 @@ func (d *DatabaseManager) setupUsingCommandLine() error {
 	}()
 
 	// Execute script using mysql command
-	socketPath := fmt.Sprintf("%s/mysql.sock", d.settings.DataDir)
-	cmd := fmt.Sprintf("mysql -u root --socket=%s < %s", socketPath, scriptFile)
+	cmd := fmt.Sprintf("mysql -u root --socket=/var/lib/mysql/mysql.sock < %s", scriptFile)
 	if err := d.executeCommand(cmd); err != nil {
 		// Try alternative socket path
 		cmd = fmt.Sprintf("mysql -u root --socket=/var/run/mysqld/mysqld.sock < %s", scriptFile)

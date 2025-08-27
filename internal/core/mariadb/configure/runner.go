@@ -56,68 +56,47 @@ func (r *ConfigureRunner) Run() error {
 		return fmt.Errorf("user prompt failed: %w", err)
 	}
 
-	// Step 5: Create target directories (without setting ownership yet)
-	if err := r.createTargetDirectories(); err != nil {
-		return fmt.Errorf("target directory creation failed: %w", err)
-	}
-
-	// Step 6: Migrate data - now that target directories exist
+	// Step 5: Migrate data FIRST - before creating new directories
 	if err := r.migrateData(); err != nil {
 		return fmt.Errorf("data migration failed: %w", err)
 	}
 
-	// Step 7: Setup directories ownership (after migration)
+	// Step 6: Setup directories (ensure permissions are correct after migration)
 	if err := r.setupDirectories(); err != nil {
 		return fmt.Errorf("directory setup failed: %w", err)
 	}
 
-	// Step 8: Process configuration file
+	// Step 7: Process configuration file
 	if err := r.processConfigFile(appConfig); err != nil {
 		return fmt.Errorf("config file processing failed: %w", err)
 	}
 
-	// Step 9: Configure systemd
+	// Step 8: Configure systemd
 	if err := r.configureSystemd(); err != nil {
 		return fmt.Errorf("systemd configuration failed: %w", err)
 	}
 
-	// Step 10: Setup firewall
+	// Step 9: Setup firewall
 	if err := r.setupFirewall(); err != nil {
 		return fmt.Errorf("firewall setup failed: %w", err)
 	}
 
-	// Step 11: Configure SELinux (if applicable)
+	// Step 10: Configure SELinux (if applicable)
 	if err := r.configureSELinux(); err != nil {
 		return fmt.Errorf("SELinux configuration failed: %w", err)
 	}
 
-	// Skip database initialization and user setup in migration-only mode
-	if r.config.MigrationOnly {
-		lg.Info("Migration-only mode: skipping database initialization and user setup")
-		terminal.PrintInfo("Migration-only mode: starting service with migrated configuration...")
-
-		// Step 13: Start MariaDB service to validate new configuration
-		if err := r.startMariaDBService(); err != nil {
-			return fmt.Errorf("failed to start MariaDB service with new configuration: %w", err)
-		}
-
-		terminal.PrintSuccess("Directory migration completed successfully!")
-		terminal.PrintInfo("MariaDB service started with new directory configuration")
-		lg.Info("Migration-only mode completed: directories migrated and service started")
-		return nil
-	}
-
-	// Step 12: Initialize database if needed
+	// Step 11: Initialize database if needed
 	if err := r.initializeDatabaseIfNeeded(); err != nil {
 		return fmt.Errorf("database initialization failed: %w", err)
 	}
 
-	// Step 13: Start MariaDB service
+	// Step 12: Start MariaDB service
 	if err := r.startMariaDBService(); err != nil {
 		return fmt.Errorf("failed to start MariaDB service: %w", err)
 	}
 
-	// Step 14: Setup databases and users
+	// Step 13: Setup databases and users
 	if !r.config.SkipUserSetup && !r.config.SkipDBSetup {
 		if err := r.setupDatabasesAndUsers(appConfig); err != nil {
 			return fmt.Errorf("database setup failed: %w", err)
@@ -133,17 +112,13 @@ func (r *ConfigureRunner) Run() error {
 func (r *ConfigureRunner) validateOS() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Validating operating system...")
-	spinner.Start()
+	terminal.PrintInfo("Validating operating system...")
 
 	if err := mariadb.ValidateOperatingSystem(); err != nil {
-		spinner.Stop()
 		lg.Error("OS validation failed", logger.Error(err))
-		terminal.PrintError("Operating system validation failed")
 		return err
 	}
 
-	spinner.Stop()
 	terminal.PrintSuccess("Operating system validated")
 	lg.Info("Operating system validation passed")
 	return nil
@@ -162,17 +137,11 @@ func (r *ConfigureRunner) stopMariaDBService() error {
 		return nil
 	}
 
-	spinner := terminal.NewProgressSpinner("Stopping MariaDB service...")
-	spinner.Start()
-
 	// Stop the service
 	if err := serviceManager.StopService(); err != nil {
-		spinner.Stop()
 		return err
 	}
 
-	spinner.Stop()
-	terminal.PrintSuccess("MariaDB service stopped")
 	return nil
 }
 
@@ -180,32 +149,26 @@ func (r *ConfigureRunner) stopMariaDBService() error {
 func (r *ConfigureRunner) loadConfiguration() (*model.Config, error) {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Loading and validating configuration...")
-	spinner.Start()
+	terminal.PrintInfo("Loading configuration...")
 
 	appConfig, err := config.Get()
 	if err != nil {
-		spinner.Stop()
 		return nil, fmt.Errorf("failed to get configuration: %w", err)
 	}
 
 	if appConfig == nil {
-		spinner.Stop()
 		return nil, fmt.Errorf("application configuration not loaded")
 	}
 
 	// Validate required configuration paths
 	if appConfig.ConfigDir.MariaDBConfig == "" {
-		spinner.Stop()
 		return nil, fmt.Errorf("mariadb_config path is required in configuration")
 	}
 
 	if appConfig.ConfigDir.MariaDBKey == "" {
-		spinner.Stop()
 		return nil, fmt.Errorf("mariadb_key path is required in configuration")
 	}
 
-	spinner.Stop()
 	lg.Info("Configuration loaded and validated successfully")
 	terminal.PrintSuccess("Configuration loaded successfully")
 	return appConfig, nil
@@ -239,113 +202,43 @@ func (r *ConfigureRunner) promptUserSettings(appConfig *model.Config) error {
 
 // setupDirectories creates and configures required directories
 func (r *ConfigureRunner) setupDirectories() error {
-	spinner := terminal.NewProgressSpinner("Setting up directory ownership and permissions...")
-	spinner.Start()
+	terminal.PrintInfo("Setting up directories...")
 
 	dirManager := NewDirectoryManager(r.settings)
-	if err := dirManager.SetupDirectories(); err != nil {
-		spinner.Stop()
-		return err
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Directory ownership configured")
-	return nil
-}
-
-// createTargetDirectories creates target directories without setting ownership (for migration)
-func (r *ConfigureRunner) createTargetDirectories() error {
-	lg, _ := logger.Get()
-
-	spinner := terminal.NewProgressSpinner("Creating target directories...")
-	spinner.Start()
-
-	directories := []string{
-		r.settings.DataDir,
-		r.settings.BinlogDir,
-		r.settings.LogDir,
-	}
-
-	// Create directories without setting ownership yet
-	for _, dir := range directories {
-		if err := os.MkdirAll(dir, 0755); err != nil {
-			spinner.Stop()
-			lg.Error("Failed to create directory",
-				logger.String("directory", dir),
-				logger.Error(err))
-			return fmt.Errorf("failed to create directory %s: %w", dir, err)
-		}
-
-		lg.Info("Directory created successfully", logger.String("path", dir))
-	}
-
-	spinner.Stop()
-	lg.Info("All target directories created successfully")
-	terminal.PrintSuccess("Target directories created")
-	return nil
+	return dirManager.SetupDirectories()
 }
 
 // processConfigFile processes and deploys the configuration file
 func (r *ConfigureRunner) processConfigFile(appConfig *model.Config) error {
-	spinner := terminal.NewProgressSpinner("Processing MariaDB configuration file...")
-	spinner.Start()
+	terminal.PrintInfo("Processing MariaDB configuration file...")
 
 	// Determine target path based on OS (CentOS/RHEL pattern)
 	targetPath := "/etc/my.cnf.d/server.cnf"
 
 	configManager := NewConfigFileManager(r.settings, appConfig.ConfigDir.MariaDBConfig, targetPath)
-	if err := configManager.ProcessConfigFile(); err != nil {
-		spinner.Stop()
-		return err
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Configuration file processed")
-	return nil
+	return configManager.ProcessConfigFile()
 }
 
 // configureSystemd configures systemd service
 func (r *ConfigureRunner) configureSystemd() error {
-	spinner := terminal.NewProgressSpinner("Configuring systemd service...")
-	spinner.Start()
-
 	systemdManager := NewSystemdManager()
-	if err := systemdManager.ConfigureService(); err != nil {
-		spinner.Stop()
-		return err
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Systemd service configured")
-	return nil
+	return systemdManager.ConfigureService()
 }
 
 // setupFirewall configures firewall for MariaDB port
 func (r *ConfigureRunner) setupFirewall() error {
-	spinner := terminal.NewProgressSpinner("Setting up firewall rules...")
-	spinner.Start()
-
 	firewallManager := NewFirewallManager(r.settings.Port)
-	if err := firewallManager.ConfigureFirewall(); err != nil {
-		spinner.Stop()
-		return err
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Firewall configured")
-	return nil
+	return firewallManager.ConfigureFirewall()
 }
 
 // migrateData migrates data from current active location to new location and cleans up old directories
 func (r *ConfigureRunner) migrateData() error {
-	spinner := terminal.NewProgressSpinner("Detecting and migrating MariaDB directories...")
-	spinner.Start()
+	terminal.PrintInfo("Detecting current MariaDB directories and migrating if needed...")
 
 	// Use detection service to find current MariaDB directories
 	osDetector := common.NewOSDetector()
 	osInfo, err := osDetector.DetectOS()
 	if err != nil {
-		spinner.Stop()
 		return fmt.Errorf("failed to detect OS: %w", err)
 	}
 
@@ -353,7 +246,6 @@ func (r *ConfigureRunner) migrateData() error {
 	installation, err := detectionService.DetectInstallation()
 	if err != nil {
 		// If detection fails, fallback to config defaults
-		spinner.Stop()
 		terminal.PrintWarning("Could not detect existing MariaDB installation, using config defaults")
 		return r.migrateFromConfigDefaults()
 	}
@@ -376,33 +268,39 @@ func (r *ConfigureRunner) migrateData() error {
 
 	// Migrate data directory
 	if sourceDataDir != r.settings.DataDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating data: %s → %s", sourceDataDir, r.settings.DataDir))
 		dataMigrator := NewDataMigratorWithCleanup(sourceDataDir, r.settings.DataDir)
 		if err := dataMigrator.MigrateData(); err != nil {
-			spinner.Stop()
 			return fmt.Errorf("failed to migrate data directory: %w", err)
 		}
+	} else {
+		terminal.PrintInfo("Data directory is already at target location")
 	}
 
 	// Migrate binlog directory
 	if sourceBinlogDir != r.settings.BinlogDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating binlog: %s → %s", sourceBinlogDir, r.settings.BinlogDir))
 		binlogMigrator := NewDataMigratorWithCleanup(sourceBinlogDir, r.settings.BinlogDir)
-		if err := binlogMigrator.MigrateBinlogData(); err != nil {
+		if err := binlogMigrator.MigrateData(); err != nil {
 			// Log warning but don't fail - binlog directory might not exist
 			terminal.PrintWarning("Failed to migrate binlog directory (this is usually okay)")
 		}
+	} else {
+		terminal.PrintInfo("Binlog directory is already at target location")
 	}
 
 	// Migrate log directory (if it contains important logs)
 	if sourceLogDir != r.settings.LogDir {
+		terminal.PrintInfo(fmt.Sprintf("Migrating logs: %s → %s", sourceLogDir, r.settings.LogDir))
 		logMigrator := NewDataMigratorWithCleanup(sourceLogDir, r.settings.LogDir)
 		if err := logMigrator.MigrateData(); err != nil {
 			// Log warning but don't fail - log directory might not exist or be empty
 			terminal.PrintWarning("Failed to migrate log directory (this is usually okay)")
 		}
+	} else {
+		terminal.PrintInfo("Log directory is already at target location")
 	}
 
-	spinner.Stop()
-	terminal.PrintSuccess("Data migration completed")
 	return nil
 }
 
@@ -440,7 +338,7 @@ func (r *ConfigureRunner) migrateFromConfigDefaults() error {
 	if sourceBinlogDir != r.settings.BinlogDir {
 		terminal.PrintInfo(fmt.Sprintf("Migrating binlog: %s → %s", sourceBinlogDir, r.settings.BinlogDir))
 		binlogMigrator := NewDataMigratorWithCleanup(sourceBinlogDir, r.settings.BinlogDir)
-		if err := binlogMigrator.MigrateBinlogData(); err != nil {
+		if err := binlogMigrator.MigrateData(); err != nil {
 			terminal.PrintWarning("Failed to migrate binlog directory (this is usually okay)")
 		}
 	}
@@ -458,41 +356,23 @@ func (r *ConfigureRunner) migrateFromConfigDefaults() error {
 
 // configureSELinux configures SELinux contexts
 func (r *ConfigureRunner) configureSELinux() error {
-	spinner := terminal.NewProgressSpinner("Configuring SELinux contexts...")
-	spinner.Start()
-
 	selinuxManager := NewSELinuxManager(r.settings.DataDir)
-	if err := selinuxManager.ConfigureSELinux(); err != nil {
-		spinner.Stop()
-		return err
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("SELinux contexts configured")
-	return nil
+	return selinuxManager.ConfigureSELinux()
 }
 
 // startMariaDBService starts and enables MariaDB service
 func (r *ConfigureRunner) startMariaDBService() error {
-	spinner := terminal.NewProgressSpinner("Starting and enabling MariaDB service...")
-	spinner.Start()
-
 	serviceManager := NewServiceManagerWithSettings(r.settings)
 
 	// Start service
 	if err := serviceManager.StartService(); err != nil {
-		spinner.Stop()
 		return err
 	}
 
 	// Enable service on boot
 	if err := serviceManager.EnableService(); err != nil {
-		spinner.Stop()
 		return err
 	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("MariaDB service started and enabled")
 
 	// Show status
 	return serviceManager.GetServiceStatus()
@@ -513,9 +393,7 @@ func (r *ConfigureRunner) initializeDatabaseIfNeeded() error {
 		}
 	}
 
-	spinner := terminal.NewProgressSpinner("Initializing MariaDB system database...")
-	spinner.Start()
-
+	terminal.PrintInfo("Initializing MariaDB system database...")
 	lg.Info("Initializing MariaDB system database",
 		logger.String("data_dir", r.settings.DataDir))
 
@@ -527,14 +405,12 @@ func (r *ConfigureRunner) initializeDatabaseIfNeeded() error {
 
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		spinner.Stop()
 		lg.Error("Failed to initialize MariaDB database",
 			logger.Error(err),
 			logger.String("output", string(output)))
 		return fmt.Errorf("failed to initialize MariaDB database: %w", err)
 	}
 
-	spinner.Stop()
 	lg.Info("MariaDB database initialized successfully",
 		logger.String("data_dir", r.settings.DataDir))
 	terminal.PrintSuccess("MariaDB database initialized successfully")
@@ -558,8 +434,7 @@ func (r *ConfigureRunner) hasRequiredSystemTables() bool {
 
 // setupDatabasesAndUsers creates default databases and users
 func (r *ConfigureRunner) setupDatabasesAndUsers(appConfig *model.Config) error {
-	spinner := terminal.NewProgressSpinner("Setting up default databases and users...")
-	spinner.Start()
+	terminal.PrintInfo("Setting up default databases and users...")
 
 	clientCode := appConfig.General.ClientCode
 	if clientCode == "" {
@@ -567,12 +442,5 @@ func (r *ConfigureRunner) setupDatabasesAndUsers(appConfig *model.Config) error 
 	}
 
 	dbManager := NewDatabaseManager(r.settings, clientCode)
-	if err := dbManager.SetupDatabasesAndUsers(); err != nil {
-		spinner.Stop()
-		return err
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Databases and users created successfully")
-	return nil
+	return dbManager.SetupDatabasesAndUsers()
 }

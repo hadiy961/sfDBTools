@@ -244,25 +244,13 @@ func (r *InstallRunner) checkExistingInstallation() error {
 	if isInstalled {
 		terminal.PrintWarning(fmt.Sprintf("MariaDB is already installed (version: %s)", version))
 
-		var shouldRemove bool
-
-		// Determine if we should remove existing installation
-		if r.config.RemoveExisting {
-			// Flag explicitly set
-			shouldRemove = true
-		} else if r.config.AutoConfirm {
-			// Auto-confirm mode - remove existing
-			shouldRemove = true
-		} else {
-			// Ask user for confirmation
-			shouldRemove = r.confirmRemoveExisting()
-			if !shouldRemove {
+		if !r.config.RemoveExisting && !r.config.AutoConfirm {
+			if !r.confirmRemoveExisting() {
 				return fmt.Errorf("installation cancelled: MariaDB is already installed")
 			}
 		}
 
-		// Remove existing installation if confirmed
-		if shouldRemove {
+		if r.config.RemoveExisting || r.config.AutoConfirm {
 			if err := r.removeExistingInstallation(); err != nil {
 				return fmt.Errorf("failed to remove existing installation: %w", err)
 			}
@@ -396,8 +384,8 @@ func (r *InstallRunner) configureRepository() error {
 	// 	return fmt.Errorf("failed to update package cache: %w", err)
 	// }
 
-	// spinner.Stop()
-	// terminal.PrintSuccess("Package cache updated successfully")
+	spinner.Stop()
+	terminal.PrintSuccess("Package cache updated successfully")
 
 	lg.Info("Repository configuration completed",
 		logger.String("version", r.selectedVersion.Version))
