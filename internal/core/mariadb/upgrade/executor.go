@@ -253,11 +253,11 @@ func (e *ExecutorService) updateRepository() error {
 		return fmt.Errorf("repository update failed: %w", err)
 	}
 
-	// // Update package cache
-	// if err := repoManager.UpdatePackageCache(); err != nil {
-	// 	spinner.Stop()
-	// 	return fmt.Errorf("package cache update failed: %w", err)
-	// }
+	// Update package cache
+	if err := repoManager.UpdatePackageCache(); err != nil {
+		spinner.Stop()
+		return fmt.Errorf("package cache update failed: %w", err)
+	}
 
 	spinner.Stop()
 	terminal.PrintSuccess("Repository updated")
@@ -266,87 +266,22 @@ func (e *ExecutorService) updateRepository() error {
 
 // upgradePackages upgrades MariaDB packages
 func (e *ExecutorService) upgradePackages() error {
-	lg, _ := logger.Get()
+	spinner := terminal.NewProgressSpinner("Upgrading MariaDB packages...")
+	spinner.Start()
 
-	// For major version upgrades, MariaDB requires manual removal and reinstallation
-	// Determine if this is a major version upgrade
-	isMajorUpgrade := e.plan.UpgradeType == "major"
-
-	if isMajorUpgrade {
-		terminal.PrintInfo("Major version upgrade detected - following MariaDB manual upgrade process")
-
-		// Step 1: Remove existing MariaDB packages
-		spinner := terminal.NewProgressSpinner("Removing existing MariaDB packages...")
-		spinner.Start()
-
-		// Get list of installed MariaDB packages (for logging)
-		listCmd := exec.Command("rpm", "-qa", "--qf", "%{NAME}\n")
-		listCmd.Args = append(listCmd.Args, "MariaDB*")
-		_, err := listCmd.CombinedOutput()
-		if err != nil {
-			lg.Warn("Failed to list MariaDB packages", logger.Error(err))
-		}
-
-		// Remove MariaDB packages
-		packages := []string{"MariaDB-server", "MariaDB-client", "MariaDB-common", "MariaDB-compat", "MariaDB-shared"}
-		removeCmd := exec.Command("yum", "remove", "-y")
-		removeCmd.Args = append(removeCmd.Args, packages...)
-
-		removeOutput, err := removeCmd.CombinedOutput()
-		if err != nil {
-			lg.Warn("Some packages may not have been removed",
-				logger.Error(err),
-				logger.String("output", string(removeOutput)))
-			// Continue anyway - some packages might not exist
-		}
-
+	// Upgrade packages using yum directly
+	cmd := exec.Command("yum", "update", "-y", "MariaDB-server", "MariaDB-client")
+	if err := cmd.Run(); err != nil {
 		spinner.Stop()
-		terminal.PrintSuccess("Existing packages removed")
-
-		// Step 2: Install new MariaDB packages
-		spinner = terminal.NewProgressSpinner("Installing new MariaDB packages...")
-		spinner.Start()
-
-		newPackages := []string{"MariaDB-server", "MariaDB-client"}
-		installCmd := exec.Command("yum", "install", "-y")
-		installCmd.Args = append(installCmd.Args, newPackages...)
-
-		installOutput, err := installCmd.CombinedOutput()
-		if err != nil {
-			spinner.Stop()
-			lg.Error("Package installation failed",
-				logger.Error(err),
-				logger.String("output", string(installOutput)))
-			return fmt.Errorf("package installation failed: %w\nOutput: %s", err, string(installOutput))
-		}
-
-		spinner.Stop()
-		terminal.PrintSuccess("New packages installed")
-
-	} else {
-		// For minor version upgrades, use regular update
-		spinner := terminal.NewProgressSpinner("Upgrading MariaDB packages...")
-		spinner.Start()
-
-		packages := []string{"MariaDB-server", "MariaDB-client"}
-		cmd := exec.Command("yum", "update", "-y")
-		cmd.Args = append(cmd.Args, packages...)
-
-		output, err := cmd.CombinedOutput()
-		if err != nil {
-			spinner.Stop()
-			lg.Error("Package upgrade failed",
-				logger.Error(err),
-				logger.String("output", string(output)))
-			return fmt.Errorf("package upgrade failed: %w\nOutput: %s", err, string(output))
-		}
-
-		spinner.Stop()
-		terminal.PrintSuccess("Packages upgraded")
+		return fmt.Errorf("package upgrade failed: %w", err)
 	}
 
+	spinner.Stop()
+	terminal.PrintSuccess("Packages upgraded")
 	return nil
-} // startService starts MariaDB service
+}
+
+// startService starts MariaDB service
 func (e *ExecutorService) startService() error {
 	spinner := terminal.NewProgressSpinner("Starting MariaDB service...")
 	spinner.Start()

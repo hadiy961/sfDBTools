@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"path/filepath"
-	"strings"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/terminal"
@@ -154,6 +152,14 @@ func (m *DataMigrator) MigrateData() error {
 
 	terminal.PrintInfo("Migrating data from default location...")
 
+	// Ensure target directory exists before migration
+	if err := os.MkdirAll(m.targetDir, 0755); err != nil {
+		lg.Error("Failed to create target directory for migration",
+			logger.String("target", m.targetDir),
+			logger.Error(err))
+		return fmt.Errorf("failed to create target directory: %w", err)
+	}
+
 	// Use rsync for safe data migration
 	cmd := exec.Command("rsync", "-av", m.sourceDir+"/", m.targetDir+"/")
 	output, err := cmd.CombinedOutput()
@@ -271,97 +277,6 @@ func (m *DataMigrator) setTargetOwnership() error {
 	lg.Info("Ownership set after migration",
 		logger.String("directory", m.targetDir),
 		logger.String("owner", "mysql:mysql"))
-
-	return nil
-}
-
-// MigrateBinlogData migrates binlog data and updates index file with correct paths
-func (m *DataMigrator) MigrateBinlogData() error {
-	lg, _ := logger.Get()
-
-	// First do regular migration
-	if err := m.MigrateData(); err != nil {
-		return err
-	}
-
-	// Then fix the binlog index file
-	if err := m.fixBinlogIndexFile(); err != nil {
-		lg.Warn("Failed to fix binlog index file",
-			logger.String("target", m.targetDir),
-			logger.Error(err))
-		terminal.PrintWarning("Warning: Failed to fix binlog index file")
-	}
-
-	return nil
-}
-
-// fixBinlogIndexFile updates mysql-bin.index file to use correct paths
-func (m *DataMigrator) fixBinlogIndexFile() error {
-	lg, _ := logger.Get()
-
-	indexFile := filepath.Join(m.targetDir, "mysql-bin.index")
-
-	// Check if index file exists
-	if _, err := os.Stat(indexFile); err != nil {
-		lg.Info("No binlog index file found, skipping fix",
-			logger.String("index_file", indexFile))
-		return nil
-	}
-
-	// Read current index file
-	content, err := os.ReadFile(indexFile)
-	if err != nil {
-		return fmt.Errorf("failed to read binlog index file: %w", err)
-	}
-
-	// Update paths in index file
-	lines := strings.Split(string(content), "\n")
-	updatedLines := make([]string, 0, len(lines))
-	pathsUpdated := 0
-
-	for _, line := range lines {
-		line = strings.TrimSpace(line)
-		if line == "" {
-			continue
-		}
-
-		// Extract just the filename from the path
-		filename := filepath.Base(line)
-
-		// Create new path with target directory
-		newPath := filepath.Join(m.targetDir, filename)
-		updatedLines = append(updatedLines, newPath)
-
-		if line != newPath {
-			pathsUpdated++
-		}
-	}
-
-	// Only rewrite if we made changes
-	if pathsUpdated > 0 {
-		// Write updated content
-		newContent := strings.Join(updatedLines, "\n")
-		if len(updatedLines) > 0 {
-			newContent += "\n" // Ensure trailing newline
-		}
-
-		if err := os.WriteFile(indexFile, []byte(newContent), 0644); err != nil {
-			return fmt.Errorf("failed to write updated binlog index file: %w", err)
-		}
-
-		// Set ownership
-		cmd := exec.Command("chown", "mysql:mysql", indexFile)
-		if err := cmd.Run(); err != nil {
-			lg.Warn("Failed to set ownership on binlog index file", logger.Error(err))
-		}
-
-		lg.Info("Binlog index file updated",
-			logger.String("index_file", indexFile),
-			logger.Int("paths_updated", pathsUpdated))
-		terminal.PrintSuccess(fmt.Sprintf("Updated %d binlog paths in index file", pathsUpdated))
-	} else {
-		lg.Info("Binlog index file already has correct paths")
-	}
 
 	return nil
 }

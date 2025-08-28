@@ -375,14 +375,14 @@ func (r *InstallRunner) configureRepository() error {
 	spinner.Stop()
 	terminal.PrintSuccess("MariaDB repository configured successfully")
 
-	// // Step 5: Update package cache
-	// spinner = terminal.NewProgressSpinner("Updating package cache...")
-	// spinner.Start()
+	// Step 5: Update package cache
+	spinner = terminal.NewProgressSpinner("Updating package cache...")
+	spinner.Start()
 
-	// if err := r.repoSetupManager.UpdatePackageCache(); err != nil {
-	// 	spinner.Stop()
-	// 	return fmt.Errorf("failed to update package cache: %w", err)
-	// }
+	if err := r.repoSetupManager.UpdatePackageCache(); err != nil {
+		spinner.Stop()
+		return fmt.Errorf("failed to update package cache: %w", err)
+	}
 
 	spinner.Stop()
 	terminal.PrintSuccess("Package cache updated successfully")
