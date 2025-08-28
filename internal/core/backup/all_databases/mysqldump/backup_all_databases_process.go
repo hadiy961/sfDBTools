@@ -14,6 +14,7 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/database"
 )
 
 // executeAllDatabasesMysqldump executes mysqldump for all databases and writes to a single file
@@ -162,14 +163,30 @@ func getReplicationMysqldumpArgs(options backup_utils.AllDatabasesBackupOptions,
 	// Essential replication flags
 	args = append(args, "--single-transaction") // Ensures consistency
 
-	if options.CaptureGTID {
-		// For GTID-based replication, use --master-data=2 (commented CHANGE MASTER TO)
-		args = append(args, "--master-data=2")
-		lg.Info("Added --master-data=2 for GTID replication")
+	// Check if binary logging is enabled before adding --master-data flags
+	dbConfig := database.Config{
+		Host:     options.Host,
+		Port:     options.Port,
+		User:     options.User,
+		Password: options.Password,
+	}
+
+	binlogInfo, err := database.GetBinaryLogInfo(dbConfig)
+	if err != nil {
+		lg.Warn("Failed to check binary log status, skipping --master-data flag", logger.Error(err))
+	} else if binlogInfo != nil && binlogInfo.HasBinlog {
+		// Only add --master-data if binary logging is enabled
+		if options.CaptureGTID {
+			// For GTID-based replication, use --master-data=2 (commented CHANGE MASTER TO)
+			args = append(args, "--master-data=2")
+			lg.Info("Added --master-data=2 for GTID replication")
+		} else {
+			// For traditional binlog replication, use --master-data=1 (executable CHANGE MASTER TO)
+			args = append(args, "--master-data=1")
+			lg.Info("Added --master-data=1 for traditional replication")
+		}
 	} else {
-		// For traditional binlog replication, use --master-data=1 (executable CHANGE MASTER TO)
-		args = append(args, "--master-data=1")
-		lg.Info("Added --master-data=1 for traditional replication")
+		lg.Info("Binary logging is not enabled, skipping --master-data flag for mysqldump")
 	}
 
 	// Parse and add config args, excluding conflicting ones
