@@ -7,7 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var MariaDB = &cobra.Command{
+
+var MariaDBCmd = &cobra.Command{
 	Use:   "mariadb",
 	Short: "Database configuration management commands",
 	Long: `Database configuration management commands for generating, validating, editing, viewing, and deleting encrypted database configurations.
@@ -28,9 +29,9 @@ All database configurations are stored in encrypted format for security.`,
 }
 
 func init() {
-	rootCmd.AddCommand(MariaDB)
-	MariaDB.AddCommand(mariadb_cmd.ConfigureMariadbCMD)
-	MariaDB.AddCommand(mariadb_cmd.CheckVersionCmd)
-	MariaDB.AddCommand(mariadb_cmd.InstallCmd)
-	MariaDB.AddCommand(mariadb_cmd.RemoveCmd)
+	rootCmd.AddCommand(MariaDBCmd)
+	MariaDBCmd.AddCommand(mariadb_cmd.CheckVersionCmd)
+	MariaDBCmd.AddCommand(mariadb_cmd.ConfigureMariadbCMD)
+	MariaDBCmd.AddCommand(mariadb_cmd.InstallCmd)
+	MariaDBCmd.AddCommand(mariadb_cmd.RemoveCmd)
 }
