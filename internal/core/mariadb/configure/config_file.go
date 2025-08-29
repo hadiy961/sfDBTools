@@ -122,6 +122,7 @@ func (c *ConfigFileManager) processTemplate(template string) (string, error) {
 		"/var/lib/mysqlbinlogs/mysql-bin": fmt.Sprintf("%s/mysql-bin", c.settings.BinlogDir),
 		"/var/lib/mysql/mysql_error.log":  fmt.Sprintf("%s/mysql_error.log", c.settings.LogDir),
 		"/var/lib/mysql/mysql_slow.log":   fmt.Sprintf("%s/mysql_slow.log", c.settings.LogDir),
+		"/var/lib/mysql/mysql.sock":       fmt.Sprintf("%s/mysql.sock", c.settings.DataDir),
 		"3306":                            fmt.Sprintf("%d", c.settings.Port),
 	}
 
