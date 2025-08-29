@@ -7,7 +7,6 @@ type ConfigureConfig struct {
 	AutoConfirm   bool
 	SkipUserSetup bool
 	SkipDBSetup   bool
-	MigrationOnly bool
 }
 
 // MariaDBSettings represents the MariaDB configuration settings from user input
@@ -60,6 +59,5 @@ func DefaultConfigureConfig() *ConfigureConfig {
 		AutoConfirm:   false,
 		SkipUserSetup: false,
 		SkipDBSetup:   false,
-		MigrationOnly: false,
 	}
 }

@@ -15,7 +15,6 @@ var (
 	configureAutoConfirm   bool
 	configureSkipUserSetup bool
 	configureSkipDBSetup   bool
-	configureMigrationOnly bool
 )
 
 // ConfigureMariadbCMD represents the configure command
@@ -59,7 +58,6 @@ Examples:
 			AutoConfirm:   configureAutoConfirm,
 			SkipUserSetup: configureSkipUserSetup,
 			SkipDBSetup:   configureSkipDBSetup,
-			MigrationOnly: configureMigrationOnly,
 		}
 
 		// Create and run configure runner
@@ -88,7 +86,4 @@ func init() {
 
 	ConfigureMariadbCMD.Flags().BoolVar(&configureSkipDBSetup, "skip-db-setup", false,
 		"Skip default database creation")
-
-	ConfigureMariadbCMD.Flags().BoolVar(&configureMigrationOnly, "migration-only", false,
-		"Migrate directories and start service without database/user initialization (preserves existing data)")
 }

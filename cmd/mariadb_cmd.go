@@ -7,19 +7,24 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// MariaDBCmd root untuk operasi manajemen database (non-backup)
+
 var MariaDBCmd = &cobra.Command{
 	Use:   "mariadb",
-	Short: "Perintah manajemen database (drop, dsb)",
-	Long:  "Kumpulan subcommand untuk operasi administrasi database yang bersifat destruktif atau manajerial.",
+	Short: "Database configuration management commands",
+	Long: `Database configuration management commands for generating, validating, editing, viewing, and deleting encrypted database configurations.
+All database configurations are stored in encrypted format for security.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		lg, _ := logger.Get()
-		lg.Info("Menjalankan perintah database (menampilkan help)")
+		lg, err := logger.Get()
+		if err != nil {
+			lg.Error("Failed to get logger", logger.Error(err))
+			return
+		}
+		lg.Info("Database config command executed")
 		cmd.Help()
 	},
 	Annotations: map[string]string{
-		"command":  "database",
-		"category": "administration",
+		"command":  "config",
+		"category": "configuration",
 	},
 }
 
