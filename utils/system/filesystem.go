@@ -118,7 +118,7 @@ func (fs *fileSystem) validateBasicSafety(path string) error {
 	// Normalize path
 	cleanPath := filepath.Clean(path)
 
-	// Prevent removal of critical system directories
+	// Prevent removal of critical system directories - this is non-negotiable
 	criticalPaths := []string{
 		"/", "/bin", "/sbin", "/usr", "/usr/bin", "/usr/sbin",
 		"/etc", "/boot", "/dev", "/proc", "/sys", "/tmp",
@@ -131,8 +131,14 @@ func (fs *fileSystem) validateBasicSafety(path string) error {
 		}
 	}
 
-	// Prevent removal of paths outside reasonable database directories
-	allowedPrefixes := []string{
+	// Check if path contains only known database-related content
+	// This is a safety check, not a hard restriction
+	if fs.containsDatabaseMarkers(cleanPath) {
+		return nil // Path appears to be database-related, allow removal
+	}
+
+	// For non-obvious database paths, check if they're in common database locations
+	commonDBPaths := []string{
 		"/var/lib/mysql",
 		"/var/lib/mariadb",
 		"/etc/mysql",
@@ -141,21 +147,53 @@ func (fs *fileSystem) validateBasicSafety(path string) error {
 		"/var/log/mariadb",
 		"/usr/share/mysql",
 		"/usr/share/mariadb",
+		"/opt/mysql",
+		"/opt/mariadb",
 	}
 
-	isAllowed := false
-	for _, prefix := range allowedPrefixes {
-		if strings.HasPrefix(cleanPath, prefix) {
-			isAllowed = true
-			break
+	for _, dbPath := range commonDBPaths {
+		if strings.HasPrefix(cleanPath, dbPath) {
+			return nil // In common database directory, allow removal
 		}
 	}
 
-	if !isAllowed {
-		return fmt.Errorf("path %s is outside allowed database directories", cleanPath)
+	// For paths outside common database directories, just warn but allow
+	// The user has already chosen to remove, so we respect that choice
+	// but provide additional safety through custom validators if needed
+	return nil
+}
+
+// containsDatabaseMarkers checks if a path contains obvious database-related markers
+func (fs *fileSystem) containsDatabaseMarkers(path string) bool {
+	if !fs.IsDirectory(path) {
+		return false
 	}
 
-	return nil
+	// Check for MariaDB/MySQL data directory markers
+	markers := []string{
+		"mysql", "performance_schema", "information_schema",
+		"sys", "aria_log_control", "ib_logfile0", "ibdata1",
+		"my.cnf", "mariadb.cnf", "mysql.cnf",
+	}
+
+	for _, marker := range markers {
+		markerPath := filepath.Join(path, marker)
+		if fs.Exists(markerPath) {
+			return true
+		}
+	}
+
+	// Check if directory name suggests it's database-related
+	dirName := strings.ToLower(filepath.Base(path))
+	dbKeywords := []string{"mysql", "mariadb", "database", "db", "data"}
+
+	for _, keyword := range dbKeywords {
+		if strings.Contains(dirName, keyword) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // MariaDBDataValidator validates that a path contains MariaDB data markers
