@@ -138,7 +138,6 @@ func (c *ConfigFileManager) processTemplate(template string) (string, error) {
 		{"datadir                                         = /var/lib/mysql", fmt.Sprintf("datadir                                         = %s", c.settings.DataDir)},
 		{"innodb_data_home_dir                            = /var/lib/mysql", fmt.Sprintf("innodb_data_home_dir                            = %s", c.settings.DataDir)},
 		{"innodb_log_group_home_dir                       = /var/lib/mysql", fmt.Sprintf("innodb_log_group_home_dir                       = %s", c.settings.DataDir)},
-		{"socket                                          = /var/lib/mysql/mysql.sock", fmt.Sprintf("socket                                          = %s/mysql.sock", c.settings.DataDir)},
 	}
 
 	for _, replacement := range specificDatadirReplacements {
