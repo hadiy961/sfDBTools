@@ -1,13 +1,12 @@
 package mariadb_cmd
 
 import (
-	"bufio"
-	"fmt"
+	"context"
 	"os"
-	"strings"
 
 	"sfDBTools/internal/core/mariadb/remove"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
@@ -55,73 +54,30 @@ Safety Features:
 
 		lg.Info("MariaDB remove command started")
 
-		// Get flags
-		removeData, _ := cmd.Flags().GetBool("remove-data")
-		backupData, _ := cmd.Flags().GetBool("backup-data")
-		backupPath, _ := cmd.Flags().GetString("backup-path")
-		removeRepositories, _ := cmd.Flags().GetBool("remove-repositories")
-		autoConfirm, _ := cmd.Flags().GetBool("auto-confirm")
-
-		// Check if user provided any flags - if not, use interactive mode
-		flagsProvided := cmd.Flags().Changed("remove-data") ||
-			cmd.Flags().Changed("backup-data") ||
-			cmd.Flags().Changed("backup-path") ||
-			cmd.Flags().Changed("remove-repositories") ||
-			cmd.Flags().Changed("auto-confirm")
-
-		// If no flags provided, use interactive mode
-		if !flagsProvided {
-			terminal.PrintInfo("MariaDB Removal Configuration")
-			terminal.PrintInfo("Please choose your removal options:")
-
-			// Ask about data removal
-			removeData = promptYesNo("Remove data directories? (This will permanently delete all databases)", false)
-
-			// Ask about backup (if not removing data, backup is recommended)
-			if !removeData {
-				backupData = promptYesNo("Create backup of data before removal?", true)
-			} else {
-				backupData = promptYesNo("Create backup of data before removal? (Recommended)", true)
-			}
-
-			// Ask about backup path if backup is enabled
-			if backupData {
-				backupPath = promptString("Enter custom backup path (leave empty for default ~/mariadb_backups)", "")
-			}
-
-			// Ask about repositories
-			removeRepositories = promptYesNo("Remove MariaDB repositories?", false)
-
-			terminal.PrintInfo("\nYour configuration:")
-			terminal.PrintInfo(fmt.Sprintf("  Remove data: %v", removeData))
-			terminal.PrintInfo(fmt.Sprintf("  Backup data: %v", backupData))
-			if backupData && backupPath != "" {
-				terminal.PrintInfo(fmt.Sprintf("  Backup path: %s", backupPath))
-			}
-			terminal.PrintInfo(fmt.Sprintf("  Remove repositories: %v", removeRepositories))
+		// Resolve removal configuration
+		config, err := resolveRemovalConfig(cmd)
+		if err != nil {
+			terminal.PrintError("Configuration error: " + err.Error())
+			lg.Error("Failed to resolve removal configuration", logger.Error(err))
+			os.Exit(1)
 		}
 
-		// Create removal configuration
-		config := &remove.RemovalConfig{
-			RemoveData:         removeData,
-			BackupData:         backupData,
-			BackupPath:         backupPath,
-			RemoveRepositories: removeRepositories,
-			AutoConfirm:        autoConfirm,
-			// Don't hardcode directories - let detection service find actual paths
-			DataDirectory:   "",
-			ConfigDirectory: "",
-			LogDirectory:    "",
-		}
+		// Create orchestrator with dependencies
+		orchestrator := remove.NewOrchestrator(remove.Dependencies{
+			PackageManager: system.NewPackageManager(),
+			ServiceManager: system.NewServiceManager(),
+			FileSystem:     system.NewSafeFileSystem(),
+		})
 
-		// Create and run removal runner
-		runner := remove.NewRemovalRunner(config)
-		if err := runner.Run(); err != nil {
+		// Execute removal
+		ctx := context.Background()
+		if err := orchestrator.Execute(ctx, config); err != nil {
 			terminal.PrintError("MariaDB removal failed: " + err.Error())
 			lg.Error("MariaDB removal failed", logger.Error(err))
 			os.Exit(1)
 		}
 
+		terminal.PrintSuccess("MariaDB removal completed successfully")
 		lg.Info("MariaDB removal completed successfully")
 	},
 	Annotations: map[string]string{
@@ -139,40 +95,45 @@ func init() {
 	RemoveCmd.Flags().BoolP("auto-confirm", "y", false, "Automatically confirm all prompts")
 }
 
-// promptYesNo prompts user for yes/no input with default value
-func promptYesNo(question string, defaultValue bool) bool {
-	if defaultValue {
-		fmt.Printf("%s (Y/n): ", question)
-	} else {
-		fmt.Printf("%s (y/N): ", question)
+// resolveRemovalConfig resolves the removal configuration from flags and interactive input
+func resolveRemovalConfig(cmd *cobra.Command) (*remove.RemovalConfig, error) {
+	// Check if any flags were provided
+	flagsProvided := cmd.Flags().Changed("remove-data") ||
+		cmd.Flags().Changed("backup-data") ||
+		cmd.Flags().Changed("backup-path") ||
+		cmd.Flags().Changed("remove-repositories") ||
+		cmd.Flags().Changed("auto-confirm")
+
+	// If no flags provided, use interactive wizard
+	if !flagsProvided {
+		wizard := terminal.NewRemovalWizard()
+		wizardConfig, err := wizard.GatherRemovalConfig()
+		if err != nil {
+			return nil, err
+		}
+
+		// Convert wizard config to removal config
+		return &remove.RemovalConfig{
+			RemoveData:         wizardConfig.RemoveData,
+			BackupData:         wizardConfig.BackupData,
+			BackupPath:         wizardConfig.BackupPath,
+			RemoveRepositories: wizardConfig.RemoveRepositories,
+			AutoConfirm:        false, // Wizard handles confirmations
+		}, nil
 	}
 
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	response := strings.ToLower(strings.TrimSpace(scanner.Text()))
+	// Use flag values
+	removeData, _ := cmd.Flags().GetBool("remove-data")
+	backupData, _ := cmd.Flags().GetBool("backup-data")
+	backupPath, _ := cmd.Flags().GetString("backup-path")
+	removeRepositories, _ := cmd.Flags().GetBool("remove-repositories")
+	autoConfirm, _ := cmd.Flags().GetBool("auto-confirm")
 
-	if response == "" {
-		return defaultValue
-	}
-
-	return response == "y" || response == "yes"
-}
-
-// promptString prompts user for string input with default value
-func promptString(question, defaultValue string) string {
-	if defaultValue != "" {
-		fmt.Printf("%s [%s]: ", question, defaultValue)
-	} else {
-		fmt.Printf("%s: ", question)
-	}
-
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	response := strings.TrimSpace(scanner.Text())
-
-	if response == "" {
-		return defaultValue
-	}
-
-	return response
+	return &remove.RemovalConfig{
+		RemoveData:         removeData,
+		BackupData:         backupData,
+		BackupPath:         backupPath,
+		RemoveRepositories: removeRepositories,
+		AutoConfirm:        autoConfirm,
+	}, nil
 }
