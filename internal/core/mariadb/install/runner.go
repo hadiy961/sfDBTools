@@ -2,15 +2,8 @@ package install
 
 import (
 	"fmt"
-	"os"
-	"os/exec"
 	"strconv"
-	"strings"
-	"time"
 
-	"sfDBTools/internal/core/mariadb/check_version"
-	"sfDBTools/internal/core/mariadb/configure"
-	"sfDBTools/internal/core/mariadb/remove"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/terminal"
@@ -18,13 +11,14 @@ import (
 
 // InstallRunner orchestrates the MariaDB installation process
 type InstallRunner struct {
-	config           *InstallConfig
-	versionService   *check_version.VersionService
-	versionSelector  *VersionSelector
-	repoSetupManager *RepoSetupManager
-	packageManager   PackageManager
-	osInfo           *common.OSInfo
-	selectedVersion  *SelectableVersion
+	config             *InstallConfig
+	precheckManager    *PrecheckManager
+	versionManager     *VersionManager
+	installManager     *InstallManager
+	postInstallManager *PostInstallManager
+	dataManager        *DataManager
+	osInfo             *common.OSInfo
+	selectedVersion    *SelectableVersion
 }
 
 // NewInstallRunner creates a new installation runner
@@ -34,7 +28,9 @@ func NewInstallRunner(config *InstallConfig) *InstallRunner {
 	}
 
 	return &InstallRunner{
-		config: config,
+		config:          config,
+		precheckManager: NewPrecheckManager(),
+		versionManager:  NewVersionManager(),
 	}
 }
 
@@ -95,537 +91,69 @@ func (r *InstallRunner) Run() error {
 
 // checkOSCompatibility checks if the OS is supported
 func (r *InstallRunner) checkOSCompatibility() error {
-	lg, _ := logger.Get()
-
-	spinner := terminal.NewProgressSpinner("Detecting operating system...")
-	spinner.Start()
-
-	// Detect OS using common utility
-	detector := common.NewOSDetector()
-	osInfo, err := detector.DetectOS()
+	osInfo, err := r.precheckManager.CheckOSCompatibility()
 	if err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to detect OS: %w", err)
+		return err
 	}
-
 	r.osInfo = osInfo
-
-	// Check OS compatibility using MariaDB supported OS list
-	supportedOS := common.MariaDBSupportedOS()
-	if err := common.ValidateOperatingSystem(supportedOS); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("OS compatibility check failed: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess(fmt.Sprintf("Operating system detected: %s %s (%s)",
-		strings.ToUpper(string(osInfo.ID[0]))+osInfo.ID[1:], osInfo.Version, osInfo.Architecture))
-
-	lg.Info("OS compatibility check passed",
-		logger.String("os", osInfo.ID),
-		logger.String("version", osInfo.Version),
-		logger.String("arch", osInfo.Architecture))
-
 	return nil
-} // checkInternetConnectivity verifies internet connection
+}
+
+// checkInternetConnectivity verifies internet connection
 func (r *InstallRunner) checkInternetConnectivity() error {
-	lg, _ := logger.Get()
-
-	spinner := terminal.NewProgressSpinner("Checking internet connectivity...")
-	spinner.Start()
-
-	if err := common.CheckInternetConnectivity(); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("internet connectivity check failed: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Internet connectivity verified")
-
-	lg.Info("Internet connectivity check passed")
-	return nil
+	return r.precheckManager.CheckInternetConnectivity()
 }
 
 // fetchAvailableVersions retrieves available MariaDB versions
 func (r *InstallRunner) fetchAvailableVersions() error {
-	lg, _ := logger.Get()
-
-	spinner := terminal.NewProgressSpinner("Fetching available MariaDB versions...")
-	spinner.Start()
-
-	// Create version service
-	versionConfig := check_version.DefaultCheckVersionConfig()
-	r.versionService = check_version.NewVersionService(versionConfig)
-
-	// Fetch versions
-	versions, err := r.versionService.FetchAvailableVersions()
-	if err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to fetch MariaDB versions: %w", err)
-	}
-
-	if len(versions) == 0 {
-		spinner.Stop()
-		return fmt.Errorf("no MariaDB versions available for installation")
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess(fmt.Sprintf("Found %d available MariaDB versions", len(versions)))
-
-	// Convert to selectable versions
-	selectableVersions := ConvertVersionInfo(versions)
-	r.versionSelector = NewVersionSelector(selectableVersions)
-
-	lg.Info("Available versions fetched successfully", logger.Int("count", len(versions)))
-	return nil
+	return r.versionManager.FetchAvailableVersions()
 }
 
 // selectVersion handles version selection
 func (r *InstallRunner) selectVersion() error {
-	lg, _ := logger.Get()
-
-	terminal.PrintInfo("Please select a MariaDB version to install:")
-
-	selectedVersion, err := r.versionSelector.SelectVersion(r.config.AutoConfirm, r.config.Version)
+	selectedVersion, err := r.versionManager.SelectVersion(r.config.AutoConfirm, r.config.Version)
 	if err != nil {
-		return fmt.Errorf("version selection failed: %w", err)
+		return err
 	}
-
 	r.selectedVersion = selectedVersion
-
-	terminal.PrintSuccess(fmt.Sprintf("Selected MariaDB version: %s (%s)",
-		selectedVersion.Version, selectedVersion.LatestVersion))
-
-	lg.Info("Version selected",
-		logger.String("major_version", selectedVersion.Version),
-		logger.String("latest_version", selectedVersion.LatestVersion))
-
 	return nil
 }
 
 // checkExistingInstallation checks if MariaDB is already installed
 func (r *InstallRunner) checkExistingInstallation() error {
-	lg, _ := logger.Get()
-
-	spinner := terminal.NewProgressSpinner("Checking for existing MariaDB installation...")
-	spinner.Start()
-
-	// Create package manager
-	r.packageManager = NewPackageManager(r.osInfo)
-	if r.packageManager == nil {
-		spinner.Stop()
-		return fmt.Errorf("unsupported package manager for OS: %s", r.osInfo.ID)
-	}
-
-	// Check if MariaDB is installed
-	// Try different package names that might be used
-	packageNames := []string{"MariaDB-server", "mariadb-server", "mariadb"}
-
-	var isInstalled bool
-	var version string
-	var checkErr error
-
-	for _, pkgName := range packageNames {
-		isInstalled, version, checkErr = r.packageManager.IsInstalled(pkgName)
-		if checkErr == nil && isInstalled {
-			break // Found installed package
-		}
-	}
-
-	if checkErr != nil {
-		spinner.Stop()
-		lg.Warn("Failed to check existing installation", logger.Error(checkErr))
-		// Return error to avoid proceeding with installation when check fails
-		return fmt.Errorf("unable to verify existing installation status: %w", checkErr)
-	}
-
-	spinner.Stop()
-
-	if isInstalled {
-		terminal.PrintWarning(fmt.Sprintf("MariaDB is already installed (version: %s)", version))
-
-		if !r.config.RemoveExisting && !r.config.AutoConfirm {
-			if !r.confirmRemoveExisting() {
-				return fmt.Errorf("installation cancelled: MariaDB is already installed")
-			}
-		}
-
-		if r.config.RemoveExisting || r.config.AutoConfirm {
-			if err := r.removeExistingInstallation(); err != nil {
-				return fmt.Errorf("failed to remove existing installation: %w", err)
-			}
-		}
-	} else {
-		terminal.PrintSuccess("No existing MariaDB installation found")
-	}
-
-	lg.Info("Existing installation check completed", logger.Bool("was_installed", isInstalled))
-	return nil
+	r.installManager = NewInstallManager(r.config, r.osInfo, r.selectedVersion)
+	return r.installManager.CheckExistingInstallation()
 }
-
-// confirmRemoveExisting asks user to confirm removal of existing installation
-func (r *InstallRunner) confirmRemoveExisting() bool {
-	fmt.Print("Remove existing MariaDB installation? (y/N): ")
-
-	var response string
-	fmt.Scanln(&response)
-
-	response = strings.ToLower(strings.TrimSpace(response))
-	return response == "y" || response == "yes"
-}
-
-// removeExistingInstallation removes existing MariaDB installation using remove module
-func (r *InstallRunner) removeExistingInstallation() error {
-	lg, _ := logger.Get()
-
-	terminal.PrintInfo("Using comprehensive removal process...")
-
-	// Create remove configuration for installation context
-	removeConfig := &remove.RemovalConfig{
-		RemoveData:         false, // Keep data during installation removal
-		BackupData:         true,  // Always backup data for safety
-		BackupPath:         "",    // Use default backup path
-		RemoveRepositories: false, // Keep repositories for new installation
-		AutoConfirm:        true,  // Auto-confirm since we're in install flow
-		DataDirectory:      "",    // Auto-detect
-		ConfigDirectory:    "",    // Auto-detect
-		LogDirectory:       "",    // Auto-detect
-	}
-
-	// Create remove runner
-	removeRunner := remove.NewRemovalRunner(removeConfig)
-
-	// Execute removal process
-	if err := removeRunner.Run(); err != nil {
-		return fmt.Errorf("comprehensive removal failed: %w", err)
-	}
-
-	terminal.PrintSuccess("Existing MariaDB installation removed successfully using comprehensive removal")
-	lg.Info("Existing installation removed using remove module")
-	return nil
-}
-
-// stopMariaDBService stops the MariaDB service
-func (r *InstallRunner) stopMariaDBService() error {
-	services := []string{"mariadb", "mysql", "mysqld"}
-
-	for _, service := range services {
-		cmd := exec.Command("systemctl", "stop", service)
-		if err := cmd.Run(); err == nil {
-			return nil // Successfully stopped
-		}
-	}
-
-	return fmt.Errorf("failed to stop any MariaDB service")
-}
-
-// installMariaDB performs the actual installation
 
 // configureRepository sets up MariaDB repository
 func (r *InstallRunner) configureRepository() error {
-	lg, _ := logger.Get()
-
-	terminal.PrintInfo("Configuring MariaDB repository...")
-
-	// Step 1: Initialize repository setup manager
-	spinner := terminal.NewProgressSpinner("Initializing repository setup...")
-	spinner.Start()
-
-	// Create repository setup manager
-	r.repoSetupManager = NewRepoSetupManager(r.osInfo)
-
-	spinner.Stop()
-	terminal.PrintSuccess("Repository setup manager initialized")
-
-	// Step 2: Clean existing repositories
-	spinner = terminal.NewProgressSpinner("Cleaning existing MariaDB repositories...")
-	spinner.Start()
-
-	if err := r.repoSetupManager.CleanRepositories(); err != nil {
-		spinner.Stop()
-		lg.Warn("Failed to clean existing repositories", logger.Error(err))
-		terminal.PrintWarning("Failed to clean existing repositories, continuing...")
-	} else {
-		spinner.Stop()
-		terminal.PrintSuccess("Existing MariaDB repositories cleaned")
-	}
-
-	// Step 3: Check repository setup script availability
-	spinner = terminal.NewProgressSpinner("Verifying MariaDB repository setup script...")
-	spinner.Start()
-
-	available, err := r.repoSetupManager.IsScriptAvailable()
-	if err != nil || !available {
-		spinner.Stop()
-		return fmt.Errorf("MariaDB repository setup script is not available: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Repository setup script verified")
-
-	// Step 4: Setup repository using official script
-	spinner = terminal.NewProgressSpinner(fmt.Sprintf("Setting up MariaDB %s repository (this may take a moment)...", r.selectedVersion.Version))
-	spinner.Start()
-
-	if err := r.repoSetupManager.SetupRepository(r.selectedVersion.Version); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to setup repository: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("MariaDB repository configured successfully")
-
-	// Step 5: Update package cache (try fast update first)
-	spinner = terminal.NewProgressSpinner("Updating package cache (fast mode)...")
-	spinner.Start()
-
-	if err := r.repoSetupManager.UpdatePackageCacheFast(); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to update package cache: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("Package cache updated successfully")
-
-	lg.Info("Repository configuration completed",
-		logger.String("version", r.selectedVersion.Version))
-
-	return nil
+	return r.installManager.ConfigureRepository()
 }
 
 // installMariaDB performs the actual installation
 func (r *InstallRunner) installMariaDB() error {
-	lg, _ := logger.Get()
-
-	terminal.PrintInfo("Installing MariaDB packages...")
-
-	// Step 1: Determine package name
-	spinner := terminal.NewProgressSpinner("Determining MariaDB package name...")
-	spinner.Start()
-
-	packageName := r.packageManager.GetPackageName(r.selectedVersion.Version)
-
-	spinner.Stop()
-	terminal.PrintSuccess(fmt.Sprintf("Package determined: %s", packageName))
-
-	// Step 2: Install MariaDB packages (using fast mode)
-	spinner = terminal.NewProgressSpinner(fmt.Sprintf("Installing MariaDB %s (fast mode - this may take several minutes)...", r.selectedVersion.LatestVersion))
-	spinner.Start()
-
-	if err := r.packageManager.InstallFast(packageName, r.selectedVersion.Version); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to install MariaDB: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess(fmt.Sprintf("MariaDB %s installed successfully", r.selectedVersion.LatestVersion))
-
-	lg.Info("MariaDB installation completed",
-		logger.String("package", packageName),
-		logger.String("version", r.selectedVersion.LatestVersion))
-
-	return nil
+	return r.installManager.InstallMariaDB()
 }
 
 // postInstallationSetup performs post-installation configuration
 func (r *InstallRunner) postInstallationSetup() error {
-	lg, _ := logger.Get()
-
-	terminal.PrintInfo("Performing post-installation setup...")
-
-	// Step 1: Fix common configuration issues after installation
-	if err := r.fixPostInstallationIssues(); err != nil {
-		lg.Warn("Failed to fix post-installation issues", logger.Error(err))
-		terminal.PrintWarning("Some configuration issues detected, attempting to fix...")
-	}
-
-	// Step 2: Check for data directory conflicts before starting service
-	if err := r.checkDataDirectoryCompatibility(); err != nil {
-		lg.Warn("Data directory compatibility issue detected", logger.Error(err))
-		terminal.PrintWarning("Data directory compatibility issue detected")
-
-		if err := r.handleDataDirectoryConflict(); err != nil {
-			return fmt.Errorf("failed to resolve data directory conflict: %w", err)
-		}
-	}
-
-	// Start MariaDB service
-	if r.config.StartService {
-		if err := r.startMariaDBService(); err != nil {
-			lg.Error("Failed to start MariaDB service", logger.Error(err))
-			return fmt.Errorf("failed to start MariaDB service: %w", err)
-		}
-		terminal.PrintSuccess("MariaDB service started successfully")
-	}
-
-	// Enable service on boot
-	if err := r.enableMariaDBService(); err != nil {
-		lg.Warn("Failed to enable MariaDB service on boot", logger.Error(err))
-		terminal.PrintWarning("MariaDB service may not start automatically on boot")
-	} else {
-		terminal.PrintSuccess("MariaDB service enabled on boot")
-	}
-
-	// Run security setup if enabled
-	if r.config.EnableSecurity {
-		terminal.PrintInfo("Security setup will need to be run manually using: mysql_secure_installation")
-	}
-
-	// Ask if user wants to configure MariaDB with custom settings
-	if r.shouldRunConfiguration() {
-		if err := r.runMariaDBConfiguration(); err != nil {
-			lg.Warn("MariaDB configuration failed", logger.Error(err))
-			terminal.PrintWarning("MariaDB configuration had issues, but installation was successful")
-			terminal.PrintInfo("You can run configuration manually using: sfdbtools mariadb configure")
-		} else {
-			terminal.PrintSuccess("MariaDB configuration completed successfully")
-		}
-	} else {
-		terminal.PrintInfo("MariaDB configuration skipped")
-		terminal.PrintInfo("You can run configuration later using: sfdbtools mariadb configure")
-	}
-
-	lg.Info("Post-installation setup completed")
-	return nil
+	r.dataManager = NewDataManager(r.selectedVersion)
+	r.postInstallManager = NewPostInstallManager(r.config, r.selectedVersion)
+	return r.postInstallManager.PerformPostInstallationSetup(r.dataManager)
 }
 
-// startMariaDBService starts the MariaDB service
-func (r *InstallRunner) startMariaDBService() error {
-	services := []string{"mariadb", "mysql"}
-
-	for _, service := range services {
-		cmd := exec.Command("systemctl", "start", service)
-		if err := cmd.Run(); err == nil {
-			return nil // Successfully started
-		}
+// GetInstallationSteps returns the list of installation steps for progress tracking
+func (r *InstallRunner) GetInstallationSteps() []InstallationStep {
+	return []InstallationStep{
+		{Name: "os_check", Description: "Checking OS compatibility", Required: true},
+		{Name: "internet_check", Description: "Checking internet connectivity", Required: true},
+		{Name: "fetch_versions", Description: "Fetching available versions", Required: true},
+		{Name: "select_version", Description: "Selecting MariaDB version", Required: true},
+		{Name: "check_existing", Description: "Checking existing installation", Required: true},
+		{Name: "configure_repo", Description: "Configuring repository", Required: true},
+		{Name: "install", Description: "Installing MariaDB", Required: true},
+		{Name: "post_setup", Description: "Post-installation setup", Required: false},
 	}
-
-	return fmt.Errorf("failed to start any MariaDB service")
-}
-
-// enableMariaDBService enables MariaDB service on boot
-func (r *InstallRunner) enableMariaDBService() error {
-	services := []string{"mariadb", "mysql"}
-
-	for _, service := range services {
-		cmd := exec.Command("systemctl", "enable", service)
-		if err := cmd.Run(); err == nil {
-			return nil // Successfully enabled
-		}
-	}
-
-	return fmt.Errorf("failed to enable any MariaDB service")
-}
-
-// shouldRunConfiguration asks user if they want to configure MariaDB
-func (r *InstallRunner) shouldRunConfiguration() bool {
-	// Skip prompt if auto-confirm is enabled (don't auto-configure)
-	if r.config.AutoConfirm {
-		return false // Let user run configuration manually later
-	}
-
-	terminal.PrintInfo("\nMariaDB has been installed successfully!")
-	terminal.PrintInfo("Would you like to configure MariaDB with custom settings now?")
-	terminal.PrintInfo("This will setup:")
-	terminal.PrintInfo("  • Custom data and binlog directories")
-	terminal.PrintInfo("  • Configuration file optimization")
-	terminal.PrintInfo("  • Firewall and SELinux settings")
-	terminal.PrintInfo("  • Default databases and users")
-
-	fmt.Print("Run MariaDB configuration now? (y/N): ")
-
-	var response string
-	fmt.Scanln(&response)
-
-	response = strings.ToLower(strings.TrimSpace(response))
-	return response == "y" || response == "yes"
-}
-
-// runMariaDBConfiguration executes the MariaDB configuration process
-func (r *InstallRunner) runMariaDBConfiguration() error {
-	lg, _ := logger.Get()
-
-	lg.Info("Starting MariaDB configuration from install process")
-	terminal.PrintInfo("Configuring MariaDB with optimized settings...")
-
-	// Create configure config with auto-confirm mode to avoid double prompting
-	configureConfig := &configure.ConfigureConfig{
-		AutoConfirm:   false, // Auto-confirm since user already agreed
-		SkipUserSetup: false, // Include user setup
-		SkipDBSetup:   false, // Include database setup
-	}
-
-	// Create configure runner
-	configRunner := configure.NewConfigureRunner(configureConfig)
-
-	// Run configuration
-	if err := configRunner.Run(); err != nil {
-		return fmt.Errorf("MariaDB configuration failed: %w", err)
-	}
-
-	lg.Info("MariaDB configuration completed from install process")
-	return nil
-}
-
-// checkDataDirectoryCompatibility checks if existing data directory is compatible
-func (r *InstallRunner) checkDataDirectoryCompatibility() error {
-	lg, _ := logger.Get()
-
-	// Check if data directory exists
-	dataDir := "/var/lib/mysql"
-	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		return nil // No data directory, no conflict
-	}
-
-	// Check for version info file
-	versionFile := dataDir + "/mariadb_upgrade_info"
-	if _, err := os.Stat(versionFile); os.IsNotExist(err) {
-		return nil // No version info, assume compatibility
-	}
-
-	// Read existing version
-	content, err := os.ReadFile(versionFile)
-	if err != nil {
-		lg.Warn("Failed to read version info", logger.Error(err))
-		return nil // Can't read, assume compatibility
-	}
-
-	existingVersion := strings.TrimSpace(string(content))
-	currentVersion := r.selectedVersion.LatestVersion
-
-	lg.Info("Checking data directory compatibility",
-		logger.String("existing_version", existingVersion),
-		logger.String("installing_version", currentVersion))
-
-	// Parse versions for comparison
-	if r.isVersionDowngrade(existingVersion, currentVersion) {
-		return fmt.Errorf("data directory contains newer version (%s), cannot downgrade to %s",
-			existingVersion, currentVersion)
-	}
-
-	return nil
-}
-
-// isVersionDowngrade checks if target version is older than existing version
-func (r *InstallRunner) isVersionDowngrade(existing, target string) bool {
-	// Extract major.minor version numbers
-	existingParts := strings.Split(strings.Split(existing, "-")[0], ".")
-	targetParts := strings.Split(target, ".")
-
-	// Convert to integers for comparison
-	existingMajor, existingMinor := parseVersionParts(existingParts)
-	targetMajor, targetMinor := parseVersionParts(targetParts)
-
-	// Compare major version
-	if targetMajor < existingMajor {
-		return true
-	}
-	if targetMajor > existingMajor {
-		return false
-	}
-
-	// Same major version, compare minor
-	return targetMinor < existingMinor
 }
 
 // parseVersionParts extracts major and minor version numbers
@@ -644,246 +172,4 @@ func parseVersionParts(parts []string) (int, int) {
 	}
 
 	return major, minor
-}
-
-// handleDataDirectoryConflict resolves data directory version conflicts
-func (r *InstallRunner) handleDataDirectoryConflict() error {
-	terminal.PrintWarning("Incompatible MariaDB data directory detected!")
-	terminal.PrintInfo("The existing data directory contains a newer MariaDB version.")
-	terminal.PrintInfo("Options:")
-	terminal.PrintInfo("  1. Backup and reinitialize data directory (recommended)")
-	terminal.PrintInfo("  2. Cancel installation")
-
-	if r.config.AutoConfirm {
-		terminal.PrintInfo("Auto-confirm enabled: backing up and reinitializing data directory")
-		return r.backupAndReinitializeDataDirectory()
-	}
-
-	fmt.Print("Backup and reinitialize data directory? (y/N): ")
-	var response string
-	fmt.Scanln(&response)
-
-	response = strings.ToLower(strings.TrimSpace(response))
-	if response == "y" || response == "yes" {
-		return r.backupAndReinitializeDataDirectory()
-	}
-
-	return fmt.Errorf("installation cancelled due to data directory conflict")
-}
-
-// backupAndReinitializeDataDirectory backs up existing data and creates fresh data directory
-func (r *InstallRunner) backupAndReinitializeDataDirectory() error {
-	lg, _ := logger.Get()
-
-	dataDir := "/var/lib/mysql"
-	backupDir := fmt.Sprintf("/var/lib/mysql.backup.%s",
-		time.Now().Format("20060102_150405"))
-
-	// Stop MariaDB service if running
-	spinner := terminal.NewProgressSpinner("Stopping MariaDB service...")
-	spinner.Start()
-
-	_ = r.stopMariaDBService() // Ignore error if not running
-
-	spinner.Stop()
-	terminal.PrintSuccess("MariaDB service stopped")
-
-	// Backup existing data directory
-	spinner = terminal.NewProgressSpinner("Backing up existing data directory...")
-	spinner.Start()
-
-	cmd := exec.Command("mv", dataDir, backupDir)
-	if err := cmd.Run(); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to backup data directory: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess(fmt.Sprintf("Data directory backed up to: %s", backupDir))
-
-	// Reinitialize data directory
-	spinner = terminal.NewProgressSpinner("Initializing new data directory...")
-	spinner.Start()
-
-	cmd = exec.Command("mysql_install_db", "--user=mysql", "--basedir=/usr", "--datadir="+dataDir)
-	if err := cmd.Run(); err != nil {
-		spinner.Stop()
-		return fmt.Errorf("failed to initialize data directory: %w", err)
-	}
-
-	spinner.Stop()
-	terminal.PrintSuccess("New data directory initialized")
-
-	lg.Info("Data directory conflict resolved",
-		logger.String("backup_location", backupDir),
-		logger.String("new_data_dir", dataDir))
-
-	return nil
-}
-
-// fixPostInstallationIssues fixes common configuration issues after MariaDB installation
-func (r *InstallRunner) fixPostInstallationIssues() error {
-	lg, _ := logger.Get()
-
-	// Check if data directory exists and is properly initialized
-	dataDir := "/var/lib/mysql"
-
-	// Fix 1: Handle missing encryption key file
-	if err := r.fixEncryptionKeyIssue(dataDir); err != nil {
-		lg.Warn("Failed to fix encryption key issue", logger.Error(err))
-	}
-
-	// Fix 2: Ensure proper ownership of mysql directory
-	if err := r.fixDataDirectoryOwnership(dataDir); err != nil {
-		lg.Warn("Failed to fix data directory ownership", logger.Error(err))
-	}
-
-	// Fix 3: Check and fix configuration file issues
-	if err := r.fixConfigurationIssues(); err != nil {
-		lg.Warn("Failed to fix configuration issues", logger.Error(err))
-	}
-
-	lg.Info("Post-installation fixes completed")
-	return nil
-}
-
-// fixEncryptionKeyIssue handles missing encryption key file
-func (r *InstallRunner) fixEncryptionKeyIssue(dataDir string) error {
-	lg, _ := logger.Get()
-
-	keyFile := dataDir + "/key_maria_nbc.txt"
-
-	// Check if key file exists
-	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
-		lg.Info("Creating missing encryption key file", logger.String("key_file", keyFile))
-
-		// Create a simple encryption key file
-		keyContent := "1;F1E2D3C4B5A697887766554433221100"
-
-		if err := os.WriteFile(keyFile, []byte(keyContent), 0600); err != nil {
-			return fmt.Errorf("failed to create encryption key file: %w", err)
-		}
-
-		// Set proper ownership
-		cmd := exec.Command("chown", "mysql:mysql", keyFile)
-		if err := cmd.Run(); err != nil {
-			lg.Warn("Failed to set ownership for key file", logger.Error(err))
-		}
-
-		lg.Info("Encryption key file created successfully", logger.String("key_file", keyFile))
-	}
-
-	return nil
-}
-
-// fixDataDirectoryOwnership ensures proper ownership of data directory
-func (r *InstallRunner) fixDataDirectoryOwnership(dataDir string) error {
-	lg, _ := logger.Get()
-
-	// Ensure mysql user exists
-	cmd := exec.Command("id", "mysql")
-	if err := cmd.Run(); err != nil {
-		lg.Warn("MySQL user not found, creating...", logger.Error(err))
-
-		// Create mysql user if it doesn't exist
-		createUserCmd := exec.Command("useradd", "-r", "-s", "/bin/false", "mysql")
-		if err := createUserCmd.Run(); err != nil {
-			return fmt.Errorf("failed to create mysql user: %w", err)
-		}
-	}
-
-	// Set proper ownership of data directory
-	cmd = exec.Command("chown", "-R", "mysql:mysql", dataDir)
-	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("failed to set data directory ownership: %w", err)
-	}
-
-	lg.Info("Data directory ownership fixed", logger.String("data_dir", dataDir))
-	return nil
-}
-
-// fixConfigurationIssues handles MariaDB configuration problems
-func (r *InstallRunner) fixConfigurationIssues() error {
-	lg, _ := logger.Get()
-
-	configFiles := []string{
-		"/etc/my.cnf",
-		"/etc/mysql/mariadb.conf.d/50-server.cnf",
-		"/etc/mysql/my.cnf",
-	}
-
-	for _, configFile := range configFiles {
-		if _, err := os.Stat(configFile); err == nil {
-			if err := r.fixConfigFile(configFile); err != nil {
-				lg.Warn("Failed to fix config file",
-					logger.String("file", configFile),
-					logger.Error(err))
-			}
-		}
-	}
-
-	lg.Info("Configuration issues check completed")
-	return nil
-}
-
-// fixConfigFile fixes specific configuration file issues
-func (r *InstallRunner) fixConfigFile(configFile string) error {
-	lg, _ := logger.Get()
-
-	// Read current config
-	content, err := os.ReadFile(configFile)
-	if err != nil {
-		return fmt.Errorf("failed to read config file: %w", err)
-	}
-
-	configContent := string(content)
-	modified := false
-
-	// Fix 1: Disable file_key_management if it's causing issues
-	if strings.Contains(configContent, "file_key_management") &&
-		!strings.Contains(configContent, "#file_key_management") {
-		lg.Info("Disabling file_key_management plugin in config",
-			logger.String("file", configFile))
-
-		configContent = strings.ReplaceAll(configContent,
-			"file_key_management", "#file_key_management")
-		modified = true
-	}
-
-	// Fix 2: Add skip-networking temporarily if needed
-	if !strings.Contains(configContent, "skip-networking") {
-		lg.Info("Adding skip-networking to config for initial setup",
-			logger.String("file", configFile))
-
-		// Add skip-networking under [mysqld] section
-		if strings.Contains(configContent, "[mysqld]") {
-			configContent = strings.Replace(configContent,
-				"[mysqld]", "[mysqld]\nskip-networking", 1)
-			modified = true
-		}
-	}
-
-	// Write back if modified
-	if modified {
-		if err := os.WriteFile(configFile, []byte(configContent), 0644); err != nil {
-			return fmt.Errorf("failed to write config file: %w", err)
-		}
-		lg.Info("Configuration file updated", logger.String("file", configFile))
-	}
-
-	return nil
-}
-
-// GetInstallationSteps returns the list of installation steps for progress tracking
-func (r *InstallRunner) GetInstallationSteps() []InstallationStep {
-	return []InstallationStep{
-		{Name: "os_check", Description: "Checking OS compatibility", Required: true},
-		{Name: "internet_check", Description: "Checking internet connectivity", Required: true},
-		{Name: "fetch_versions", Description: "Fetching available versions", Required: true},
-		{Name: "select_version", Description: "Selecting MariaDB version", Required: true},
-		{Name: "check_existing", Description: "Checking existing installation", Required: true},
-		{Name: "configure_repo", Description: "Configuring repository", Required: true},
-		{Name: "install", Description: "Installing MariaDB", Required: true},
-		{Name: "post_setup", Description: "Post-installation setup", Required: false},
-	}
 }

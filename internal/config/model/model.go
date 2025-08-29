@@ -89,6 +89,5 @@ type MariaDBInstallConfig struct {
 	LogDir              string `mapstructure:"log_dir"`
 	BinlogDir           string `mapstructure:"binlog_dir"`
 	Port                int    `mapstructure:"port"`
-	KeyFile             string `mapstructure:"key_file"`
 	SeparateDirectories bool   `mapstructure:"separate_directories"`
 }

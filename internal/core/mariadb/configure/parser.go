@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"sfDBTools/internal/config/model"
 	"sfDBTools/internal/logger"
 )
 
@@ -27,18 +26,6 @@ func NewServerConfigParser() *ServerConfigParser {
 			"/usr/local/mysql/my.cnf",
 		},
 	}
-}
-
-// ParsedServerConfig represents parsed MariaDB configuration
-type ParsedServerConfig struct {
-	DataDir               string
-	BinlogDir             string
-	LogDir                string
-	Port                  int
-	ServerID              string
-	EncryptionEnabled     bool
-	FileKeyManagementFile string
-	Found                 bool
 }
 
 // ParseExistingConfig attempts to parse existing MariaDB configuration
@@ -161,62 +148,4 @@ func (p *ServerConfigParser) parseConfigValue(key, value string, config *ParsedS
 	case "file_key_management_filename", "file-key-management-filename":
 		config.FileKeyManagementFile = value
 	}
-}
-
-// CreateDynamicDefaults creates MariaDB settings using existing config as defaults
-func CreateDynamicDefaults(appConfig *model.Config) (*MariaDBSettings, error) {
-	lg, _ := logger.Get()
-
-	// First try to parse existing config
-	parser := NewServerConfigParser()
-	existingConfig, err := parser.ParseExistingConfig()
-	if err != nil {
-		lg.Warn("Failed to parse existing config, using app defaults", logger.Error(err))
-		return DefaultMariaDBSettings(appConfig), nil
-	}
-
-	// Start with app config defaults
-	defaults := DefaultMariaDBSettings(appConfig)
-
-	// Override with existing configuration if found
-	if existingConfig.Found {
-		lg.Info("Using existing MariaDB configuration as defaults")
-
-		if existingConfig.DataDir != "" {
-			defaults.DataDir = existingConfig.DataDir
-		}
-
-		if existingConfig.BinlogDir != "" {
-			defaults.BinlogDir = existingConfig.BinlogDir
-		}
-
-		if existingConfig.LogDir != "" {
-			defaults.LogDir = existingConfig.LogDir
-		}
-
-		if existingConfig.Port > 0 {
-			defaults.Port = existingConfig.Port
-		}
-
-		if existingConfig.ServerID != "" {
-			defaults.ServerID = existingConfig.ServerID
-		}
-
-		defaults.EncryptionEnabled = existingConfig.EncryptionEnabled
-
-		if existingConfig.FileKeyManagementFile != "" {
-			defaults.FileKeyManagementFile = existingConfig.FileKeyManagementFile
-		}
-
-		lg.Info("Dynamic defaults created from existing configuration",
-			logger.String("data_dir", defaults.DataDir),
-			logger.String("binlog_dir", defaults.BinlogDir),
-			logger.String("log_dir", defaults.LogDir),
-			logger.Int("port", defaults.Port),
-			logger.String("server_id", defaults.ServerID))
-	} else {
-		lg.Info("No existing configuration found, using app config defaults")
-	}
-
-	return defaults, nil
 }
