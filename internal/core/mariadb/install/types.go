@@ -53,6 +53,7 @@ type InstallResult struct {
 // PackageManager interface for different OS package managers
 type PackageManager interface {
 	Install(packageName string, version string) error
+	InstallFast(packageName string, version string) error
 	Remove(packageName string) error
 	IsInstalled(packageName string) (bool, string, error)
 	Update() error

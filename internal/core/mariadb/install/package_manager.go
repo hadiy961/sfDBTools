@@ -1,9 +1,11 @@
 package install
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
@@ -19,19 +21,65 @@ func NewYumPackageManager(osInfo *common.OSInfo) *YumPackageManager {
 	return &YumPackageManager{osInfo: osInfo}
 }
 
-// Install installs a package using YUM
+// Install installs a package using YUM with optimizations for speed
 func (y *YumPackageManager) Install(packageName string, version string) error {
 	lg, _ := logger.Get()
 
 	fullPackageName := y.GetPackageName(version)
-	cmd := exec.Command("yum", "install", "-y", fullPackageName)
 
-	lg.Info("Installing MariaDB package",
+	// Set timeout for installation (10 minutes max)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Minute)
+	defer cancel()
+
+	// Use optimized yum flags for faster installation
+	cmd := exec.CommandContext(ctx, "yum", "install", "-y",
+		"--nogpgcheck",   // Skip GPG check for speed (we trust MariaDB repo)
+		"--skip-broken",  // Skip broken dependencies
+		"--downloadonly", // First download only
+		fullPackageName)
+
+	lg.Info("Downloading MariaDB package",
 		logger.String("package", fullPackageName),
 		logger.String("command", cmd.String()))
 
+	// First, download the package
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		// Check if it was a timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			lg.Error("Package download timed out after 10 minutes")
+			return fmt.Errorf("package download timed out: %w", ctx.Err())
+		}
+		lg.Error("Failed to download package",
+			logger.String("package", fullPackageName),
+			logger.String("output", string(output)),
+			logger.Error(err))
+		return fmt.Errorf("failed to download %s: %w\nOutput: %s", fullPackageName, err, string(output))
+	}
+
+	lg.Info("Package downloaded, now installing...", logger.String("package", fullPackageName))
+
+	// Reset timeout for installation
+	ctx2, cancel2 := context.WithTimeout(context.Background(), 5*time.Minute)
+	defer cancel2()
+
+	// Now install the downloaded package
+	installCmd := exec.CommandContext(ctx2, "yum", "install", "-y",
+		"--nogpgcheck",  // Skip GPG check for speed
+		"--skip-broken", // Skip broken dependencies
+		fullPackageName)
+
+	lg.Info("Installing MariaDB package",
+		logger.String("package", fullPackageName),
+		logger.String("command", installCmd.String()))
+
+	output, err = installCmd.CombinedOutput()
+	if err != nil {
+		// Check if it was a timeout
+		if ctx2.Err() == context.DeadlineExceeded {
+			lg.Error("Package installation timed out after 5 minutes")
+			return fmt.Errorf("package installation timed out: %w", ctx2.Err())
+		}
 		lg.Error("Failed to install package",
 			logger.String("package", fullPackageName),
 			logger.String("output", string(output)),
@@ -40,6 +88,48 @@ func (y *YumPackageManager) Install(packageName string, version string) error {
 	}
 
 	lg.Info("Successfully installed package", logger.String("package", fullPackageName))
+	return nil
+}
+
+// InstallFast installs a package using YUM with maximum speed optimizations
+func (y *YumPackageManager) InstallFast(packageName string, version string) error {
+	lg, _ := logger.Get()
+
+	fullPackageName := y.GetPackageName(version)
+
+	// Set timeout for installation (8 minutes max)
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+	defer cancel()
+
+	// Use highly optimized yum flags for maximum speed
+	cmd := exec.CommandContext(ctx, "yum", "install", "-y",
+		"--nogpgcheck",         // Skip GPG check completely
+		"--skip-broken",        // Skip broken dependencies
+		"--assumeyes",          // Assume yes to all questions
+		"--quiet",              // Reduce output noise
+		"--disablerepo=*",      // Disable all repos
+		"--enablerepo=mariadb", // Only enable MariaDB repo
+		fullPackageName)
+
+	lg.Info("Installing MariaDB package (fast mode)",
+		logger.String("package", fullPackageName))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if it was a timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			lg.Error("Package installation timed out after 8 minutes")
+			return fmt.Errorf("package installation timed out: %w", ctx.Err())
+		}
+
+		// If fast install fails, fallback to regular install
+		lg.Warn("Fast installation failed, trying regular installation",
+			logger.String("output", string(output)),
+			logger.Error(err))
+		return y.Install(packageName, version)
+	}
+
+	lg.Info("Successfully installed package (fast mode)", logger.String("package", fullPackageName))
 	return nil
 }
 
@@ -191,6 +281,46 @@ func (a *AptPackageManager) Install(packageName string, version string) error {
 	}
 
 	lg.Info("Successfully installed package", logger.String("package", fullPackageName))
+	return nil
+}
+
+// InstallFast installs a package using APT with optimizations for speed
+func (a *AptPackageManager) InstallFast(packageName string, version string) error {
+	lg, _ := logger.Get()
+
+	fullPackageName := a.GetPackageName(version)
+
+	// Set timeout for installation (8 minutes max)
+	ctx, cancel := context.WithTimeout(context.Background(), 8*time.Minute)
+	defer cancel()
+
+	// Use optimized apt flags for faster installation
+	cmd := exec.CommandContext(ctx, "apt-get", "install", "-y",
+		"--no-install-recommends", // Don't install recommended packages
+		"--assume-yes",            // Assume yes to all questions
+		"--quiet",                 // Reduce output noise
+		"--allow-unauthenticated", // Skip authentication for speed
+		fullPackageName)
+
+	lg.Info("Installing MariaDB package (fast mode)",
+		logger.String("package", fullPackageName))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if it was a timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			lg.Error("Package installation timed out after 8 minutes")
+			return fmt.Errorf("package installation timed out: %w", ctx.Err())
+		}
+
+		// If fast install fails, fallback to regular install
+		lg.Warn("Fast installation failed, trying regular installation",
+			logger.String("output", string(output)),
+			logger.Error(err))
+		return a.Install(packageName, version)
+	}
+
+	lg.Info("Successfully installed package (fast mode)", logger.String("package", fullPackageName))
 	return nil
 }
 

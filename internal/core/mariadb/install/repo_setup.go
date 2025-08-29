@@ -1,9 +1,11 @@
 package install
 
 import (
+	"context"
 	"fmt"
 	"os/exec"
 	"strings"
+	"time"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
@@ -122,29 +124,47 @@ func (r *RepoSetupManager) IsScriptAvailable() (bool, error) {
 	return false, fmt.Errorf("setup script not available: received response code %s", responseCode)
 }
 
-// UpdatePackageCache updates the package manager cache
+// UpdatePackageCache updates the package manager cache with optimizations for speed
 func (r *RepoSetupManager) UpdatePackageCache() error {
 	lg, _ := logger.Get()
+
+	// Set timeout for cache update operations (1 minute max)
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
 
 	var cmd *exec.Cmd
 	switch r.osInfo.PackageType {
 	case "rpm":
-		cmd = exec.Command("yum", "clean", "all")
-		if output, err := cmd.CombinedOutput(); err != nil {
-			lg.Warn("Failed to clean yum cache",
+		// Skip aggressive cleaning, only refresh metadata
+		// This is much faster than "yum clean all"
+		cleanCmd := exec.CommandContext(ctx, "yum", "clean", "metadata")
+		if output, err := cleanCmd.CombinedOutput(); err != nil {
+			lg.Debug("Failed to clean yum metadata",
 				logger.String("output", string(output)),
 				logger.Error(err))
 		}
 
-		cmd = exec.Command("yum", "makecache")
+		// Use makecache with timer for quicker operation
+		cmd = exec.CommandContext(ctx, "yum", "makecache", "timer")
 	case "deb":
-		cmd = exec.Command("apt-get", "update")
+		// Use optimized flags for faster apt update
+		// -q: quiet output, --allow-releaseinfo-change: handle release changes
+		cmd = exec.CommandContext(ctx, "apt-get", "update", "-q", "--allow-releaseinfo-change")
 	default:
 		return fmt.Errorf("unsupported package type: %s", r.osInfo.PackageType)
 	}
 
+	lg.Info("Updating package cache (optimized for speed)...",
+		logger.String("package_type", r.osInfo.PackageType))
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
+		// Check if it was a timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			lg.Error("Package cache update timed out after 1 minute")
+			return fmt.Errorf("package cache update timed out: %w", ctx.Err())
+		}
+
 		lg.Error("Failed to update package cache",
 			logger.String("output", string(output)),
 			logger.Error(err))
@@ -152,5 +172,57 @@ func (r *RepoSetupManager) UpdatePackageCache() error {
 	}
 
 	lg.Info("Package cache updated successfully")
+	return nil
+}
+
+// UpdatePackageCacheFast performs a minimal package cache update - even faster approach
+func (r *RepoSetupManager) UpdatePackageCacheFast() error {
+	lg, _ := logger.Get()
+
+	// Set shorter timeout for fast update (30 seconds max)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var cmd *exec.Cmd
+	switch r.osInfo.PackageType {
+	case "rpm":
+		// For RPM, just run makecache timer which is faster than full makecache
+		cmd = exec.CommandContext(ctx, "yum", "makecache", "timer")
+	case "deb":
+		// For apt, only update specific sources if mariadb.list exists
+		// Check if the file exists first
+		if _, err := exec.Command("test", "-f", "/etc/apt/sources.list.d/mariadb.list").CombinedOutput(); err != nil {
+			// If mariadb.list doesn't exist, fall back to regular update
+			lg.Debug("MariaDB sources list not found, using regular update")
+			return r.UpdatePackageCache()
+		}
+
+		// Update only MariaDB sources
+		cmd = exec.CommandContext(ctx, "apt-get", "update", "-q",
+			"-o", "Dir::Etc::sourcelist=/etc/apt/sources.list.d/mariadb.list",
+			"-o", "Dir::Etc::sourceparts=/dev/null")
+	default:
+		return fmt.Errorf("unsupported package type: %s", r.osInfo.PackageType)
+	}
+
+	lg.Info("Performing fast package cache update...",
+		logger.String("package_type", r.osInfo.PackageType))
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		// Check if it was a timeout
+		if ctx.Err() == context.DeadlineExceeded {
+			lg.Warn("Fast package cache update timed out, falling back to regular update")
+			return r.UpdatePackageCache()
+		}
+
+		lg.Debug("Fast update failed, trying regular update",
+			logger.String("output", string(output)),
+			logger.Error(err))
+		// Fallback to regular update if fast update fails
+		return r.UpdatePackageCache()
+	}
+
+	lg.Info("Fast package cache update completed successfully")
 	return nil
 }
