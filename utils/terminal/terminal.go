@@ -176,7 +176,6 @@ func ShowCursor() error {
 		return err
 	}
 
-	lg.Debug("Cursor shown")
 	return nil
 }
 

@@ -60,7 +60,6 @@ func (i *InstallManager) CheckExistingInstallation() error {
 	if checkErr != nil {
 		spinner.Stop()
 		lg.Warn("Failed to check existing installation", logger.Error(checkErr))
-		// Return error to avoid proceeding with installation when check fails
 		return fmt.Errorf("unable to verify existing installation status: %w", checkErr)
 	}
 
@@ -69,13 +68,18 @@ func (i *InstallManager) CheckExistingInstallation() error {
 	if isInstalled {
 		terminal.PrintWarning(fmt.Sprintf("MariaDB is already installed (version: %s)", version))
 
+		// Track whether user explicitly confirmed removal
+		userConfirmed := false
+
 		if !i.config.RemoveExisting && !i.config.AutoConfirm {
-			if !i.confirmRemoveExisting() {
+			userConfirmed = i.confirmRemoveExisting()
+			if !userConfirmed {
 				return fmt.Errorf("installation cancelled: MariaDB is already installed")
 			}
 		}
 
-		if i.config.RemoveExisting || i.config.AutoConfirm {
+		// Remove if config requests it, auto-confirm is enabled, or user confirmed interactively
+		if i.config.RemoveExisting || i.config.AutoConfirm || userConfirmed {
 			if err := i.removeExistingInstallation(); err != nil {
 				return fmt.Errorf("failed to remove existing installation: %w", err)
 			}
@@ -134,6 +138,14 @@ func (i *InstallManager) removeExistingInstallation() error {
 func (i *InstallManager) ConfigureRepository() error {
 	lg, _ := logger.Get()
 
+	// Validate prerequisites
+	if i.osInfo == nil {
+		return fmt.Errorf("cannot configure repository: osInfo is not set")
+	}
+	if i.selectedVersion == nil {
+		return fmt.Errorf("cannot configure repository: selected version is not set")
+	}
+
 	terminal.PrintInfo("Configuring MariaDB repository...")
 
 	// Step 1: Initialize repository setup manager
@@ -184,11 +196,11 @@ func (i *InstallManager) ConfigureRepository() error {
 	spinner.Stop()
 	terminal.PrintSuccess("MariaDB repository configured successfully")
 
-	// Step 5: Update package cache (try fast update first)
-	spinner = terminal.NewProgressSpinner("Updating package cache (fast mode)...")
+	// Step 5: Update package cache
+	spinner = terminal.NewProgressSpinner("Updating package cache...")
 	spinner.Start()
 
-	if err := i.repoSetupManager.UpdatePackageCacheFast(); err != nil {
+	if err := i.repoSetupManager.UpdatePackageCache(); err != nil {
 		spinner.Stop()
 		return fmt.Errorf("failed to update package cache: %w", err)
 	}
@@ -217,11 +229,11 @@ func (i *InstallManager) InstallMariaDB() error {
 	spinner.Stop()
 	terminal.PrintSuccess(fmt.Sprintf("Package determined: %s", packageName))
 
-	// Step 2: Install MariaDB packages (using fast mode)
-	spinner = terminal.NewProgressSpinner(fmt.Sprintf("Installing MariaDB %s (fast mode - this may take several minutes)...", i.selectedVersion.LatestVersion))
+	// Step 2: Install MariaDB packages
+	spinner = terminal.NewProgressSpinner(fmt.Sprintf("Installing MariaDB %s (this may take several minutes)...", i.selectedVersion.LatestVersion))
 	spinner.Start()
 
-	if err := i.packageManager.InstallFast(packageName, i.selectedVersion.Version); err != nil {
+	if err := i.packageManager.Install(packageName, i.selectedVersion.Version); err != nil {
 		spinner.Stop()
 		return fmt.Errorf("failed to install MariaDB: %w", err)
 	}

@@ -46,24 +46,24 @@ func (r *InstallRunner) Run() error {
 		return fmt.Errorf("OS compatibility check failed: %w", err)
 	}
 
-	// Step 2: Check internet connectivity
+	// Step 2: Check for existing installation
+	if err := r.checkExistingInstallation(); err != nil {
+		return fmt.Errorf("existing installation check failed: %w", err)
+	}
+
+	// Step 3: Check internet connectivity
 	if err := r.checkInternetConnectivity(); err != nil {
 		return fmt.Errorf("internet connectivity check failed: %w", err)
 	}
 
-	// Step 3: Fetch available versions
+	// Step 4: Fetch available versions
 	if err := r.fetchAvailableVersions(); err != nil {
 		return fmt.Errorf("failed to fetch available versions: %w", err)
 	}
 
-	// Step 4: Select version
+	// Step 5: Select version
 	if err := r.selectVersion(); err != nil {
 		return fmt.Errorf("version selection failed: %w", err)
-	}
-
-	// Step 5: Check for existing installation
-	if err := r.checkExistingInstallation(); err != nil {
-		return fmt.Errorf("existing installation check failed: %w", err)
 	}
 
 	// Step 6: Configure repository
@@ -116,11 +116,22 @@ func (r *InstallRunner) selectVersion() error {
 		return err
 	}
 	r.selectedVersion = selectedVersion
+	// If installManager was created earlier (e.g., during existing check), update its selectedVersion
+	if r.installManager != nil {
+		r.installManager.selectedVersion = r.selectedVersion
+	}
 	return nil
 }
 
 // checkExistingInstallation checks if MariaDB is already installed
 func (r *InstallRunner) checkExistingInstallation() error {
+	// Ensure OS info is resolved (package manager detection needs it)
+	if r.osInfo == nil {
+		if err := r.checkOSCompatibility(); err != nil {
+			return fmt.Errorf("unable to determine OS info before checking existing installation: %w", err)
+		}
+	}
+
 	r.installManager = NewInstallManager(r.config, r.osInfo, r.selectedVersion)
 	return r.installManager.CheckExistingInstallation()
 }
@@ -146,10 +157,10 @@ func (r *InstallRunner) postInstallationSetup() error {
 func (r *InstallRunner) GetInstallationSteps() []InstallationStep {
 	return []InstallationStep{
 		{Name: "os_check", Description: "Checking OS compatibility", Required: true},
+		{Name: "check_existing", Description: "Checking existing installation", Required: true},
 		{Name: "internet_check", Description: "Checking internet connectivity", Required: true},
 		{Name: "fetch_versions", Description: "Fetching available versions", Required: true},
 		{Name: "select_version", Description: "Selecting MariaDB version", Required: true},
-		{Name: "check_existing", Description: "Checking existing installation", Required: true},
 		{Name: "configure_repo", Description: "Configuring repository", Required: true},
 		{Name: "install", Description: "Installing MariaDB", Required: true},
 		{Name: "post_setup", Description: "Post-installation setup", Required: false},
