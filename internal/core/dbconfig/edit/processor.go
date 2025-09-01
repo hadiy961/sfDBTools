@@ -1,7 +1,6 @@
 package edit
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -11,21 +10,44 @@ import (
 	"time"
 
 	"sfDBTools/internal/config"
-	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	coredbconfig "sfDBTools/internal/core/dbconfig"
 	"sfDBTools/utils/crypto"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 )
 
-// ProcessEdit handles the core edit operation logic
-func ProcessEdit(cfg *dbconfig.Config) error {
-	lg, err := logger.Get()
+// Processor handles edit operations for database configurations
+type Processor struct {
+	*coredbconfig.BaseProcessor
+	configHelper *coredbconfig.ConfigHelper
+}
+
+// NewProcessor creates a new edit processor
+func NewProcessor() (*Processor, error) {
+	base, err := coredbconfig.NewBaseProcessor()
 	if err != nil {
-		return fmt.Errorf("failed to get logger: %w", err)
+		return nil, err
 	}
 
-	lg.Info("Starting database configuration editing")
+	configHelper, err := coredbconfig.NewConfigHelper()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Processor{
+		BaseProcessor: base,
+		configHelper:  configHelper,
+	}, nil
+}
+
+// ProcessEdit handles the core edit operation logic
+func ProcessEdit(cfg *dbconfig.Config) error {
+	processor, err := NewProcessor()
+	if err != nil {
+		return err
+	}
+
+	processor.LogOperation("database configuration editing", cfg.FilePath)
 
 	// Show edit info
 	terminal.PrintSubHeader("✏️ Configuration Editor")
@@ -40,11 +62,11 @@ func ProcessEdit(cfg *dbconfig.Config) error {
 	spinner.Stop()
 	fmt.Println()
 
-	return editSpecificConfig(cfg.FilePath)
+	return processor.editSpecificConfig(cfg.FilePath)
 }
 
 // editSpecificConfig edits a specific configuration file
-func editSpecificConfig(filePath string) error {
+func (p *Processor) editSpecificConfig(filePath string) error {
 	// Show loading with spinner
 	terminal.PrintSubHeader("🔧 Loading Configuration")
 	spinner := terminal.NewProgressSpinner("Loading configuration for editing...")
@@ -53,24 +75,54 @@ func editSpecificConfig(filePath string) error {
 	spinner.Stop()
 	fmt.Println()
 
-	// Validate config file
-	if err := common.ValidateConfigFile(filePath); err != nil {
+	// Validate config file exists
+	if err := p.configHelper.ValidateConfigExists(filePath); err != nil {
 		return err
 	}
 
 	// Get encryption password
-	encryptionPassword, err := crypto.GetEncryptionPassword("Enter encryption password to decrypt config: ")
+	encryptionPassword, err := p.GetEncryptionPassword("decrypt the configuration")
 	if err != nil {
-		return fmt.Errorf("failed to get encryption password: %w", err)
+		return err
 	}
 
 	// Load and decrypt the configuration
-	dbConfig, err := common.LoadEncryptedConfigFromFile(filePath, encryptionPassword)
+	dbConfig, err := p.configHelper.LoadDecryptedConfig(filePath, encryptionPassword)
 	if err != nil {
-		return common.HandleDecryptionError(err, filePath)
+		return err
 	}
 
 	// Display current configuration
+	p.displayCurrentConfig(filePath, dbConfig)
+
+	// Get current name from file path
+	currentName := p.extractConfigName(filePath)
+
+	// Prompt for new values
+	updatedConfig, newName, hasChanges, err := p.promptForUpdates(dbConfig, currentName)
+	if err != nil {
+		return err
+	}
+
+	// Check if any changes were made
+	if !hasChanges {
+		terminal.PrintInfo("No changes made.")
+		terminal.PrintSuccess("✅ Configuration editing completed (no changes).")
+		return nil
+	}
+
+	// Confirm changes
+	if !terminal.AskYesNo("Save these changes?", true) {
+		terminal.PrintWarning("❌ Changes cancelled.")
+		return nil
+	}
+
+	// Save the updated configuration
+	return p.saveUpdatedConfig(filePath, currentName, newName, updatedConfig, encryptionPassword)
+}
+
+// displayCurrentConfig shows the current configuration
+func (p *Processor) displayCurrentConfig(filePath string, dbConfig *config.EncryptedDatabaseConfig) {
 	fmt.Println("🔧 Current Database Configuration:")
 	fmt.Println("==================================")
 	fmt.Printf("📁 Source: %s\n", filePath)
@@ -78,93 +130,38 @@ func editSpecificConfig(filePath string) error {
 	fmt.Printf("   Port: %d\n", dbConfig.Port)
 	fmt.Printf("   User: %s\n", dbConfig.User)
 	fmt.Printf("   Password: %s\n", dbConfig.Password)
+}
 
-	// Get current name from file path
+// extractConfigName extracts configuration name from file path
+func (p *Processor) extractConfigName(filePath string) string {
 	currentName := strings.TrimSuffix(strings.TrimSuffix(filePath, ".cnf.enc"), "config/")
 	if strings.Contains(currentName, "/") {
 		parts := strings.Split(currentName, "/")
 		currentName = parts[len(parts)-1]
 	}
-
-	// Prompt for new values
-	updatedConfig, newName, hasChanges, err := promptForUpdates(dbConfig, currentName)
-	if err != nil {
-		return err
-	}
-
-	// Check if any changes were made
-	if !hasChanges {
-		fmt.Println("   No changes made.")
-		fmt.Println("✅ Configuration editing completed (no changes).")
-		return nil
-	}
-
-	// Confirm changes
-	if !dbconfig.ConfirmSaveChanges() {
-		terminal.PrintWarning("❌ Changes cancelled.")
-		return nil
-	}
-
-	// Save the updated configuration
-	return saveUpdatedConfig(filePath, currentName, newName, updatedConfig, encryptionPassword)
+	return currentName
 }
 
 // promptForUpdates prompts user for configuration updates
-func promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, currentName string) (*config.EncryptedDatabaseConfig, string, bool, error) {
+func (p *Processor) promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, currentName string) (*config.EncryptedDatabaseConfig, string, bool, error) {
 	fmt.Println("\n✏️  Edit Configuration:")
 	fmt.Println("========================")
 	fmt.Println("Press Enter to keep current value, or type new value:")
 
-	reader := bufio.NewReader(os.Stdin)
-
 	// Edit configuration name
-	fmt.Printf("Configuration name [%s]: ", currentName)
-	newNameInput, _ := reader.ReadString('\n')
-	newName := strings.TrimSpace(newNameInput)
-	if newName == "" {
-		newName = currentName
-	}
+	newName := terminal.AskString(fmt.Sprintf("Configuration name [%s]", currentName), currentName)
 
 	// Edit host
-	fmt.Printf("Host [%s]: ", dbConfig.Host)
-	newHostInput, _ := reader.ReadString('\n')
-	newHost := strings.TrimSpace(newHostInput)
-	if newHost == "" {
-		newHost = dbConfig.Host
-	}
+	newHost := terminal.AskString(fmt.Sprintf("Host [%s]", dbConfig.Host), dbConfig.Host)
 
 	// Edit port
-	fmt.Printf("Port [%d]: ", dbConfig.Port)
-	newPortInput, _ := reader.ReadString('\n')
-	newPortStr := strings.TrimSpace(newPortInput)
-	newPort := dbConfig.Port
-	if newPortStr != "" {
-		if port, err := strconv.Atoi(newPortStr); err == nil {
-			if port >= 1 && port <= 65535 {
-				newPort = port
-			} else {
-				fmt.Printf("❌ Invalid port number: %d. Using current value: %d\n", port, dbConfig.Port)
-			}
-		} else {
-			fmt.Printf("❌ Invalid port format. Using current value: %d\n", dbConfig.Port)
-		}
-	}
+	newPort := p.promptForPort(dbConfig.Port)
 
 	// Edit user
-	fmt.Printf("User [%s]: ", dbConfig.User)
-	newUserInput, _ := reader.ReadString('\n')
-	newUser := strings.TrimSpace(newUserInput)
-	if newUser == "" {
-		newUser = dbConfig.User
-	}
+	newUser := terminal.AskString(fmt.Sprintf("User [%s]", dbConfig.User), dbConfig.User)
 
 	// Edit password
-	fmt.Print("Password [current password]: ")
-	newPasswordInput, _ := reader.ReadString('\n')
-	newPassword := strings.TrimSpace(newPasswordInput)
-	if newPassword == "" {
-		newPassword = dbConfig.Password
-	}
+	newPassword := terminal.AskString("Password [current password]", dbConfig.Password)
 
 	// Create updated configuration
 	updatedConfig := &config.EncryptedDatabaseConfig{
@@ -174,92 +171,148 @@ func promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, currentName stri
 		Password: newPassword,
 	}
 
-	// Display changes summary
-	fmt.Println("\n📋 Changes Summary:")
-	fmt.Println("===================")
-	hasChanges := false
-	if newName != currentName {
-		fmt.Printf("   Name: %s → %s\n", currentName, newName)
-		hasChanges = true
-	}
-	if newHost != dbConfig.Host {
-		fmt.Printf("   Host: %s → %s\n", dbConfig.Host, newHost)
-		hasChanges = true
-	}
-	if newPort != dbConfig.Port {
-		fmt.Printf("   Port: %d → %d\n", dbConfig.Port, newPort)
-		hasChanges = true
-	}
-	if newUser != dbConfig.User {
-		fmt.Printf("   User: %s → %s\n", dbConfig.User, newUser)
-		hasChanges = true
-	}
-	if newPassword != dbConfig.Password {
-		fmt.Printf("   Password: %s → %s\n", strings.Repeat("*", len(dbConfig.Password)), strings.Repeat("*", len(newPassword)))
-		hasChanges = true
-	}
+	// Display changes summary and check for changes
+	hasChanges := p.displayChangesSummary(dbConfig, updatedConfig, currentName, newName)
 
 	return updatedConfig, newName, hasChanges, nil
 }
 
+// promptForPort prompts for port with validation
+func (p *Processor) promptForPort(currentPort int) int {
+	portStr := terminal.AskString(fmt.Sprintf("Port [%d]", currentPort), fmt.Sprintf("%d", currentPort))
+	
+	if portStr == fmt.Sprintf("%d", currentPort) {
+		return currentPort
+	}
+
+	if port, err := strconv.Atoi(portStr); err == nil {
+		if port >= 1 && port <= 65535 {
+			return port
+		} else {
+			terminal.PrintWarning(fmt.Sprintf("❌ Invalid port number: %d. Using current value: %d", port, currentPort))
+		}
+	} else {
+		terminal.PrintWarning(fmt.Sprintf("❌ Invalid port format. Using current value: %d", currentPort))
+	}
+	
+	return currentPort
+}
+
+// displayChangesSummary shows what will be changed
+func (p *Processor) displayChangesSummary(oldConfig, newConfig *config.EncryptedDatabaseConfig, oldName, newName string) bool {
+	fmt.Println("\n📋 Changes Summary:")
+	fmt.Println("===================")
+	
+	hasChanges := false
+	
+	if newName != oldName {
+		fmt.Printf("   Name: %s → %s\n", oldName, newName)
+		hasChanges = true
+	}
+	if newConfig.Host != oldConfig.Host {
+		fmt.Printf("   Host: %s → %s\n", oldConfig.Host, newConfig.Host)
+		hasChanges = true
+	}
+	if newConfig.Port != oldConfig.Port {
+		fmt.Printf("   Port: %d → %d\n", oldConfig.Port, newConfig.Port)
+		hasChanges = true
+	}
+	if newConfig.User != oldConfig.User {
+		fmt.Printf("   User: %s → %s\n", oldConfig.User, newConfig.User)
+		hasChanges = true
+	}
+	if newConfig.Password != oldConfig.Password {
+		fmt.Printf("   Password: %s → %s\n", p.maskPassword(oldConfig.Password), p.maskPassword(newConfig.Password))
+		hasChanges = true
+	}
+
+	return hasChanges
+}
+
+// maskPassword creates a masked version of password for display
+func (p *Processor) maskPassword(password string) string {
+	if password == "" {
+		return "[empty]"
+	}
+	return strings.Repeat("*", len(password))
+}
+
 // saveUpdatedConfig saves the updated configuration to file
-func saveUpdatedConfig(originalPath, currentName, newName string, dbConfig *config.EncryptedDatabaseConfig, encryptionPassword string) error {
+func (p *Processor) saveUpdatedConfig(originalPath, currentName, newName string, dbConfig *config.EncryptedDatabaseConfig, encryptionPassword string) error {
 	// Generate encryption key from user password only
 	key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 	if err != nil {
-		return fmt.Errorf("failed to derive encryption key: %w", err)
+		return fmt.Errorf("failed to derive encryption key: %v", err)
 	}
 
 	// Convert to JSON
-	jsonData, err := json.Marshal(dbConfig)
+	jsonData, err := p.marshalConfig(dbConfig)
 	if err != nil {
-		return fmt.Errorf("failed to marshal database config to JSON: %w", err)
+		return err
 	}
 
 	// Encrypt the configuration
 	encryptedData, err := crypto.EncryptData(jsonData, key, crypto.AES_GCM)
 	if err != nil {
-		return fmt.Errorf("failed to encrypt database configuration: %w", err)
+		return fmt.Errorf("failed to encrypt database configuration: %v", err)
 	}
 
 	// Determine new file path
 	configDir, err := config.GetDatabaseConfigDirectory()
 	if err != nil {
-		return fmt.Errorf("failed to get database config directory: %w", err)
+		return fmt.Errorf("failed to get database config directory: %v", err)
 	}
 
 	newFileName := newName + ".cnf.enc"
 	newFilePath := filepath.Join(configDir, newFileName)
 
-	// If name changed, we need to handle file rename
+	// Handle file rename/save
 	if newName != currentName {
-		// Check if new file already exists
-		if _, err := os.Stat(newFilePath); err == nil {
-			return fmt.Errorf("configuration file with name '%s' already exists", newName)
-		}
-
-		// Write to new file
-		if err := os.WriteFile(newFilePath, encryptedData, 0600); err != nil {
-			return fmt.Errorf("failed to write new encrypted config file: %w", err)
-		}
-
-		// Remove old file
-		if err := os.Remove(originalPath); err != nil {
-			// If we can't remove old file, warn but don't fail
-			fmt.Printf("⚠️  Warning: Could not remove old file %s: %v\n", originalPath, err)
-		}
-
-		terminal.PrintSuccess(fmt.Sprintf("✅ Configuration saved to: %s", newFilePath))
-		terminal.PrintInfo(fmt.Sprintf("🗑️  Old file removed: %s", originalPath))
+		return p.saveWithRename(originalPath, newFilePath, encryptedData, newName)
 	} else {
-		// Same name, just overwrite
-		if err := os.WriteFile(originalPath, encryptedData, 0600); err != nil {
-			return fmt.Errorf("failed to write encrypted config file: %w", err)
-		}
+		return p.saveInPlace(originalPath, encryptedData)
+	}
+}
 
-		terminal.PrintSuccess(fmt.Sprintf("✅ Configuration updated: %s", originalPath))
+// marshalConfig converts config to JSON
+func (p *Processor) marshalConfig(dbConfig *config.EncryptedDatabaseConfig) ([]byte, error) {
+	jsonData, err := json.Marshal(dbConfig)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal database config to JSON: %v", err)
+	}
+	return jsonData, nil
+}
+
+// saveWithRename saves to new file and removes old one
+func (p *Processor) saveWithRename(originalPath, newFilePath string, encryptedData []byte, newName string) error {
+	// Check if new file already exists
+	if _, err := os.Stat(newFilePath); err == nil {
+		return fmt.Errorf("configuration file with name '%s' already exists", newName)
 	}
 
-	terminal.PrintSuccess("🔐 Configuration encrypted and saved successfully!")
+	// Write to new file
+	if err := os.WriteFile(newFilePath, encryptedData, 0600); err != nil {
+		return fmt.Errorf("failed to write new encrypted config file: %v", err)
+	}
+
+	// Remove old file
+	if err := os.Remove(originalPath); err != nil {
+		// If we can't remove old file, warn but don't fail
+		terminal.PrintWarning(fmt.Sprintf("⚠️  Warning: Could not remove old file %s: %v", originalPath, err))
+	} else {
+		terminal.PrintInfo(fmt.Sprintf("🗑️  Old file removed: %s", originalPath))
+	}
+
+	terminal.PrintSuccess(fmt.Sprintf("✅ Configuration saved to: %s", newFilePath))
+	return nil
+}
+
+// saveInPlace overwrites the existing file
+func (p *Processor) saveInPlace(originalPath string, encryptedData []byte) error {
+	if err := os.WriteFile(originalPath, encryptedData, 0600); err != nil {
+		return fmt.Errorf("failed to write encrypted config file: %v", err)
+	}
+
+	terminal.PrintSuccess(fmt.Sprintf("✅ Configuration updated: %s", originalPath))
 	return nil
 }

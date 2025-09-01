@@ -1,273 +1,237 @@
 package generate
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strconv"
-	"strings"
+	"time"
 
 	"sfDBTools/internal/config"
-	"sfDBTools/internal/logger"
+	coredbconfig "sfDBTools/internal/core/dbconfig"
 	"sfDBTools/utils/crypto"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 )
 
-// EncryptedDatabaseConfig represents the encrypted database configuration
-type EncryptedDatabaseConfig struct {
-	Host     string `json:"host"`
-	Port     int    `json:"port"`
-	User     string `json:"user"`
-	Password string `json:"password"`
+// Processor handles generate operations for database configurations
+type Processor struct {
+	*coredbconfig.BaseProcessor
+	configHelper *coredbconfig.ConfigHelper
+}
+
+// NewProcessor creates a new generate processor
+func NewProcessor() (*Processor, error) {
+	base, err := coredbconfig.NewBaseProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	configHelper, err := coredbconfig.NewConfigHelper()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Processor{
+		BaseProcessor: base,
+		configHelper:  configHelper,
+	}, nil
 }
 
 // ProcessGenerate handles the core generate operation logic
 func ProcessGenerate(cfg *dbconfig.Config) error {
-	lg, err := logger.Get()
+	processor, err := NewProcessor()
 	if err != nil {
-		return fmt.Errorf("failed to get logger: %w", err)
+		return err
 	}
 
-	lg.Info("Starting encrypted database configuration generation")
+	processor.LogOperation("database configuration generation", "")
 
 	// Check if we should use automated mode
 	useAutoMode := cfg.AutoMode && cfg.ConfigName != "" && cfg.Host != "" && cfg.Port != 0 && cfg.User != ""
 
 	if useAutoMode {
-		return processAutoMode(cfg)
+		return processor.processAutoMode(cfg)
 	}
 
-	return processInteractiveMode()
+	return processor.processInteractiveMode()
 }
 
 // processAutoMode handles automated generation using provided parameters
-func processAutoMode(cfg *dbconfig.Config) error {
+func (p *Processor) processAutoMode(cfg *dbconfig.Config) error {
 	terminal.PrintInfo("🤖 Automated Mode - Using provided parameters")
 
-	// Use provided config name
-	finalConfigName := cfg.ConfigName
-
-	// Validate filename (remove invalid characters)
-	finalConfigName = strings.ReplaceAll(finalConfigName, " ", "_")
-	finalConfigName = strings.ReplaceAll(finalConfigName, "/", "_")
-	finalConfigName = strings.ReplaceAll(finalConfigName, "\\", "_")
-
-	// Validate parameters
-	if cfg.Port < 1 || cfg.Port > 65535 {
-		return fmt.Errorf("port number must be between 1 and 65535")
-	}
-
-	// Get encryption password from environment or prompt
-	finalEncryptionPassword, err := crypto.GetEncryptionPassword("Enter encryption password: ")
-	if err != nil {
-		return fmt.Errorf("failed to get encryption password: %w", err)
-	}
-
-	// Get database password from environment or prompt
-	dbPassword, err := crypto.GetDatabasePassword("Enter database password: ")
-	if err != nil {
-		return fmt.Errorf("failed to get database password: %w", err)
-	}
-
-	// Create database config from flags and prompted passwords
-	dbConfig := &EncryptedDatabaseConfig{
+	// Create configuration from provided parameters
+	dbConfig := &config.EncryptedDatabaseConfig{
 		Host:     cfg.Host,
 		Port:     cfg.Port,
 		User:     cfg.User,
-		Password: dbPassword,
+		Password: cfg.Password,
 	}
 
-	// Display summary
-	dbconfig.DisplayConfigSummary(finalConfigName, &config.EncryptedDatabaseConfig{
-		Host:     dbConfig.Host,
-		Port:     dbConfig.Port,
-		User:     dbConfig.User,
-		Password: dbConfig.Password,
-	})
+	// Generate final config name
+	finalConfigName := cfg.ConfigName
 
-	return saveConfiguration(finalConfigName, dbConfig, finalEncryptionPassword)
+	// Display summary
+	configInfo := &dbconfig.ConfigInfo{
+		Name:         finalConfigName,
+		Host:         dbConfig.Host,
+		Port:         dbConfig.Port,
+		User:         dbConfig.User,
+		HasPassword:  dbConfig.Password != "",
+		FileSize:     "New file",
+		LastModified: time.Now(),
+		IsValid:      true,
+	}
+
+	dbconfig.DisplayConfigSummary([]*dbconfig.ConfigInfo{configInfo})
+
+	// Get encryption password
+	encryptionPassword, err := p.GetEncryptionPassword("encrypt the configuration")
+	if err != nil {
+		return err
+	}
+
+	// Save configuration
+	return p.saveEncryptedConfig(finalConfigName, dbConfig, encryptionPassword)
 }
 
 // processInteractiveMode handles interactive generation
-func processInteractiveMode() error {
-	terminal.PrintSubHeader("🔐 Encryption Setup")
-	terminal.PrintInfo("The database configuration will be encrypted using:")
-	terminal.PrintInfo("   1. encryption password (from environment or user input)")
-	terminal.PrintInfo(fmt.Sprintf("   Environment variable: %s", crypto.ENV_ENCRYPTION_PASSWORD))
-	fmt.Println()
+func (p *Processor) processInteractiveMode() error {
+	terminal.PrintSubHeader("🛠️ Interactive Configuration Generator")
+	terminal.PrintInfo("Please provide database connection details:")
 
-	finalEncryptionPassword, err := crypto.ConfirmEncryptionPassword("Enter encryption password: ")
+	// Get configuration details from user
+	inputConfig, err := dbconfig.PromptDatabaseConfig()
 	if err != nil {
-		return fmt.Errorf("failed to get encryption password: %w", err)
+		return fmt.Errorf("error getting database configuration: %v", err)
 	}
 
-	// Prompt for configuration name
-	finalConfigName, err := promptConfigName()
+	// Get configuration name
+	configName, err := dbconfig.PromptConfigName("")
 	if err != nil {
-		return fmt.Errorf("failed to get configuration name: %w", err)
+		return fmt.Errorf("error getting configuration name: %v", err)
 	}
 
-	// Prompt for database configuration
-	dbConfig, err := promptDatabaseConfig()
+	// Get password handling option
+	passwordOption, err := dbconfig.DisplayPasswordOption()
 	if err != nil {
-		return fmt.Errorf("failed to get database configuration: %w", err)
+		return fmt.Errorf("error getting password option: %v", err)
 	}
 
-	return saveConfiguration(finalConfigName, dbConfig, finalEncryptionPassword)
+	// Handle password based on option
+	var password string
+	switch passwordOption {
+	case "manual":
+		password = terminal.AskString("Enter database password", "")
+	case "env":
+		envVar := terminal.AskString("Environment variable name", "DB_PASSWORD")
+		password = fmt.Sprintf("${%s}", envVar)
+	case "skip":
+		password = ""
+	}
+
+	// Create final configuration
+	dbConfig := &config.EncryptedDatabaseConfig{
+		Host:     inputConfig.Host,
+		Port:     inputConfig.Port,
+		User:     inputConfig.User,
+		Password: password,
+	}
+
+	// Display summary
+	configInfo := &dbconfig.ConfigInfo{
+		Name:         configName,
+		Host:         dbConfig.Host,
+		Port:         dbConfig.Port,
+		User:         dbConfig.User,
+		HasPassword:  dbConfig.Password != "",
+		FileSize:     "New file",
+		LastModified: time.Now(),
+		IsValid:      true,
+	}
+
+	dbconfig.DisplayConfigSummary([]*dbconfig.ConfigInfo{configInfo})
+
+	// Confirm save
+	if !terminal.AskYesNo("Save this configuration?", true) {
+		terminal.PrintWarning("❌ Configuration not saved.")
+		return nil
+	}
+
+	// Get encryption password
+	encryptionPassword, err := p.GetEncryptionPassword("encrypt the configuration")
+	if err != nil {
+		return err
+	}
+
+	// Save configuration
+	return p.saveEncryptedConfig(configName, dbConfig, encryptionPassword)
 }
 
-// promptConfigName prompts the user for configuration name
-func promptConfigName() (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-
-	terminal.PrintSubHeader("📁 Configuration File Name")
-	fmt.Print("Enter configuration name (without extension) [database]: ")
-
-	name, err := reader.ReadString('\n')
+// saveEncryptedConfig saves the configuration to an encrypted file
+func (p *Processor) saveEncryptedConfig(configName string, dbConfig *config.EncryptedDatabaseConfig, encryptionPassword string) error {
+	// Get config directory
+	configDir, err := config.GetDatabaseConfigDirectory()
 	if err != nil {
-		return "", fmt.Errorf("failed to read configuration name: %w", err)
+		return fmt.Errorf("failed to get config directory: %v", err)
 	}
 
-	name = strings.TrimSpace(name)
-	if name == "" {
-		name = "database"
+	// Ensure config directory exists
+	if err := os.MkdirAll(configDir, 0755); err != nil {
+		return fmt.Errorf("failed to create config directory: %v", err)
 	}
 
-	// Validate filename (remove invalid characters)
-	name = strings.ReplaceAll(name, " ", "_")
-	name = strings.ReplaceAll(name, "/", "_")
-	name = strings.ReplaceAll(name, "\\", "_")
+	// Get full file path
+	filePath := filepath.Join(configDir, configName+".cnf.enc")
 
-	terminal.PrintInfo(fmt.Sprintf("Configuration will be saved as: %s.cnf.enc", name))
-
-	return name, nil
-}
-
-// promptDatabaseConfig prompts the user for database configuration
-func promptDatabaseConfig() (*EncryptedDatabaseConfig, error) {
-	reader := bufio.NewReader(os.Stdin)
-	dbConfig := &EncryptedDatabaseConfig{}
-
-	terminal.PrintSubHeader("📋 Database Configuration")
-
-	// Prompt for host
-	fmt.Print("Enter database host [localhost]: ")
-	host, err := reader.ReadString('\n')
-	if err != nil {
-		return nil, fmt.Errorf("failed to read host: %w", err)
-	}
-	host = strings.TrimSpace(host)
-	if host == "" {
-		host = "localhost"
-	}
-	dbConfig.Host = host
-
-	// Prompt for port
-	fmt.Print("Enter database port [3306]: ")
-	portStr, err := reader.ReadString('\n')
-	if err != nil {
-		return nil, fmt.Errorf("failed to read port: %w", err)
-	}
-	portStr = strings.TrimSpace(portStr)
-	if portStr == "" {
-		dbConfig.Port = 3306
-	} else {
-		port, err := strconv.Atoi(portStr)
-		if err != nil {
-			return nil, fmt.Errorf("invalid port number: %w", err)
+	// Check if file exists
+	if _, err := os.Stat(filePath); err == nil {
+		if !dbconfig.ConfirmOverwrite(configName) {
+			terminal.PrintWarning("❌ Configuration not saved.")
+			return nil
 		}
-		if port < 1 || port > 65535 {
-			return nil, fmt.Errorf("port number must be between 1 and 65535")
+
+		// Create backup of existing file
+		if _, err := p.configHelper.BackupConfigFile(filePath); err != nil {
+			terminal.PrintWarning(fmt.Sprintf("⚠️ Could not create backup: %v", err))
 		}
-		dbConfig.Port = port
 	}
 
-	// Prompt for username
-	fmt.Print("Enter database username: ")
-	username, err := reader.ReadString('\n')
+	// Convert configuration to JSON
+	configJSON, err := json.Marshal(dbConfig)
 	if err != nil {
-		return nil, fmt.Errorf("failed to read username: %w", err)
-	}
-	username = strings.TrimSpace(username)
-	if username == "" {
-		return nil, fmt.Errorf("username cannot be empty")
-	}
-	dbConfig.User = username
-
-	// Get database password from environment variable or prompt
-	password, err := crypto.GetDatabasePassword("Enter database password: ")
-	if err != nil {
-		return nil, fmt.Errorf("failed to get database password: %w", err)
-	}
-	dbConfig.Password = password
-
-	// Show summary and confirm
-	dbconfig.DisplayConfigSummary("config", &config.EncryptedDatabaseConfig{
-		Host:     dbConfig.Host,
-		Port:     dbConfig.Port,
-		User:     dbConfig.User,
-		Password: dbConfig.Password,
-	})
-
-	fmt.Print("\nSave this configuration? [Y/n]: ")
-	confirm, err := reader.ReadString('\n')
-	if err != nil {
-		return nil, fmt.Errorf("failed to read confirmation: %w", err)
-	}
-	confirm = strings.ToLower(strings.TrimSpace(confirm))
-
-	if confirm != "" && confirm != "y" && confirm != "yes" {
-		return nil, fmt.Errorf("configuration generation cancelled")
+		return fmt.Errorf("failed to marshal configuration: %v", err)
 	}
 
-	return dbConfig, nil
-}
-
-// saveConfiguration saves the configuration to encrypted file
-func saveConfiguration(configName string, dbConfig *EncryptedDatabaseConfig, encryptionPassword string) error {
-	lg, _ := logger.Get()
+	// Encrypt and save
+	spinner := terminal.NewProgressSpinner("Encrypting and saving configuration...")
+	spinner.Start()
 
 	// Generate encryption key from user password only
 	key, err := crypto.DeriveKeyWithPassword(encryptionPassword)
 	if err != nil {
-		return fmt.Errorf("failed to derive encryption key: %w", err)
-	}
-
-	// Convert to JSON
-	jsonData, err := json.Marshal(dbConfig)
-	if err != nil {
-		return fmt.Errorf("failed to marshal database config to JSON: %w", err)
+		spinner.Stop()
+		return fmt.Errorf("failed to derive encryption key: %v", err)
 	}
 
 	// Encrypt the configuration
-	encryptedData, err := crypto.EncryptData(jsonData, key, crypto.AES_GCM)
+	encryptedData, err := crypto.EncryptData(configJSON, key, crypto.AES_GCM)
 	if err != nil {
-		return fmt.Errorf("failed to encrypt database configuration: %w", err)
+		spinner.Stop()
+		return fmt.Errorf("failed to encrypt configuration: %v", err)
 	}
 
-	// Save encrypted configuration
-	configDir, err := config.GetDatabaseConfigDirectory()
+	// Save encrypted data to file
+	err = os.WriteFile(filePath, encryptedData, 0600)
+	spinner.Stop()
+
 	if err != nil {
-		return fmt.Errorf("failed to get database config directory: %w", err)
+		return fmt.Errorf("failed to save configuration file: %v", err)
 	}
 
-	if err := os.MkdirAll(configDir, 0755); err != nil {
-		return fmt.Errorf("failed to create config directory: %w", err)
-	}
-
-	encryptedConfigPath := filepath.Join(configDir, configName+".cnf.enc")
-	if err := os.WriteFile(encryptedConfigPath, encryptedData, 0600); err != nil {
-		return fmt.Errorf("failed to write encrypted config file: %w", err)
-	}
-
-	lg.Info("Encrypted database configuration generated successfully",
-		logger.String("file", encryptedConfigPath))
-
-	terminal.PrintSuccess(fmt.Sprintf("✅ Encrypted database configuration saved to: %s", encryptedConfigPath))
-	terminal.PrintSuccess("🔐 Configuration encrypted using encryption password")
+	terminal.PrintSuccess(fmt.Sprintf("✅ Configuration '%s' saved successfully!", configName))
+	terminal.PrintInfo(fmt.Sprintf("📁 Saved to: %s", filePath))
 
 	return nil
 }

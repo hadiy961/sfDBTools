@@ -1,56 +1,72 @@
 package dbconfig
 
 import (
-	"bufio"
 	"fmt"
-	"os"
+	"strconv"
 	"strings"
+
+	"sfDBTools/utils/terminal"
 )
 
-// ConfirmSingleDeletion prompts for confirmation to delete a single file
-func ConfirmSingleDeletion(filename string) bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("⚠️  Are you sure you want to delete '%s'? This action cannot be undone. [y/N]: ", filename)
-	confirmation, _ := reader.ReadString('\n')
-	confirmation = strings.TrimSpace(strings.ToLower(confirmation))
-	return confirmation == "y" || confirmation == "yes"
-}
+// ConfirmDeletion prompts user for deletion confirmation
+func ConfirmDeletion(deletionType DeletionType, items []string) bool {
+	var message string
 
-// ConfirmMultipleDeletion prompts for confirmation to delete multiple files
-func ConfirmMultipleDeletion(count int) bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("⚠️  Are you sure you want to delete %d config file(s)? This action cannot be undone. [y/N]: ", count)
-	confirmation, _ := reader.ReadString('\n')
-	confirmation = strings.TrimSpace(strings.ToLower(confirmation))
-	return confirmation == "y" || confirmation == "yes"
-}
-
-// ConfirmAllDeletion prompts for confirmation to delete all files
-func ConfirmAllDeletion(count int) bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("⚠️  Are you sure you want to delete ALL %d encrypted configuration files? This action cannot be undone. [y/N]: ", count)
-	confirmation, _ := reader.ReadString('\n')
-	confirmation = strings.TrimSpace(strings.ToLower(confirmation))
-	return confirmation == "y" || confirmation == "yes"
-}
-
-// ConfirmSaveChanges prompts for confirmation to save changes
-func ConfirmSaveChanges() bool {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Print("\nSave these changes? [Y/n]: ")
-	confirmInput, _ := reader.ReadString('\n')
-	confirm := strings.ToLower(strings.TrimSpace(confirmInput))
-	return confirm == "" || confirm == "y" || confirm == "yes"
-}
-
-// ParseFileSelections parses comma-separated file selections from user input
-func ParseFileSelections(choice string, encFiles []string) ([]string, error) {
-	if choice == "" {
-		return nil, fmt.Errorf("no selection made")
+	switch deletionType {
+	case DeletionSingle:
+		if len(items) > 0 {
+			message = fmt.Sprintf("Are you sure you want to delete configuration '%s'?", items[0])
+		} else {
+			message = "Are you sure you want to delete this configuration?"
+		}
+	case DeletionMultiple:
+		message = fmt.Sprintf("Are you sure you want to delete %d selected configurations?", len(items))
+	case DeletionAll:
+		message = "Are you sure you want to delete ALL configurations? This action cannot be undone!"
+	default:
+		message = "Are you sure you want to proceed with this deletion?"
 	}
 
-	selections := strings.Split(choice, ",")
-	var selectedFiles []string
+	terminal.PrintWarning("⚠️ " + message)
+	if deletionType == DeletionAll {
+		terminal.PrintError("This will permanently delete all database configurations!")
+	}
+
+	return terminal.AskYesNo("Confirm deletion", false)
+}
+
+// SelectFilesForDeletion prompts user to select files for deletion
+func SelectFilesForDeletion(files []*FileInfo) ([]string, error) {
+	if len(files) == 0 {
+		return nil, fmt.Errorf("no configuration files available")
+	}
+
+	fm := NewFileManager()
+	fm.DisplayFileListSummary(files)
+
+	terminal.PrintInfo("\nEnter file numbers to delete (comma-separated, e.g., 1,3,5):")
+	input := terminal.AskString("File numbers", "")
+
+	if input == "" {
+		return nil, fmt.Errorf("no files selected")
+	}
+
+	selectedPaths, err := ParseFileSelections(input, files)
+	if err != nil {
+		return nil, fmt.Errorf("invalid selection: %v", err)
+	}
+
+	return selectedPaths, nil
+}
+
+// ParseFileSelections parses user input and returns selected file paths
+func ParseFileSelections(input string, files []*FileInfo) ([]string, error) {
+	if strings.TrimSpace(input) == "" {
+		return nil, fmt.Errorf("no selection provided")
+	}
+
+	selections := strings.Split(input, ",")
+	var selectedPaths []string
 
 	for _, sel := range selections {
 		sel = strings.TrimSpace(sel)
@@ -58,50 +74,100 @@ func ParseFileSelections(choice string, encFiles []string) ([]string, error) {
 			continue
 		}
 
-		// Try to parse as number
-		if index := parseIndex(sel, len(encFiles)); index >= 0 {
-			selectedFiles = append(selectedFiles, encFiles[index])
-		} else {
-			return nil, fmt.Errorf("invalid selection: %s", sel)
+		index, err := strconv.Atoi(sel)
+		if err != nil {
+			return nil, fmt.Errorf("invalid number: %s", sel)
 		}
+
+		if index < 1 || index > len(files) {
+			return nil, fmt.Errorf("number %d is out of range (1-%d)", index, len(files))
+		}
+
+		selectedPaths = append(selectedPaths, files[index-1].Path)
 	}
 
-	if len(selectedFiles) == 0 {
-		return nil, fmt.Errorf("no valid selections made")
+	if len(selectedPaths) == 0 {
+		return nil, fmt.Errorf("no valid files selected")
 	}
 
-	return selectedFiles, nil
+	return selectedPaths, nil
 }
 
-// parseIndex parses a string index and returns the corresponding array index (-1 if invalid)
-func parseIndex(s string, maxLen int) int {
-	if idx := parseInt(s); idx >= 1 && idx <= maxLen {
-		return idx - 1 // Convert to 0-based index
+// PromptForConfigName prompts user to enter or select a configuration name
+func PromptForConfigName(availableConfigs []*FileInfo, operation OperationType) (string, error) {
+	if len(availableConfigs) == 0 {
+		return "", fmt.Errorf("no configuration files available for %s", operation.String())
 	}
-	return -1
-}
 
-// parseInt safely parses an integer
-func parseInt(s string) int {
-	if i := 0; len(s) > 0 {
-		for _, char := range s {
-			if char < '0' || char > '9' {
-				return -1
+	if len(availableConfigs) == 1 {
+		configName := availableConfigs[0].Name
+		message := fmt.Sprintf("Use configuration '%s' for %s?", configName, operation.String())
+		if terminal.AskYesNo(message, true) {
+			return configName, nil
+		}
+		return "", fmt.Errorf("operation cancelled")
+	}
+
+	terminal.PrintSubHeader(fmt.Sprintf("📋 Available configurations for %s:", operation.String()))
+
+	data := [][]string{}
+	for i, config := range availableConfigs {
+		status := "✅"
+		if !config.IsValid {
+			status = "❌"
+		}
+
+		data = append(data, []string{
+			fmt.Sprintf("%d", i+1),
+			config.Name,
+			config.GetFormattedSize(),
+			status,
+		})
+	}
+
+	headers := []string{"#", "Name", "Size", "Status"}
+	terminal.FormatTable(headers, data)
+
+	for {
+		input := terminal.AskString("Enter configuration number or name", "")
+		if input == "" {
+			return "", fmt.Errorf("no configuration selected")
+		}
+
+		// Try to parse as number first
+		if index, err := strconv.Atoi(input); err == nil {
+			if index >= 1 && index <= len(availableConfigs) {
+				return availableConfigs[index-1].Name, nil
 			}
-			i = i*10 + int(char-'0')
+			terminal.PrintError(fmt.Sprintf("Invalid number. Please enter 1-%d", len(availableConfigs)))
+			continue
 		}
-		return i
+
+		// Try to find by name
+		for _, config := range availableConfigs {
+			if config.Name == input {
+				return config.Name, nil
+			}
+		}
+
+		terminal.PrintError("Configuration not found. Please try again.")
 	}
-	return -1
 }
 
-// PromptForSelection prompts user to select configuration files
-func PromptForSelection(fileCount int) (string, error) {
-	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf("\nSelect configuration file(s) to delete (1-%d, comma-separated, or 'all'): ", fileCount)
-	choice, err := reader.ReadString('\n')
-	if err != nil {
-		return "", fmt.Errorf("failed to read selection: %w", err)
+// ConfirmOverwrite prompts user to confirm file overwrite
+func ConfirmOverwrite(filename string) bool {
+	message := fmt.Sprintf("Configuration '%s' already exists. Overwrite?", filename)
+	return terminal.AskYesNo(message, false)
+}
+
+// PromptForFileSelection prompts user to select configuration files
+func PromptForFileSelection(fileCount int, operation string) (string, error) {
+	message := fmt.Sprintf("Select configuration file(s) to %s (1-%d, comma-separated, or 'all')", operation, fileCount)
+	choice := terminal.AskString(message, "")
+
+	if choice == "" {
+		return "", fmt.Errorf("no selection made")
 	}
-	return strings.TrimSpace(choice), nil
+
+	return choice, nil
 }

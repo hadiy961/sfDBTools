@@ -2,44 +2,63 @@ package delete
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
-	"strings"
 
-	"sfDBTools/internal/config"
-	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	coredbconfig "sfDBTools/internal/core/dbconfig"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 )
 
+// Processor handles delete operations for database configurations
+type Processor struct {
+	*coredbconfig.BaseProcessor
+	configHelper *coredbconfig.ConfigHelper
+}
+
+// NewProcessor creates a new delete processor
+func NewProcessor() (*Processor, error) {
+	base, err := coredbconfig.NewBaseProcessor()
+	if err != nil {
+		return nil, err
+	}
+
+	configHelper, err := coredbconfig.NewConfigHelper()
+	if err != nil {
+		return nil, err
+	}
+
+	return &Processor{
+		BaseProcessor: base,
+		configHelper:  configHelper,
+	}, nil
+}
+
 // ProcessDelete handles the core delete operation logic
 func ProcessDelete(cfg *dbconfig.Config, args []string) error {
-	// If --all flag is used
-	if cfg.DeleteAll {
-		return processDeleteAll(cfg)
+	processor, err := NewProcessor()
+	if err != nil {
+		return err
 	}
 
-	// If specific file is provided via flag
-	if cfg.FilePath != "" {
-		return processDeleteSpecific(cfg.FilePath, cfg.ForceDelete)
-	}
+	processor.LogOperation("database configuration deletion", "")
 
-	// If files are provided as arguments
-	if len(args) > 0 {
-		return processDeleteMultiple(args, cfg.ForceDelete)
+	// Route to appropriate handler based on parameters
+	switch {
+	case cfg.DeleteAll:
+		return processor.processDeleteAll(cfg)
+	case cfg.FilePath != "":
+		return processor.processDeleteSpecific(cfg.FilePath, cfg.ForceDelete)
+	case len(args) > 0:
+		return processor.processDeleteMultiple(args, cfg.ForceDelete)
+	default:
+		return processor.processDeleteWithSelection(cfg.ForceDelete)
 	}
-
-	// Interactive mode - list all encrypted config files and let user choose
-	return processDeleteWithSelection(cfg.ForceDelete)
 }
 
 // processDeleteSpecific deletes a specific configuration file
-func processDeleteSpecific(filePath string, forceDelete bool) error {
-	lg, _ := logger.Get()
-
+func (p *Processor) processDeleteSpecific(filePath string, forceDelete bool) error {
 	// Validate config file
-	if err := common.ValidateConfigFile(filePath); err != nil {
+	if err := p.configHelper.ValidateConfigExists(filePath); err != nil {
 		return fmt.Errorf("invalid config file: %w", err)
 	}
 
@@ -48,190 +67,142 @@ func processDeleteSpecific(filePath string, forceDelete bool) error {
 
 	// Confirmation unless force flag is used
 	if !forceDelete {
-		if !dbconfig.ConfirmSingleDeletion(filename) {
+		if !dbconfig.ConfirmDeletion(dbconfig.DeletionSingle, []string{filename}) {
 			terminal.PrintWarning("❌ Deletion cancelled.")
 			return nil
 		}
 	}
 
 	// Delete the file
-	if err := os.Remove(filePath); err != nil {
+	if err := p.configHelper.DeleteConfigFile(filePath); err != nil {
 		return fmt.Errorf("failed to delete config file %s: %w", filename, err)
 	}
 
-	terminal.PrintSuccess(fmt.Sprintf("✅ Successfully deleted config file: %s", filename))
-	lg.Info("Config file deleted", logger.String("file", filePath))
+	terminal.PrintSuccess(fmt.Sprintf("✅ Configuration '%s' deleted successfully", filename))
 	return nil
 }
 
 // processDeleteMultiple deletes multiple configuration files
-func processDeleteMultiple(filePaths []string, forceDelete bool) error {
-	lg, _ := logger.Get()
-	result := &dbconfig.DeleteResult{}
-
-	var validFiles []string
+func (p *Processor) processDeleteMultiple(filePaths []string, forceDelete bool) error {
+	fileManager := p.configHelper.GetFileManager()
 
 	// Validate all files first
+	validFiles := []string{}
 	for _, filePath := range filePaths {
-		if err := common.ValidateConfigFile(filePath); err != nil {
-			result.Errors = append(result.Errors, fmt.Sprintf("Invalid config file: %s (%v)", filepath.Base(filePath), err))
-			terminal.PrintError(fmt.Sprintf("❌ Invalid config file: %s (%v)", filepath.Base(filePath), err))
-		} else {
-			validFiles = append(validFiles, filePath)
+		if err := p.configHelper.ValidateConfigExists(filePath); err != nil {
+			terminal.PrintWarning(fmt.Sprintf("⚠️ Skipping invalid file: %s", filepath.Base(filePath)))
+			continue
 		}
+		validFiles = append(validFiles, filePath)
 	}
 
 	if len(validFiles) == 0 {
-		return fmt.Errorf("no valid config files to delete")
-	}
-
-	if len(result.Errors) > 0 {
-		terminal.PrintWarning(fmt.Sprintf("⚠️  %d file(s) will be skipped due to validation errors.", len(result.Errors)))
+		return fmt.Errorf("no valid configuration files to delete")
 	}
 
 	// Show files to be deleted
-	terminal.PrintSubHeader("📁 Files to be deleted")
+	terminal.PrintSubHeader("📁 Files to be deleted:")
 	for i, filePath := range validFiles {
 		fmt.Printf("   %d. %s\n", i+1, filepath.Base(filePath))
 	}
 
 	// Confirmation unless force flag is used
 	if !forceDelete {
-		if !dbconfig.ConfirmMultipleDeletion(len(validFiles)) {
+		filenames := make([]string, len(validFiles))
+		for i, filePath := range validFiles {
+			filenames[i] = filepath.Base(filePath)
+		}
+		if !dbconfig.ConfirmDeletion(dbconfig.DeletionMultiple, filenames) {
 			terminal.PrintWarning("❌ Deletion cancelled.")
 			return nil
 		}
 	}
 
-	// Delete files
-	for _, filePath := range validFiles {
-		filename := filepath.Base(filePath)
-		if err := os.Remove(filePath); err != nil {
-			errorMsg := fmt.Sprintf("Failed to delete %s: %v", filename, err)
-			result.Errors = append(result.Errors, errorMsg)
-			terminal.PrintError(fmt.Sprintf("❌ %s", errorMsg))
-			lg.Error("Failed to delete config file",
-				logger.String("file", filePath),
-				logger.Error(err))
-			result.ErrorCount++
-		} else {
-			result.DeletedFiles = append(result.DeletedFiles, filePath)
-			terminal.PrintSuccess(fmt.Sprintf("✅ Deleted: %s", filename))
-			lg.Info("Config file deleted", logger.String("file", filePath))
-			result.DeletedCount++
-		}
-	}
+	// Delete files using FileManager
+	result := fileManager.DeleteMultipleFiles(validFiles, true)
 
+	// Display result
 	dbconfig.DisplayDeleteSummary(result)
 
 	if result.ErrorCount > 0 {
-		return fmt.Errorf("failed to delete %d config file(s)", result.ErrorCount)
+		return fmt.Errorf("some files could not be deleted")
 	}
 
 	return nil
 }
 
-// processDeleteAll deletes all encrypted configuration files
-func processDeleteAll(cfg *dbconfig.Config) error {
-	// Get config directory
-	configDir, err := config.GetDatabaseConfigDirectory()
+// processDeleteAll deletes all configuration files
+func (p *Processor) processDeleteAll(cfg *dbconfig.Config) error {
+	fileManager := p.configHelper.GetFileManager()
+
+	// Get all config files
+	files, err := fileManager.ListConfigFiles()
 	if err != nil {
-		return fmt.Errorf("failed to get database config directory: %w", err)
+		return fmt.Errorf("error listing config files: %v", err)
 	}
 
-	// Find all encrypted config files
-	encFiles, err := common.FindEncryptedConfigFiles(configDir)
-	if err != nil {
-		return fmt.Errorf("failed to find encrypted config files: %w", err)
-	}
-
-	if len(encFiles) == 0 {
-		terminal.PrintInfo("ℹ️  No encrypted configuration files found to delete.")
+	if len(files) == 0 {
+		terminal.PrintWarning("No configuration files found to delete.")
 		return nil
 	}
 
 	// Show files to be deleted
-	terminal.PrintWarning(fmt.Sprintf("⚠️  About to delete ALL %d encrypted configuration files:", len(encFiles)))
-	terminal.PrintSubHeader("Files to be deleted")
-	for i, file := range encFiles {
-		filename := filepath.Base(file)
-		fmt.Printf("   %d. %s\n", i+1, filename)
+	terminal.PrintSubHeader(fmt.Sprintf("📁 All Configuration Files (%d found):", len(files)))
+	for i, file := range files {
+		fmt.Printf("   %d. %s\n", i+1, file.Name)
 	}
 
 	// Confirmation unless force flag is used
 	if !cfg.ForceDelete {
-		if !dbconfig.ConfirmAllDeletion(len(encFiles)) {
+		filenames := make([]string, len(files))
+		for i, file := range files {
+			filenames[i] = file.Name
+		}
+		if !dbconfig.ConfirmDeletion(dbconfig.DeletionAll, filenames) {
 			terminal.PrintWarning("❌ Deletion cancelled.")
 			return nil
 		}
 	}
 
-	// Delete all files using the multiple delete logic
-	err = processDeleteMultiple(encFiles, cfg.ForceDelete)
-	if err != nil {
-		return err
+	// Extract file paths
+	filePaths := make([]string, len(files))
+	for i, file := range files {
+		filePaths[i] = file.Path
 	}
 
-	terminal.PrintSuccess("🗑️  All encrypted configuration files have been deleted.")
+	// Delete all files using FileManager
+	result := fileManager.DeleteMultipleFiles(filePaths, true)
+
+	// Display result
+	dbconfig.DisplayDeleteSummary(result)
+
+	if result.ErrorCount > 0 {
+		return fmt.Errorf("some files could not be deleted")
+	}
+
 	return nil
 }
 
-// processDeleteWithSelection lists all encrypted config files and lets user choose
-func processDeleteWithSelection(forceDelete bool) error {
-	// Get config directory
-	configDir, err := config.GetDatabaseConfigDirectory()
+// processDeleteWithSelection allows user to select files for deletion
+func (p *Processor) processDeleteWithSelection(forceDelete bool) error {
+	fileManager := p.configHelper.GetFileManager()
+
+	// Get all config files
+	files, err := fileManager.ListConfigFiles()
 	if err != nil {
-		return fmt.Errorf("failed to get database config directory: %w", err)
+		return fmt.Errorf("error listing config files: %v", err)
 	}
 
-	encFiles, err := common.FindEncryptedConfigFiles(configDir)
-	if err != nil {
-		return fmt.Errorf("failed to find encrypted config files: %w", err)
-	}
-
-	if len(encFiles) == 0 {
-		terminal.PrintError("❌ No encrypted configuration files found.")
-		terminal.PrintInfo("   Use 'dbconfig generate' to create one.")
+	if len(files) == 0 {
+		terminal.PrintWarning("No configuration files found.")
 		return nil
 	}
 
-	// Display available files
-	terminal.PrintSubHeader("📁 Available Encrypted Configuration Files")
-	for i, file := range encFiles {
-		filename := filepath.Base(file)
-		fmt.Printf("   %d. %s\n", i+1, filename)
-	}
-
-	// Let user choose
-	choice, err := dbconfig.PromptForSelection(len(encFiles))
+	// Let user select files
+	selectedPaths, err := dbconfig.SelectFilesForDeletion(files)
 	if err != nil {
 		return err
 	}
 
-	// Handle 'all' selection
-	if strings.ToLower(choice) == "all" {
-		return processDeleteAllFromList(encFiles, forceDelete)
-	}
-
-	// Parse comma-separated selections
-	selectedFiles, err := dbconfig.ParseFileSelections(choice, encFiles)
-	if err != nil {
-		return err
-	}
-
-	return processDeleteMultiple(selectedFiles, forceDelete)
-}
-
-// processDeleteAllFromList deletes all files from the provided list
-func processDeleteAllFromList(encFiles []string, forceDelete bool) error {
-	terminal.PrintWarning(fmt.Sprintf("⚠️  About to delete ALL %d encrypted configuration files.", len(encFiles)))
-
-	if !forceDelete {
-		if !dbconfig.ConfirmAllDeletion(len(encFiles)) {
-			terminal.PrintWarning("❌ Deletion cancelled.")
-			return nil
-		}
-	}
-
-	return processDeleteMultiple(encFiles, forceDelete)
+	return p.processDeleteMultiple(selectedPaths, forceDelete)
 }
