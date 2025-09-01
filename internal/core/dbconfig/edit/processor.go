@@ -149,19 +149,19 @@ func (p *Processor) promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, c
 	fmt.Println("Press Enter to keep current value, or type new value:")
 
 	// Edit configuration name
-	newName := terminal.AskString(fmt.Sprintf("Configuration name [%s]", currentName), currentName)
+	newName := terminal.AskString(fmt.Sprintf("Configuration name"), currentName)
 
 	// Edit host
-	newHost := terminal.AskString(fmt.Sprintf("Host [%s]", dbConfig.Host), dbConfig.Host)
+	newHost := terminal.AskString(fmt.Sprintf("Host"), dbConfig.Host)
 
 	// Edit port
 	newPort := p.promptForPort(dbConfig.Port)
 
 	// Edit user
-	newUser := terminal.AskString(fmt.Sprintf("User [%s]", dbConfig.User), dbConfig.User)
+	newUser := terminal.AskString(fmt.Sprintf("User"), dbConfig.User)
 
 	// Edit password
-	newPassword := terminal.AskString("Password [current password]", dbConfig.Password)
+	newPassword := terminal.AskString("Password", dbConfig.Password)
 
 	// Create updated configuration
 	updatedConfig := &config.EncryptedDatabaseConfig{
@@ -179,8 +179,8 @@ func (p *Processor) promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, c
 
 // promptForPort prompts for port with validation
 func (p *Processor) promptForPort(currentPort int) int {
-	portStr := terminal.AskString(fmt.Sprintf("Port [%d]", currentPort), fmt.Sprintf("%d", currentPort))
-	
+	portStr := terminal.AskString("Port", fmt.Sprintf("%d", currentPort))
+
 	if portStr == fmt.Sprintf("%d", currentPort) {
 		return currentPort
 	}
@@ -194,7 +194,7 @@ func (p *Processor) promptForPort(currentPort int) int {
 	} else {
 		terminal.PrintWarning(fmt.Sprintf("❌ Invalid port format. Using current value: %d", currentPort))
 	}
-	
+
 	return currentPort
 }
 
@@ -202,9 +202,9 @@ func (p *Processor) promptForPort(currentPort int) int {
 func (p *Processor) displayChangesSummary(oldConfig, newConfig *config.EncryptedDatabaseConfig, oldName, newName string) bool {
 	fmt.Println("\n📋 Changes Summary:")
 	fmt.Println("===================")
-	
+
 	hasChanges := false
-	
+
 	if newName != oldName {
 		fmt.Printf("   Name: %s → %s\n", oldName, newName)
 		hasChanges = true

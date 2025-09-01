@@ -124,11 +124,17 @@ func (p *Processor) processInteractiveMode() error {
 	switch passwordOption {
 	case "manual":
 		password = terminal.AskString("Enter database password", "")
+		if password == "" {
+			return fmt.Errorf("password cannot be empty - please provide a valid password")
+		}
 	case "env":
 		envVar := terminal.AskString("Environment variable name", "DB_PASSWORD")
+		if envVar == "" {
+			return fmt.Errorf("environment variable name cannot be empty")
+		}
 		password = fmt.Sprintf("${%s}", envVar)
-	case "skip":
-		password = ""
+	default:
+		return fmt.Errorf("invalid password option: %s", passwordOption)
 	}
 
 	// Create final configuration

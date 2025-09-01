@@ -77,13 +77,11 @@ func (p *Processor) showSpecificConfig(filePath string) error {
 	p.displayDatabaseDetails(dbConfig)
 
 	// Option to show password
-	passwordOption, err := dbconfig.DisplayPasswordOption()
-	if err != nil {
-		return fmt.Errorf("error getting password option: %v", err)
-	}
-
-	if passwordOption == "manual" && dbConfig.Password != "" {
-		terminal.PrintInfo(fmt.Sprintf("🔑 Password: %s", dbConfig.Password))
+	if dbConfig.Password != "" {
+		showPassword := terminal.AskYesNo("🔑 Do you want to display the database password?", false)
+		if showPassword {
+			terminal.PrintInfo(fmt.Sprintf("🔑 Password: %s", dbConfig.Password))
+		}
 	}
 
 	p.WaitForUserContinue()

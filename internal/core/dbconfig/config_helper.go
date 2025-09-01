@@ -31,13 +31,7 @@ func NewConfigHelper() (*ConfigHelper, error) {
 }
 
 // LoadDecryptedConfig loads and decrypts a configuration file
-func (ch *ConfigHelper) LoadDecryptedConfig(filePath, purpose string) (*config.EncryptedDatabaseConfig, error) {
-	// Get encryption password
-	encryptionPassword, err := ch.GetEncryptionPassword(purpose)
-	if err != nil {
-		return nil, err
-	}
-
+func (ch *ConfigHelper) LoadDecryptedConfig(filePath, encryptionPassword string) (*config.EncryptedDatabaseConfig, error) {
 	// Load and decrypt configuration
 	spinner := terminal.NewProgressSpinner("Decrypting configuration...")
 	spinner.Start()

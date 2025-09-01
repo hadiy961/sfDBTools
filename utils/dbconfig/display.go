@@ -73,26 +73,24 @@ func DisplayConfigSummary(configs []*ConfigInfo) {
 // DisplayPasswordOption prompts for password handling option
 func DisplayPasswordOption() (string, error) {
 	terminal.PrintSubHeader("🔑 Password Configuration")
+	terminal.PrintWarning("⚠️ Password is MANDATORY - must be provided via one of the options below:")
 
 	options := []string{
 		"1. Enter password now",
 		"2. Use environment variable",
-		"3. Skip password (enter manually when needed)",
 	}
 
 	for _, option := range options {
 		terminal.PrintInfo(option)
 	}
 
-	choice := terminal.AskString("Select password option (1-3)", "1")
+	choice := terminal.AskString("Select password option (1-2)", "1")
 
 	switch choice {
 	case "1":
 		return "manual", nil
 	case "2":
 		return "env", nil
-	case "3":
-		return "skip", nil
 	default:
 		return "", fmt.Errorf("invalid choice: %s", choice)
 	}
