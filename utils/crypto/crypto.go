@@ -143,8 +143,7 @@ func Hash(data []byte, algorithm string) (string, error) {
 // DeriveKeyFromAppConfig generates an encryption key from application configuration values
 func DeriveKeyFromAppConfig(appName, clientCode, version, author string) ([]byte, error) {
 	// Generate salt for key derivation (use a fixed salt for consistency across runs)
-	saltString := fmt.Sprintf("%s_%s_salt", appName, clientCode)
-	salt := []byte(saltString)
+	salt := []byte("sfdb_encryption_salt_v3")
 
 	// Derive encryption key from provided values
 	key := DeriveKeyFromConfigValues(

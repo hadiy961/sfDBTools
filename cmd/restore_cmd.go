@@ -30,5 +30,4 @@ func init() {
 	rootCmd.AddCommand(RestoreCmd)
 	RestoreCmd.AddCommand(restore_cmd.AllRestoreCMD)
 	RestoreCmd.AddCommand(restore_cmd.SingleRestoreCmd)
-	RestoreCmd.AddCommand(restore_cmd.RestoreUserCMD)
 }

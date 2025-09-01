@@ -76,8 +76,7 @@ func GenerateEncryptedConfig(cmd *cobra.Command, configName, dbHost string, dbPo
 		// Interactive mode
 		fmt.Println("🔐 Encryption Setup")
 		fmt.Println("The database configuration will be encrypted using:")
-		fmt.Println("   1. Application configuration (app_name, client_code, version, author)")
-		fmt.Println("   2. Additional encryption password (from environment or user input)")
+		fmt.Println("   1. encryption password (from environment or user input)")
 		fmt.Printf("   Environment variable: %s\n\n", crypto.ENV_ENCRYPTION_PASSWORD)
 
 		finalEncryptionPassword, err = crypto.ConfirmEncryptionPassword("Enter encryption password: ")

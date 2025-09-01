@@ -24,7 +24,7 @@ and allow you to choose one. Database password will be displayed in plain text.
 You will always be prompted for the encryption password (environment variables are ignored for security).`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Clear screen and show header
-		terminal.ClearAndShowHeader("👁️ Show Database Configuration")
+		terminal.ClearAndShowHeader("Show Database Configuration")
 
 		if err := showConfigEnhanced(cmd); err != nil {
 			lg, _ := logger.Get()
