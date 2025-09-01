@@ -5,8 +5,9 @@ import (
 	"os"
 	"time"
 
-	"sfDBTools/cmd/dbconfig_cmd/generate"
+	"sfDBTools/internal/core/dbconfig/generate"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
@@ -41,18 +42,14 @@ If environment variables are not set, you will be prompted interactively.`,
 		// Show spinner while preparing
 		spinner := terminal.NewProgressSpinner("Preparing configuration generator...")
 		spinner.Start()
-
-		// Brief delay to show preparation
 		time.Sleep(500 * time.Millisecond)
-
-		// Stop spinner before interactive generation
 		spinner.Stop()
 		fmt.Println()
 
-		if err := generate.GenerateEncryptedConfig(cmd, configName, dbHost, dbPort, dbUser, autoMode); err != nil {
+		if err := executeGenerate(cmd); err != nil {
 			lg, _ := logger.Get()
 			lg.Error("Failed to generate encrypted config", logger.Error(err))
-			terminal.PrintError(fmt.Sprintf("Failed to generate configuration: %v", err))
+			terminal.PrintError("Generation failed")
 			terminal.WaitForEnterWithMessage("Press Enter to continue...")
 			os.Exit(1)
 		}
@@ -62,19 +59,19 @@ If environment variables are not set, you will be prompted interactively.`,
 	},
 }
 
-// Flags for automation
-var (
-	configName string
-	dbHost     string
-	dbPort     int
-	dbUser     string
-	autoMode   bool
-)
+func executeGenerate(cmd *cobra.Command) error {
+	// Resolve configuration from flags
+	config, err := dbconfig.ResolveConfig(cmd)
+	if err != nil {
+		return err
+	}
+
+	// Execute generate operation
+	return generate.ProcessGenerate(config)
+}
 
 func init() {
-	GenerateCmd.Flags().StringVarP(&configName, "name", "n", "", "Configuration name (without extension)")
-	GenerateCmd.Flags().StringVarP(&dbHost, "host", "H", "", "Database host")
-	GenerateCmd.Flags().IntVarP(&dbPort, "port", "p", 0, "Database port")
-	GenerateCmd.Flags().StringVarP(&dbUser, "user", "u", "", "Database username")
-	GenerateCmd.Flags().BoolVarP(&autoMode, "auto", "a", false, "Auto mode - skip confirmations")
+	// Add shared and generate-specific flags
+	dbconfig.AddCommonDbConfigFlags(GenerateCmd)
+	dbconfig.AddGenerateFlags(GenerateCmd)
 }
