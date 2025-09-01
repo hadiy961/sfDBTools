@@ -12,30 +12,54 @@ type Config struct {
 }
 
 type GeneralConfig struct {
-	ClientCode string `mapstructure:"client_code"`
-	AppName    string `mapstructure:"app_name"`
-	Version    string `mapstructure:"version"`
-	Author     string `mapstructure:"author"`
+	ClientCode string       `mapstructure:"client_code"`
+	AppName    string       `mapstructure:"app_name"`
+	Version    string       `mapstructure:"version"`
+	Author     string       `mapstructure:"author"`
+	Locale     LocaleConfig `mapstructure:"locale"`
+}
+
+type LocaleConfig struct {
+	Timezone   string `mapstructure:"timezone"`
+	DateFormat string `mapstructure:"date_format"`
+	TimeFormat string `mapstructure:"time_format"`
 }
 
 type LogConfig struct {
-	Level    string         `mapstructure:"level"`
-	Format   string         `mapstructure:"format"`
-	Timezone string         `mapstructure:"timezone"`
-	Output   LogOutput      `mapstructure:"output"`
-	File     LogFileSetting `mapstructure:"file"`
+	Level    string    `mapstructure:"level"`
+	Format   string    `mapstructure:"format"`
+	Timezone string    `mapstructure:"timezone"`
+	Output   LogOutput `mapstructure:"output"`
 }
 
 type LogOutput struct {
-	Console bool `mapstructure:"console"`
-	File    bool `mapstructure:"file"`
-	Syslog  bool `mapstructure:"syslog"`
+	Console LogConsoleOutput `mapstructure:"console"`
+	File    LogFileOutput    `mapstructure:"file"`
+	Syslog  LogSyslogOutput  `mapstructure:"syslog"`
 }
 
-type LogFileSetting struct {
-	Dir           string `mapstructure:"dir"`
-	RotateDaily   bool   `mapstructure:"rotate_daily"`
+type LogConsoleOutput struct {
+	Enabled bool `mapstructure:"enabled"`
+}
+
+type LogFileOutput struct {
+	Enabled         bool            `mapstructure:"enabled"`
+	Dir             string          `mapstructure:"dir"`
+	FilenamePattern string          `mapstructure:"filename_pattern"`
+	Rotation        LogFileRotation `mapstructure:"rotation"`
+}
+
+type LogFileRotation struct {
+	Daily         bool   `mapstructure:"daily"`
+	MaxSize       string `mapstructure:"max_size"`
 	RetentionDays int    `mapstructure:"retention_days"`
+	CompressOld   bool   `mapstructure:"compress_old"`
+}
+
+type LogSyslogOutput struct {
+	Enabled  bool   `mapstructure:"enabled"`
+	Facility string `mapstructure:"facility"`
+	Tag      string `mapstructure:"tag"`
 }
 
 type MysqldumpConfig struct {
@@ -51,20 +75,56 @@ type DatabaseConfig struct {
 }
 
 type BackupConfig struct {
-	OutputDir         string `mapstructure:"output_dir"`
-	Compress          bool   `mapstructure:"compress"`
-	Compression       string `mapstructure:"compression"`
-	CompressionLevel  string `mapstructure:"compression_level"`
-	IncludeData       bool   `mapstructure:"include_data"`
-	Encrypt           bool   `mapstructure:"encrypt"`
-	VerifyDisk        bool   `mapstructure:"verify_disk"`
-	RetentionDays     int    `mapstructure:"retention_days"`
-	CalculateChecksum bool   `mapstructure:"calculate_checksum"`
-	IncludeDmart      bool   `mapstructure:"include_dmart"`
-	IncludeArchive    bool   `mapstructure:"include_archive"`
-	IncludeTemp       bool   `mapstructure:"include_temp"`
-	Progress          bool   `mapstructure:"progress"`
-	SystemUser        bool   `mapstructure:"system_user"`
+	MysqldumpArgs string             `mapstructure:"mysqldump_args"`
+	Retention     BackupRetention    `mapstructure:"retention"`
+	Compression   BackupCompression  `mapstructure:"compression"`
+	Security      BackupSecurity     `mapstructure:"security"`
+	Storage       BackupStorage      `mapstructure:"storage"`
+	Verification  BackupVerification `mapstructure:"verification"`
+}
+
+type BackupRetention struct {
+	Days            int    `mapstructure:"days"`
+	CleanupEnabled  bool   `mapstructure:"cleanup_enabled"`
+	CleanupSchedule string `mapstructure:"cleanup_schedule"`
+}
+
+type BackupCompression struct {
+	Required  bool   `mapstructure:"required"`
+	Algorithm string `mapstructure:"algorithm"`
+	Level     string `mapstructure:"level"`
+}
+
+type BackupSecurity struct {
+	EncryptionRequired   bool `mapstructure:"encryption_required"`
+	ChecksumVerification bool `mapstructure:"checksum_verification"`
+	IntegrityCheck       bool `mapstructure:"integrity_check"`
+}
+
+type BackupStorage struct {
+	BaseDirectory string                 `mapstructure:"base_directory"`
+	Structure     BackupStorageStructure `mapstructure:"structure"`
+	Naming        BackupStorageNaming    `mapstructure:"naming"`
+	TempDirectory string                 `mapstructure:"temp_directory"`
+	CleanupTemp   bool                   `mapstructure:"cleanup_temp"`
+}
+
+type BackupStorageStructure struct {
+	Pattern       string `mapstructure:"pattern"`
+	CreateSubdirs bool   `mapstructure:"create_subdirs"`
+}
+
+type BackupStorageNaming struct {
+	Pattern           string `mapstructure:"pattern"`
+	IncludeHostname   bool   `mapstructure:"include_hostname"`
+	IncludeClientCode bool   `mapstructure:"include_client_code"`
+}
+
+type BackupVerification struct {
+	DiskSpaceCheck   bool   `mapstructure:"disk_space_check"`
+	MinimumFreeSpace string `mapstructure:"minimum_free_space"`
+	VerifyAfterWrite bool   `mapstructure:"verify_after_write"`
+	CompareChecksums bool   `mapstructure:"compare_checksums"`
 }
 
 type SystemUsers struct {
@@ -79,15 +139,14 @@ type ConfigDirConfig struct {
 }
 
 type MariaDBConfig struct {
-	DefaultVersion string               `mapstructure:"default_version"`
-	Installation   MariaDBInstallConfig `mapstructure:"installation"`
+	Installation MariaDBInstallConfig `mapstructure:"mariadb_installation"`
 }
 
 type MariaDBInstallConfig struct {
-	BaseDir             string `mapstructure:"base_dir"`
-	DataDir             string `mapstructure:"data_dir"`
-	LogDir              string `mapstructure:"log_dir"`
-	BinlogDir           string `mapstructure:"binlog_dir"`
-	Port                int    `mapstructure:"port"`
-	SeparateDirectories bool   `mapstructure:"separate_directories"`
+	Version   string `mapstructure:"version"`
+	BaseDir   string `mapstructure:"base_dir"`
+	DataDir   string `mapstructure:"data_dir"`
+	LogDir    string `mapstructure:"log_dir"`
+	BinlogDir string `mapstructure:"binlog_dir"`
+	Port      int    `mapstructure:"port"`
 }

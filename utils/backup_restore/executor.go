@@ -284,7 +284,7 @@ func backupAndRestoreDatabase(sourceDB, targetDB string, options *BackupRestoreC
 		User:              dbConfig.User,
 		Password:          dbConfig.Password,
 		DBName:            sourceDB,
-		OutputDir:         cfg.Backup.OutputDir,
+		OutputDir:         cfg.Backup.Storage.BaseDirectory,
 		Compress:          true,
 		Compression:       "gzip",
 		CompressionLevel:  "6",

@@ -150,7 +150,7 @@ func ResolveBackupFile(cmd *cobra.Command) (string, error) {
 		return selectedFile, nil
 	}
 
-	backupDir := cfg.Backup.OutputDir
+	backupDir := cfg.Backup.Storage.BaseDirectory
 	if backupDir == "" {
 		backupDir = "./backup" // fallback default
 	}
@@ -191,7 +191,7 @@ func ResolveGrantsFile(cmd *cobra.Command) (string, error) {
 		return selectedFile, nil
 	}
 
-	backupDir := cfg.Backup.OutputDir
+	backupDir := cfg.Backup.Storage.BaseDirectory
 	if backupDir == "" {
 		backupDir = "./backup" // fallback default
 	}

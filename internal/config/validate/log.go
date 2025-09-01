@@ -22,15 +22,15 @@ func Log(l model.LogConfig) error {
 		return fmt.Errorf("timezone tidak valid: %w", err)
 	}
 
-	if l.Output.File {
-		if l.File.Dir == "" {
-			return errors.New("log.file.dir wajib diisi saat output.file = true")
+	if l.Output.File.Enabled {
+		if l.Output.File.Dir == "" {
+			return errors.New("log.output.file.dir wajib diisi saat output.file.enabled = true")
 		}
-		if err := DirExistsAndWritable(l.File.Dir); err != nil {
-			return fmt.Errorf("log.file.dir tidak valid: %w", err)
+		if err := DirExistsAndWritable(l.Output.File.Dir); err != nil {
+			return fmt.Errorf("log.output.file.dir tidak valid: %w", err)
 		}
-		if l.File.RetentionDays < 1 {
-			return fmt.Errorf("log.file.retention_days harus >= 1, sekarang: %d", l.File.RetentionDays)
+		if l.Output.File.Rotation.RetentionDays < 1 {
+			return fmt.Errorf("log.output.file.rotation.retention_days harus >= 1, sekarang: %d", l.Output.File.Rotation.RetentionDays)
 		}
 	}
 	return nil
