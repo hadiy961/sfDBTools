@@ -1,6 +1,7 @@
 package mariadb
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -43,8 +44,8 @@ type VersionParser interface {
 func NewHTTPVersionFetcher(url string, parser VersionParser) *HTTPVersionFetcher {
 	return &HTTPVersionFetcher{
 		URL:       url,
-		Timeout:   30 * time.Second,
-		UserAgent: "sfDBTools/1.0 MariaDB-Version-Checker",
+		Timeout:   DefaultHTTPTimeout,
+		UserAgent: DefaultUserAgent,
 		Parser:    parser,
 	}
 }
@@ -214,11 +215,10 @@ func CompareVersions(v1, v2 string) bool {
 func GetMariaDBEOLDate(version string) string {
 	// For rolling/rc versions, return "No LTS"
 	if strings.Contains(version, "rolling") || strings.Contains(version, "rc") {
-		return "No LTS"
+		return NoLTS
 	}
 
-	// For testing, skip external API and use local calculation only
-	// TODO: Re-enable external API later
+	// Try external source first (fast timeout)
 	if eolDate := tryFetchEOLFromExternal(version); eolDate != "" {
 		return eolDate
 	}
@@ -237,8 +237,8 @@ func tryFetchEOLFromExternal(version string) string {
 	majorMinor := parts[0] + "." + parts[1]
 
 	// Try endoflife.date API with timeout
-	client := &http.Client{Timeout: 3 * time.Second}
-	url := fmt.Sprintf("https://endoflife.date/api/mariadb/%s.json", majorMinor)
+	client := &http.Client{Timeout: DefaultEOLTimeout}
+	url := fmt.Sprintf(DefaultEndOfLifeAPI, majorMinor)
 
 	resp, err := client.Get(url)
 	if err != nil {
@@ -255,18 +255,53 @@ func tryFetchEOLFromExternal(version string) string {
 		return ""
 	}
 
-	// Simple regex parsing to extract EOL date
-	eolPattern := regexp.MustCompile(`"eol"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2})"`)
-	matches := eolPattern.FindStringSubmatch(string(body))
-
-	if len(matches) > 1 {
-		return matches[1]
+	// Decode JSON robustly instead of regex
+	var raw interface{}
+	if err := json.Unmarshal(body, &raw); err != nil {
+		// fallback to previous regex approach if JSON decode fails
+		eolPattern := regexp.MustCompile(`"eol"\s*:\s*"([0-9]{4}-[0-9]{2}-[0-9]{2})"`)
+		if matches := eolPattern.FindStringSubmatch(string(body)); len(matches) > 1 {
+			return matches[1]
+		}
+		boolPattern := regexp.MustCompile(`"eol"\s*:\s*true`)
+		if boolPattern.MatchString(string(body)) {
+			return time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+		}
+		return ""
 	}
 
-	// Check for boolean EOL (means already EOL)
-	eolBoolPattern := regexp.MustCompile(`"eol"\s*:\s*true`)
-	if eolBoolPattern.MatchString(string(body)) {
-		return time.Now().AddDate(0, 0, -1).Format("2006-01-02") // Yesterday = already EOL
+	// helper to interpret "eol" field when present
+	handleMap := func(m map[string]interface{}) string {
+		if rawEOL, ok := m["eol"]; ok {
+			switch v := rawEOL.(type) {
+			case string:
+				// basic validation: YYYY-MM-DD
+				if matched, _ := regexp.MatchString(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`, v); matched {
+					return v
+				}
+			case bool:
+				if v {
+					// already EOL -> return yesterday
+					return time.Now().AddDate(0, 0, -1).Format("2006-01-02")
+				}
+			}
+		}
+		return ""
+	}
+
+	switch t := raw.(type) {
+	case map[string]interface{}:
+		if res := handleMap(t); res != "" {
+			return res
+		}
+	case []interface{}:
+		if len(t) > 0 {
+			if first, ok := t[0].(map[string]interface{}); ok {
+				if res := handleMap(first); res != "" {
+					return res
+				}
+			}
+		}
 	}
 
 	return ""
@@ -330,7 +365,7 @@ func estimateLTSEOL(major, minor string) string {
 	}
 
 	// Fallback: conservative estimate
-	return "TBD"
+	return TBD
 }
 
 // estimateStableEOL estimates EOL for stable versions
@@ -343,12 +378,18 @@ func estimateStableEOL(major, minor string) string {
 		}
 	}
 
-	return "TBD"
+	return TBD
 }
 
 // estimateReleaseDate estimates release date based on version pattern
+// estimateReleaseDate estimates release date based on version pattern
 func estimateReleaseDate(major, minor string) string {
-	// Known release dates for reference
+	// 0) Try external services as primary source
+	if d := tryFetchReleaseDateFromExternal(major, minor); d != "" {
+		return d
+	}
+
+	// 1) Known release dates for reference (local fallback)
 	knownReleases := map[string]string{
 		"10.5":  "2020-06-24",
 		"10.6":  "2021-07-06",
@@ -361,7 +402,7 @@ func estimateReleaseDate(major, minor string) string {
 		return date
 	}
 
-	// Pattern-based estimation for unknown versions
+	// 2) Pattern-based estimation for unknown versions
 	majorNum, err1 := parseVersionNumber(major)
 	minorNum, err2 := parseVersionNumber(minor)
 
@@ -393,4 +434,119 @@ func parseVersionNumber(versionStr string) (int, error) {
 	var num int
 	_, err := fmt.Sscanf(versionStr, "%d", &num)
 	return num, err
+}
+
+// tryFetchReleaseDateFromExternal tries external sources (endoflife.date, GitHub Releases)
+// returns YYYY-MM-DD or empty string
+func tryFetchReleaseDateFromExternal(major, minor string) string {
+	majorMinor := major + "." + minor
+
+	// 1) Try endoflife.date first (fast)
+	client := &http.Client{Timeout: DefaultEOLTimeout}
+	url := fmt.Sprintf(DefaultEndOfLifeAPI, majorMinor)
+	req, _ := http.NewRequest("GET", url, nil)
+	req.Header.Set("User-Agent", DefaultUserAgent)
+
+	if resp, err := client.Do(req); err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			if body, err := io.ReadAll(resp.Body); err == nil {
+				var raw interface{}
+				if err := json.Unmarshal(body, &raw); err == nil {
+					// raw can be object or array
+					extract := func(m map[string]interface{}) string {
+						// common keys that may contain release date
+						for _, k := range []string{"release", "release-date", "release_date", "released", "first_release"} {
+							if v, ok := m[k]; ok {
+								if s, ok := v.(string); ok {
+									if matched, _ := regexp.MatchString(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`, s); matched {
+										return s
+									}
+									// try parse RFC3339 then format
+									if t, err := time.Parse(time.RFC3339, s); err == nil {
+										return t.Format("2006-01-02")
+									}
+								}
+							}
+						}
+						// sometimes field names differ; try "latest_release" -> "release_date" nested
+						if lr, ok := m["latest_release"]; ok {
+							if lm, ok := lr.(map[string]interface{}); ok {
+								for _, k := range []string{"release", "release_date", "released"} {
+									if v, ok := lm[k]; ok {
+										if s, ok := v.(string); ok {
+											if matched, _ := regexp.MatchString(`^[0-9]{4}-[0-9]{2}-[0-9]{2}$`, s); matched {
+												return s
+											}
+										}
+									}
+								}
+							}
+						}
+						return ""
+					}
+
+					switch t := raw.(type) {
+					case map[string]interface{}:
+						if d := extract(t); d != "" {
+							return d
+						}
+					case []interface{}:
+						if len(t) > 0 {
+							if first, ok := t[0].(map[string]interface{}); ok {
+								if d := extract(first); d != "" {
+									return d
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	// 2) Fall back to GitHub Releases - search for a release that mentions major.minor
+	client = &http.Client{Timeout: DefaultHTTPTimeout}
+	req, _ = http.NewRequest("GET", DefaultGitHubReleasesAPI, nil)
+	req.Header.Set("User-Agent", DefaultUserAgent)
+
+	if resp, err := client.Do(req); err == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			if body, err := io.ReadAll(resp.Body); err == nil {
+				var releases []map[string]interface{}
+				if err := json.Unmarshal(body, &releases); err == nil {
+					for _, rel := range releases {
+						// check tag_name, name, body for majorMinor
+						found := false
+						for _, k := range []string{"tag_name", "name", "body"} {
+							if v, ok := rel[k]; ok {
+								if s, ok := v.(string); ok && strings.Contains(s, majorMinor) {
+									found = true
+									break
+								}
+							}
+						}
+						if !found {
+							continue
+						}
+						// get published_at
+						if pa, ok := rel["published_at"].(string); ok && pa != "" {
+							if t, err := time.Parse(time.RFC3339, pa); err == nil {
+								return t.Format("2006-01-02")
+							}
+						}
+						// try created_at
+						if ca, ok := rel["created_at"].(string); ok && ca != "" {
+							if t, err := time.Parse(time.RFC3339, ca); err == nil {
+								return t.Format("2006-01-02")
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return ""
 }
