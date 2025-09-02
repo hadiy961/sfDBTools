@@ -1,6 +1,7 @@
 package check_version
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -16,11 +17,18 @@ func NewHTTPVersionFetcher(url string, parser VersionParser) *HTTPVersionFetcher
 	}
 }
 
-// FetchVersions implements VersionFetcher interface
+// FetchVersions implements VersionFetcher interface (backwards compatible)
 func (f *HTTPVersionFetcher) FetchVersions() ([]VersionInfo, error) {
+	// Default to background context if caller doesn't supply one
+	return f.FetchVersionsWithCtx(context.Background())
+}
+
+// FetchVersionsWithCtx fetches versions using provided context for cancellation/timeouts
+func (f *HTTPVersionFetcher) FetchVersionsWithCtx(ctx context.Context) ([]VersionInfo, error) {
+	// create request with context so caller can cancel
 	client := &http.Client{Timeout: f.Timeout}
 
-	req, err := http.NewRequest("GET", f.URL, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", f.URL, nil)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
@@ -36,7 +44,8 @@ func (f *HTTPVersionFetcher) FetchVersions() ([]VersionInfo, error) {
 		return nil, fmt.Errorf("unexpected status code %d from %s", resp.StatusCode, f.URL)
 	}
 
-	// Read response body safely
+	// Read response body safely with a small deadline derived from context (if any)
+	// Respect existing timeout on client as well
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)

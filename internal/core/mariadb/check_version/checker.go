@@ -1,12 +1,16 @@
 package check_version
 
 import (
+	"context"
 	"fmt"
+	"sync"
 	"time"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/mariadb"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // Checker handles MariaDB version checking operations
@@ -37,8 +41,13 @@ func NewChecker(config *Config) (*Checker, error) {
 	}, nil
 }
 
-// CheckAvailableVersions fetches available MariaDB versions from official sources
+// CheckAvailableVersions is the backwards-compatible entry point
 func (c *Checker) CheckAvailableVersions() (*VersionCheckResult, error) {
+	return c.CheckAvailableVersionsWithCtx(context.Background())
+}
+
+// CheckAvailableVersionsWithCtx fetches available MariaDB versions and respects ctx cancellation
+func (c *Checker) CheckAvailableVersionsWithCtx(ctx context.Context) (*VersionCheckResult, error) {
 	lg, err := logger.Get()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get logger: %w", err)
@@ -52,9 +61,10 @@ func (c *Checker) CheckAvailableVersions() (*VersionCheckResult, error) {
 	// Get versions
 	var versions []mariadb.VersionInfo
 	if c.config.OSSpecific && c.osInfo != nil {
+		// delegate to utils wrapper (keeps existing behavior)
 		versions, err = mariadb.GetVersionsForOS(c.osInfo, fetchers)
 	} else {
-		versions, err = c.fetchFromAllSources(fetchers)
+		versions, err = c.fetchFromAllSourcesWithCtx(ctx, fetchers)
 	}
 
 	if err != nil {
@@ -113,35 +123,79 @@ func (c *Checker) createFetchers() []mariadb.VersionFetcher {
 	return fetchers
 }
 
-// fetchFromAllSources fetches versions from all available sources
-func (c *Checker) fetchFromAllSources(fetchers []mariadb.VersionFetcher) ([]mariadb.VersionInfo, error) {
+// fetchFromAllSourcesWithCtx fetches versions from all available sources using context for cancellation
+// This implementation runs fetchers in parallel with a bounded concurrency limit to reduce total latency.
+func (c *Checker) fetchFromAllSourcesWithCtx(ctx context.Context, fetchers []mariadb.VersionFetcher) ([]mariadb.VersionInfo, error) {
 	lg, _ := logger.Get()
 
-	var allVersions []mariadb.VersionInfo
+	if len(fetchers) == 0 {
+		return nil, fmt.Errorf("no fetchers configured")
+	}
+
+	// bounded concurrency
+	maxConcurrency := 4
+	if len(fetchers) < maxConcurrency {
+		maxConcurrency = len(fetchers)
+	}
+
+	sem := make(chan struct{}, maxConcurrency)
+	g, gctx := errgroup.WithContext(ctx)
+
+	var mu sync.Mutex
+	allVersions := make([]mariadb.VersionInfo, 0)
 	seenVersions := make(map[string]bool)
 
 	for i, fetcher := range fetchers {
-		lg.Debug("Trying to fetch versions from source", logger.Int("source_index", i))
-		versions, err := fetcher.FetchVersions()
-		if err != nil {
-			lg.Debug("Source failed, trying next", logger.Int("source_index", i), logger.Error(err))
-			continue
+		i := i
+		fetcher := fetcher
+
+		if gctx.Err() != nil {
+			break
 		}
 
-		// Add unique versions
-		for _, version := range versions {
-			if !seenVersions[version.Version] {
-				allVersions = append(allVersions, version)
-				seenVersions[version.Version] = true
+		sem <- struct{}{}
+		g.Go(func() error {
+			defer func() { <-sem }()
+
+			lg.Debug("Trying to fetch versions from source", logger.Int("source_index", i))
+
+			var versions []mariadb.VersionInfo
+			var err error
+
+			if ctxFetcher, ok := fetcher.(interface {
+				FetchVersionsWithCtx(context.Context) ([]mariadb.VersionInfo, error)
+			}); ok {
+				versions, err = ctxFetcher.FetchVersionsWithCtx(gctx)
+			} else {
+				versions, err = fetcher.FetchVersions()
 			}
-		}
 
-		if len(versions) > 0 {
-			lg.Info("Successfully fetched versions from source",
-				logger.Int("source_index", i),
-				logger.Int("version_count", len(versions)),
-				logger.String("fetcher", fetcher.GetName()))
-		}
+			if err != nil {
+				lg.Debug("Source failed, trying next", logger.Int("source_index", i), logger.Error(err))
+				return nil // don't fail whole group for single-source failure
+			}
+
+			mu.Lock()
+			for _, version := range versions {
+				if !seenVersions[version.Version] {
+					allVersions = append(allVersions, version)
+					seenVersions[version.Version] = true
+				}
+			}
+			mu.Unlock()
+
+			if len(versions) > 0 {
+				lg.Info("Successfully fetched versions from source",
+					logger.Int("source_index", i),
+					logger.Int("version_count", len(versions)),
+					logger.String("fetcher", fetcher.GetName()))
+			}
+			return nil
+		})
+	}
+
+	if err := g.Wait(); err != nil {
+		return nil, err
 	}
 
 	if len(allVersions) == 0 {
