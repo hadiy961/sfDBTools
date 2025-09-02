@@ -54,6 +54,11 @@ func (ps *ProgressSpinner) Start() {
 	ps.active = true
 	HideCursor()
 
+	// Register as active spinner so print functions can coordinate
+	spinnerMu.Lock()
+	activeSpinner = ps
+	spinnerMu.Unlock()
+
 	go func() {
 		for {
 			select {
@@ -81,6 +86,13 @@ func (ps *ProgressSpinner) Stop() {
 	ps.stopChan <- true
 	ClearCurrentLine()
 	ShowCursor()
+
+	// Unregister active spinner if it's this one
+	spinnerMu.Lock()
+	if activeSpinner == ps {
+		activeSpinner = nil
+	}
+	spinnerMu.Unlock()
 
 	// Stop spinner without debug logging for cleaner output
 }
@@ -154,12 +166,17 @@ func ColorText(text, color string) string {
 
 // PrintColoredText prints text with the specified color
 func PrintColoredText(text, color string) {
+	// Pause active spinner to avoid overlapping output
+	s := pauseActiveSpinner()
 	fmt.Print(ColorText(text, color))
+	resumeSpinner(s)
 }
 
 // PrintColoredLine prints a line with the specified color
 func PrintColoredLine(text, color string) {
+	s := pauseActiveSpinner()
 	fmt.Println(ColorText(text, color))
+	resumeSpinner(s)
 }
 
 // PrintSuccess prints success message in green

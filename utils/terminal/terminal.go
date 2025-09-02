@@ -6,6 +6,7 @@ import (
 	"os/exec"
 	"runtime"
 	"strings"
+	"sync"
 
 	"sfDBTools/internal/logger"
 )
@@ -96,6 +97,37 @@ func ClearToEndOfLine() error {
 
 	lg.Debug("Cleared to end of line")
 	return nil
+}
+
+// Spinner management for coordinated printing
+var (
+	spinnerMu     sync.Mutex
+	activeSpinner *ProgressSpinner
+)
+
+// pauseActiveSpinner stops the currently active spinner (if any) and returns it
+// so the caller may resume it later. It is safe to call from multiple goroutines.
+func pauseActiveSpinner() *ProgressSpinner {
+	spinnerMu.Lock()
+	defer spinnerMu.Unlock()
+
+	if activeSpinner != nil && activeSpinner.active {
+		// Stop without logging noise; Stop handles cursor and clearing
+		s := activeSpinner
+		// Do not nil activeSpinner here; Stop() will clear it
+		s.Stop()
+		return s
+	}
+	return nil
+}
+
+// resumeSpinner restarts the given spinner if non-nil.
+func resumeSpinner(s *ProgressSpinner) {
+	if s == nil {
+		return
+	}
+	// Restart spinner; Start will set activeSpinner under lock
+	s.Start()
 }
 
 // MoveCursor moves the cursor to the specified row and column (1-indexed)
