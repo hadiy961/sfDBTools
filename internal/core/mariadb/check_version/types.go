@@ -1,6 +1,10 @@
 package check_version
 
-import "time"
+import (
+	"time"
+
+	"sfDBTools/utils/common"
+)
 
 // VersionInfo represents MariaDB version information
 type VersionInfo struct {
@@ -12,21 +16,12 @@ type VersionInfo struct {
 
 // VersionCheckResult contains the result of version checking
 type VersionCheckResult struct {
-	AvailableVersions []VersionInfo `json:"available_versions"`
-	CurrentStable     string        `json:"current_stable"`
-	LatestVersion     string        `json:"latest_version"`
-	LatestMinor       string        `json:"latest_minor"`
-	CheckTime         time.Time     `json:"check_time"`
-	OSInfo            *OSInfo       `json:"os_info,omitempty"`
-}
-
-// OSInfo represents operating system information
-type OSInfo struct {
-	ID           string `json:"id"`
-	Name         string `json:"name"`
-	Version      string `json:"version"`
-	Architecture string `json:"architecture"`
-	PackageType  string `json:"package_type"` // rpm, deb
+	AvailableVersions []VersionInfo  `json:"available_versions"`
+	CurrentStable     string         `json:"current_stable"`
+	LatestVersion     string         `json:"latest_version"`
+	LatestMinor       string         `json:"latest_minor"`
+	CheckTime         time.Time      `json:"check_time"`
+	OSInfo            *common.OSInfo `json:"os_info,omitempty"`
 }
 
 // VersionType constants

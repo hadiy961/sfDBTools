@@ -78,52 +78,8 @@ func executeVersionCheck(cmd *cobra.Command) error {
 		return err
 	}
 
-	// 7. Convert to generic format and display results
-	genericResult := &mariadb.GenericVersionResult{
-		Versions:  convertToVersionInfoMap(result.AvailableVersions),
-		Meta:      convertToGenericMeta(result),
-		FetchedAt: result.CheckTime,
-	}
-
-	return mariadb.DisplayVersionsFromGenericResult(genericResult, config)
-}
-
-// convertToVersionInfoMap converts check_version results to utils format
-func convertToVersionInfoMap(versions []check_version.VersionInfo) map[string]mariadb.VersionInfo {
-	result := make(map[string]mariadb.VersionInfo)
-	for _, info := range versions {
-		result[info.Version] = mariadb.VersionInfo{
-			Version:     info.Version,
-			Type:        info.Type,
-			ReleaseDate: info.ReleaseDate,
-			EOLDate:     mariadb.GetMariaDBEOLDate(info.Version),
-		}
-	}
-	return result
-}
-
-// convertToGenericMeta converts check_version result to utils format
-func convertToGenericMeta(result *check_version.VersionCheckResult) mariadb.GenericMetaInfo {
-	osInfo := mariadb.OSInfo{
-		OS:   "unknown",
-		Arch: "unknown",
-	}
-
-	if result.OSInfo != nil {
-		osInfo.OS = result.OSInfo.ID
-		osInfo.Arch = result.OSInfo.Architecture
-	}
-
-	return mariadb.GenericMetaInfo{
-		OSInfo: osInfo,
-		Sources: []string{
-			"MariaDB GitHub API",
-			"MariaDB Downloads Page",
-			"MariaDB Repository Scripts",
-		},
-		Count:     len(result.AvailableVersions),
-		FetchedAt: result.CheckTime,
-	}
+	// 7. Display results directly using the check_version display function
+	return check_version.DisplayVersions(result, config)
 }
 
 func init() {

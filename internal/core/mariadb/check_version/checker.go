@@ -73,13 +73,7 @@ func (c *Checker) CheckAvailableVersions() (*VersionCheckResult, error) {
 
 	// Add OS info if available
 	if c.osInfo != nil {
-		result.OSInfo = &OSInfo{
-			ID:           c.osInfo.ID,
-			Name:         c.osInfo.Name,
-			Version:      c.osInfo.Version,
-			Architecture: c.osInfo.Architecture,
-			PackageType:  c.osInfo.PackageType,
-		}
+		result.OSInfo = c.osInfo
 	}
 
 	// Find current stable and latest versions

@@ -15,23 +15,11 @@ func NewVersionAnalyzer() *VersionAnalyzer {
 
 // FindCurrentStable finds the current stable version
 func (a *VersionAnalyzer) FindCurrentStable(versions []VersionInfo) string {
-	var stableVersions []string
-
-	for _, v := range versions {
-		if v.Type == "stable" && !strings.Contains(v.Version, "rolling") && !strings.Contains(v.Version, "rc") {
-			stableVersions = append(stableVersions, v.Version)
-		}
-	}
-
-	if len(stableVersions) == 0 {
-		return ""
-	}
-
-	sort.Slice(stableVersions, func(i, j int) bool {
-		return CompareVersions(stableVersions[i], stableVersions[j])
+	stableVersions := filterVersionStrings(versions, func(v VersionInfo) bool {
+		return v.Type == "stable" && !strings.Contains(v.Version, "rolling") && !strings.Contains(v.Version, "rc")
 	})
 
-	return stableVersions[len(stableVersions)-1]
+	return latestFromStrings(stableVersions)
 }
 
 // FindLatestVersion finds the absolute latest version
@@ -39,29 +27,21 @@ func (a *VersionAnalyzer) FindLatestVersion(versions []VersionInfo) string {
 	if len(versions) == 0 {
 		return ""
 	}
-
 	for _, v := range versions {
 		if strings.Contains(v.Version, "rolling") {
 			return v.Version
 		}
 	}
 
-	var allVersions []string
-	for _, v := range versions {
-		if !strings.Contains(v.Version, "rc") {
-			allVersions = append(allVersions, v.Version)
-		}
-	}
+	allVersions := filterVersionStrings(versions, func(v VersionInfo) bool {
+		return !strings.Contains(v.Version, "rc")
+	})
 
 	if len(allVersions) == 0 {
 		return versions[len(versions)-1].Version
 	}
 
-	sort.Slice(allVersions, func(i, j int) bool {
-		return CompareVersions(allVersions[i], allVersions[j])
-	})
-
-	return allVersions[len(allVersions)-1]
+	return latestFromStrings(allVersions)
 }
 
 // FindLatestMinor finds the latest minor version across all major versions
@@ -69,7 +49,7 @@ func (a *VersionAnalyzer) FindLatestMinor(versions []VersionInfo) string {
 	if len(versions) == 0 {
 		return ""
 	}
-
+	// collect stable, non-rolling, non-rc versions grouped by major
 	majorVersions := make(map[string][]string)
 
 	for _, v := range versions {
@@ -89,22 +69,10 @@ func (a *VersionAnalyzer) FindLatestMinor(versions []VersionInfo) string {
 			continue
 		}
 
-		sort.Slice(minorVersions, func(i, j int) bool {
-			return CompareVersions(minorVersions[i], minorVersions[j])
-		})
-
-		latestMinors = append(latestMinors, minorVersions[len(minorVersions)-1])
+		latestMinors = append(latestMinors, latestFromStrings(minorVersions))
 	}
 
-	if len(latestMinors) == 0 {
-		return ""
-	}
-
-	sort.Slice(latestMinors, func(i, j int) bool {
-		return CompareVersions(latestMinors[i], latestMinors[j])
-	})
-
-	return latestMinors[len(latestMinors)-1]
+	return latestFromStrings(latestMinors)
 }
 
 // SortVersions sorts versions in ascending order
@@ -112,10 +80,7 @@ func (a *VersionAnalyzer) SortVersions(versions []VersionInfo) []VersionInfo {
 	sorted := make([]VersionInfo, len(versions))
 	copy(sorted, versions)
 
-	sort.Slice(sorted, func(i, j int) bool {
-		return CompareVersions(sorted[i].Version, sorted[j].Version)
-	})
-
+	sortVersionInfoSlice(sorted)
 	return sorted
 }
 
@@ -128,9 +93,7 @@ func (a *VersionAnalyzer) GroupVersionsByType(versions []VersionInfo) map[string
 	}
 
 	for versionType, versionList := range groups {
-		sort.Slice(versionList, func(i, j int) bool {
-			return CompareVersions(versionList[i].Version, versionList[j].Version)
-		})
+		sortVersionInfoSlice(versionList)
 		groups[versionType] = versionList
 	}
 
@@ -149,4 +112,40 @@ func (a *VersionAnalyzer) FilterVersionsByMajor(versions []VersionInfo, majorVer
 	}
 
 	return filtered
+}
+
+// --- helper reusable functions ---
+
+// filterVersionStrings returns a slice of version strings for which pred returns true
+func filterVersionStrings(versions []VersionInfo, pred func(VersionInfo) bool) []string {
+	var out []string
+	for _, v := range versions {
+		if pred(v) {
+			out = append(out, v.Version)
+		}
+	}
+	return out
+}
+
+// sortVersionStringsAsc sorts a slice of version strings in ascending order using CompareVersions
+func sortVersionStringsAsc(list []string) {
+	sort.Slice(list, func(i, j int) bool {
+		return CompareVersions(list[i], list[j])
+	})
+}
+
+// latestFromStrings returns the latest (largest) version string from the slice or empty string
+func latestFromStrings(list []string) string {
+	if len(list) == 0 {
+		return ""
+	}
+	sortVersionStringsAsc(list)
+	return list[len(list)-1]
+}
+
+// sortVersionInfoSlice sorts a slice of VersionInfo in-place by their Version field
+func sortVersionInfoSlice(list []VersionInfo) {
+	sort.Slice(list, func(i, j int) bool {
+		return CompareVersions(list[i].Version, list[j].Version)
+	})
 }

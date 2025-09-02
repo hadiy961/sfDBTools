@@ -1,4 +1,4 @@
-package mariadb
+package check_version
 
 import (
 	"encoding/json"
@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"sfDBTools/internal/core/mariadb"
+	"sfDBTools/utils/mariadb"
 	"sfDBTools/utils/terminal"
 )
 
-func DisplayVersions(result *mariadb.VersionCheckResult, config *VersionConfig) error {
+func DisplayVersions(result *VersionCheckResult, config *mariadb.VersionConfig) error {
 	switch config.OutputFormat {
 	case "json":
 		return displayJSON(result)
@@ -22,7 +22,7 @@ func DisplayVersions(result *mariadb.VersionCheckResult, config *VersionConfig) 
 	}
 }
 
-func displayJSON(result *mariadb.VersionCheckResult) error {
+func displayJSON(result *VersionCheckResult) error {
 	jsonData, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return fmt.Errorf("failed to marshal JSON: %w", err)
@@ -31,7 +31,7 @@ func displayJSON(result *mariadb.VersionCheckResult) error {
 	return nil
 }
 
-func displaySimple(result *mariadb.VersionCheckResult) error {
+func displaySimple(result *VersionCheckResult) error {
 	terminal.PrintSuccess("MariaDB Available Versions")
 	fmt.Printf("\nCurrent Stable: %s\n", result.CurrentStable)
 	fmt.Printf("Latest Version: %s\n", result.LatestVersion)
@@ -47,7 +47,7 @@ func displaySimple(result *mariadb.VersionCheckResult) error {
 	return nil
 }
 
-func displayTable(result *mariadb.VersionCheckResult, showDetails bool) error {
+func displayTable(result *VersionCheckResult, showDetails bool) error {
 	terminal.ClearAndShowHeader("MariaDB Version Information")
 
 	terminal.PrintSubHeader("Summary")
@@ -93,7 +93,7 @@ func displayTable(result *mariadb.VersionCheckResult, showDetails bool) error {
 	return nil
 }
 
-func DisplayVersionsFromGenericResult(result *GenericVersionResult, config *VersionConfig) error {
+func DisplayVersionsFromGenericResult(result *GenericVersionResult, config *mariadb.VersionConfig) error {
 	if len(result.Versions) == 0 {
 		terminal.PrintWarning("No MariaDB versions found")
 		return nil
@@ -104,7 +104,7 @@ func DisplayVersionsFromGenericResult(result *GenericVersionResult, config *Vers
 		sortedVersions = append(sortedVersions, version)
 	}
 	sort.Slice(sortedVersions, func(i, j int) bool {
-		return CompareVersions(sortedVersions[i], sortedVersions[j])
+		return mariadb.CompareVersions(sortedVersions[i], sortedVersions[j])
 	})
 
 	if config.Format == "json" {
@@ -128,7 +128,7 @@ func displayGenericJSON(versions map[string]VersionInfo, meta GenericMetaInfo) e
 	return nil
 }
 
-func displayGenericTable(sortedVersions []string, versions map[string]VersionInfo, meta GenericMetaInfo, config *VersionConfig) error {
+func displayGenericTable(sortedVersions []string, versions map[string]VersionInfo, meta GenericMetaInfo, config *mariadb.VersionConfig) error {
 	terminal.ClearAndShowHeader("MariaDB Version Information")
 
 	terminal.PrintSubHeader("Summary")
@@ -171,12 +171,7 @@ func displayGenericTable(sortedVersions []string, versions map[string]VersionInf
 	return nil
 }
 
-func getVersionIcon(versionType string) string {
-	// Emojis removed — keep function for backward compatibility (returns empty)
-	return ""
-}
-
-func getVersionStatus(version string, result *mariadb.VersionCheckResult) string {
+func getVersionStatus(version string, result *VersionCheckResult) string {
 	if version == result.CurrentStable {
 		return "Current Stable"
 	}
@@ -192,7 +187,7 @@ func getVersionStatus(version string, result *mariadb.VersionCheckResult) string
 func formatVersionType(versionType string) string {
 	// Return colored, human-friendly version type without emoji
 	color := getTypeColor(versionType)
-	return fmt.Sprintf("%s%s%s", color, strings.Title(versionType), terminal.ColorReset)
+	return fmt.Sprintf("%s%s%s", color, strings.ToTitle(strings.ToLower(versionType)), terminal.ColorReset)
 }
 
 func formatStatus(status string) string {
@@ -292,13 +287,13 @@ type GenericVersionResult struct {
 }
 
 type GenericMetaInfo struct {
-	OSInfo    OSInfo    `json:"os_info"`
-	Sources   []string  `json:"sources"`
-	Count     int       `json:"count"`
-	FetchedAt time.Time `json:"fetched_at"`
+	OSInfo    GenericOSInfo `json:"os_info"`
+	Sources   []string      `json:"sources"`
+	Count     int           `json:"count"`
+	FetchedAt time.Time     `json:"fetched_at"`
 }
 
-type OSInfo struct {
+type GenericOSInfo struct {
 	OS   string `json:"os"`
 	Arch string `json:"arch"`
 }

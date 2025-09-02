@@ -1,9 +1,32 @@
 package mariadb
 
 import (
+	"bytes"
+	"encoding/json"
 	"regexp"
 	"strings"
 	"time"
+
+	"github.com/PuerkitoBio/goquery"
+)
+
+// Precompiled regex patterns to avoid recompilation on each call
+var (
+	githubPrimaryPattern  = regexp.MustCompile(`"tag_name":\s*"mariadb-([^"]+)"[^}]*"published_at":\s*"([^"]*)"`)
+	githubFallbackPattern = regexp.MustCompile(`"tag_name":\s*"mariadb-([^"]+)"`)
+
+	downloadsPatterns = []*regexp.Regexp{
+		regexp.MustCompile(`(?i)mariadb\s*(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)`),
+		regexp.MustCompile(`(?i)version\s*(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)`),
+		regexp.MustCompile(`(?i)stable.*?(\d+\.\d+(?:\.\d+)?)`),
+	}
+
+	repoPatterns = []*regexp.Regexp{
+		regexp.MustCompile(`mariadb-(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)`),
+		regexp.MustCompile(`"(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)"`),
+		regexp.MustCompile(`--mariadb-server-version[=\s]+["']?(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?) ["']?`),
+		regexp.MustCompile(`version[=\s]*["']?(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?) ["']?`),
+	}
 )
 
 type GitHubAPIParser struct{}
@@ -15,44 +38,64 @@ func NewGitHubAPIParser() *GitHubAPIParser {
 func (p *GitHubAPIParser) ParseVersions(content string) ([]VersionInfo, error) {
 	versions := make([]VersionInfo, 0)
 	seen := make(map[string]bool)
+	// Try to parse as GitHub Releases JSON first (array of releases)
+	var releases []struct {
+		TagName     string `json:"tag_name"`
+		PublishedAt string `json:"published_at"`
+	}
 
-	// Primary pattern: extract tag_name and published_at
-	pattern := regexp.MustCompile(`"tag_name":\s*"mariadb-([^"]+)"[^}]*"published_at":\s*"([^"]*)"`)
-	matches := pattern.FindAllStringSubmatch(content, -1)
-
-	for _, match := range matches {
-		if len(match) != 3 {
-			continue
+	if err := json.Unmarshal([]byte(content), &releases); err == nil {
+		for _, r := range releases {
+			tag := strings.TrimSpace(r.TagName)
+			// strip optional "mariadb-" prefix
+			version := strings.TrimPrefix(tag, "mariadb-")
+			version = strings.TrimSpace(version)
+			if version == "" {
+				continue
+			}
+			if !seen[version] && IsValidVersion(version) {
+				addUniqueVersion(&versions, seen, VersionInfo{
+					Version:     version,
+					Type:        DetermineVersionType(version),
+					ReleaseDate: NormalizeDate(r.PublishedAt),
+				})
+			}
 		}
+	} else {
+		// fallback to regex-based extraction when content isn't JSON
+		matches := githubPrimaryPattern.FindAllStringSubmatch(content, -1)
 
-		version := strings.TrimSpace(match[1])
-		if !seen[version] && IsValidVersion(version) {
-			versions = append(versions, VersionInfo{
-				Version:     version,
-				Type:        DetermineVersionType(version),
-				ReleaseDate: parseDate(match[2]),
-			})
-			seen[version] = true
+		for _, match := range matches {
+			if len(match) != 3 {
+				continue
+			}
+
+			version := strings.TrimSpace(match[1])
+			if !seen[version] && IsValidVersion(version) {
+				addUniqueVersion(&versions, seen, VersionInfo{
+					Version:     version,
+					Type:        DetermineVersionType(version),
+					ReleaseDate: NormalizeDate(match[2]),
+				})
+			}
 		}
 	}
 
 	// Fallback: tag_name only
 	if len(versions) == 0 {
-		fallbackPattern := regexp.MustCompile(`"tag_name":\s*"mariadb-([^"]+)"`)
-		matches = fallbackPattern.FindAllStringSubmatch(content, -1)
+		matchesFB := githubFallbackPattern.FindAllStringSubmatch(content, -1)
 
-		for _, match := range matches {
+		for _, match := range matchesFB {
 			if len(match) != 2 {
 				continue
 			}
 
 			version := strings.TrimSpace(match[1])
 			if !seen[version] && IsValidVersion(version) {
-				versions = append(versions, VersionInfo{
+				addUniqueVersion(&versions, seen, VersionInfo{
 					Version: version,
 					Type:    DetermineVersionType(version),
 				})
-				seen[version] = true
 			}
 		}
 	}
@@ -69,14 +112,41 @@ func NewDownloadsPageParser() *DownloadsPageParser {
 func (p *DownloadsPageParser) ParseVersions(content string) ([]VersionInfo, error) {
 	versions := make([]VersionInfo, 0)
 	seen := make(map[string]bool)
+	lower := strings.ToLower(content)
+	isHTML := strings.Contains(lower, "<html") || strings.Contains(lower, "<!doctype") || strings.Contains(lower, "<body")
 
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`(?i)mariadb\s*(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)`),
-		regexp.MustCompile(`(?i)version\s*(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)`),
-		regexp.MustCompile(`(?i)stable.*?(\d+\.\d+(?:\.\d+)?)`),
+	if isHTML {
+		// Use goquery to extract candidate texts from common HTML nodes
+		doc, err := goquery.NewDocumentFromReader(bytes.NewReader([]byte(content)))
+		if err == nil {
+			sel := doc.Find("a, h1, h2, h3, p, span, li")
+			sel.Each(func(i int, s *goquery.Selection) {
+				txt := strings.TrimSpace(s.Text())
+				if txt == "" {
+					return
+				}
+				for _, pattern := range downloadsPatterns {
+					matches := pattern.FindAllStringSubmatch(txt, -1)
+					for _, match := range matches {
+						if len(match) < 2 {
+							continue
+						}
+						version := strings.TrimSpace(match[1])
+						if !seen[version] && IsValidVersion(version) {
+							versionType := DetermineVersionType(version)
+							if len(match) > 2 && strings.Contains(strings.ToLower(match[0]), "stable") {
+								versionType = "stable"
+							}
+							addUniqueVersion(&versions, seen, VersionInfo{Version: version, Type: versionType})
+						}
+					}
+				}
+			})
+		}
 	}
 
-	for _, pattern := range patterns {
+	// fallback / also scan raw text to catch cases where HTML parsing didn't find versions
+	for _, pattern := range downloadsPatterns {
 		matches := pattern.FindAllStringSubmatch(content, -1)
 		for _, match := range matches {
 			if len(match) < 2 {
@@ -90,11 +160,10 @@ func (p *DownloadsPageParser) ParseVersions(content string) ([]VersionInfo, erro
 					versionType = "stable"
 				}
 
-				versions = append(versions, VersionInfo{
+				addUniqueVersion(&versions, seen, VersionInfo{
 					Version: version,
 					Type:    versionType,
 				})
-				seen[version] = true
 			}
 		}
 	}
@@ -111,15 +180,7 @@ func NewRepositoryScriptParser() *RepositoryScriptParser {
 func (p *RepositoryScriptParser) ParseVersions(content string) ([]VersionInfo, error) {
 	versions := make([]VersionInfo, 0)
 	seen := make(map[string]bool)
-
-	patterns := []*regexp.Regexp{
-		regexp.MustCompile(`mariadb-(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)`),
-		regexp.MustCompile(`"(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)"`),
-		regexp.MustCompile(`--mariadb-server-version[=\s]+["\']?(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)["\']?`),
-		regexp.MustCompile(`version[=\s]*["\']?(\d+\.\d+(?:\.\d+)?(?:-rc\d*|\.rolling)?)["\']?`),
-	}
-
-	for _, pattern := range patterns {
+	for _, pattern := range repoPatterns {
 		matches := pattern.FindAllStringSubmatch(content, -1)
 		for _, match := range matches {
 			if len(match) < 2 {
@@ -128,11 +189,10 @@ func (p *RepositoryScriptParser) ParseVersions(content string) ([]VersionInfo, e
 
 			version := strings.TrimSpace(match[1])
 			if !seen[version] && IsValidVersion(version) {
-				versions = append(versions, VersionInfo{
+				addUniqueVersion(&versions, seen, VersionInfo{
 					Version: version,
 					Type:    DetermineVersionType(version),
 				})
-				seen[version] = true
 			}
 		}
 	}
@@ -140,7 +200,20 @@ func (p *RepositoryScriptParser) ParseVersions(content string) ([]VersionInfo, e
 	return versions, nil
 }
 
-func parseDate(dateStr string) string {
+// addUniqueVersion appends v to versions if not already seen and marks seen
+func addUniqueVersion(versions *[]VersionInfo, seen map[string]bool, v VersionInfo) {
+	if v.Version == "" {
+		return
+	}
+	if seen[v.Version] {
+		return
+	}
+	*versions = append(*versions, v)
+	seen[v.Version] = true
+}
+
+// NormalizeDate tries multiple layouts and returns yyyy-mm-dd or empty string
+func NormalizeDate(dateStr string) string {
 	if dateStr == "" {
 		return ""
 	}
