@@ -9,6 +9,7 @@ import (
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/mariadb"
+	"sfDBTools/utils/terminal"
 
 	"golang.org/x/sync/errgroup"
 )
@@ -54,6 +55,10 @@ func (c *Checker) CheckAvailableVersionsWithCtx(ctx context.Context) (*VersionCh
 	}
 
 	lg.Info("Starting MariaDB version check")
+	// show spinner while fetching versions
+	spinner := terminal.NewProgressSpinner("Checking MariaDB versions...")
+	spinner.Start()
+	defer spinner.Stop()
 
 	// Create fetchers based on configuration
 	fetchers := c.createFetchers()
@@ -213,6 +218,8 @@ func convertToLocalVersionInfo(versions []mariadb.VersionInfo) []VersionInfo {
 			Version:     v.Version,
 			Type:        v.Type,
 			ReleaseDate: v.ReleaseDate,
+			// EOLDate will be computed lazily when rendering to avoid unnecessary external calls
+			EOLDate: "",
 		}
 	}
 	return result

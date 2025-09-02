@@ -1,11 +1,15 @@
 package logger
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/syslog"
 	"os"
 	"path/filepath"
+	"runtime"
+	"sort"
 	"strconv"
 	"strings"
 	"sync"
@@ -52,25 +56,282 @@ func fieldsToLogrusFields(fields []Field) logrus.Fields {
 	return logrusFields
 }
 
+// writerHook is a logrus Hook that writes formatted entries to an io.Writer.
+// We use this to write file output with a JSON formatter while keeping
+// console/syslog formats separate.
+type writerHook struct {
+	Writer    io.Writer
+	Formatter logrus.Formatter
+	LevelsVal []logrus.Level
+}
+
+func (h *writerHook) Fire(entry *logrus.Entry) error {
+	// Let the configured formatter format the entry (it may include caller info
+	// when log.ReportCaller is true).
+	b, err := h.Formatter.Format(entry)
+	if err != nil {
+		return err
+	}
+	_, err = h.Writer.Write(b)
+	return err
+}
+
+func (h *writerHook) Levels() []logrus.Level {
+	if h.LevelsVal != nil {
+		return h.LevelsVal
+	}
+	return logrus.AllLevels
+}
+
+// PrettyJSONFormatter is a custom logrus formatter that emits human-friendly
+// JSON. It orders common fields first (time, level, msg, file) and then the
+// remaining fields sorted by key. It can omit the function name when empty.
+type PrettyJSONFormatter struct {
+	TimestampFormat  string
+	PrettyPrint      bool
+	CallerPrettyfier func(*runtime.Frame) (string, string)
+}
+
+func (f *PrettyJSONFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	// copy data to avoid mutating original
+	data := make(map[string]interface{}, len(entry.Data))
+	for k, v := range entry.Data {
+		data[k] = v
+	}
+
+	// Prepare caller info: prefer explicit data["file"] if present (injected by
+	// wrappers); otherwise try CallerPrettyfier/entry.Caller; if still empty,
+	// fallback to scanning the runtime stack for the external caller.
+	if _, ok := data["file"]; !ok {
+		if entry.HasCaller() && f.CallerPrettyfier != nil {
+			fn, file := f.CallerPrettyfier(entry.Caller)
+			if file != "" {
+				data["file"] = file
+			}
+			if fn != "" {
+				data["func"] = fn
+			}
+		} else if entry.HasCaller() {
+			data["file"] = fmt.Sprintf("%s:%d", entry.Caller.File, entry.Caller.Line)
+		} else {
+			if cf, ok := getExternalCaller(); ok {
+				data["file"] = cf
+			}
+		}
+	}
+
+	// Build ordered output: time, level, msg, file, then other keys sorted
+	out := make(map[string]interface{})
+	timestamp := entry.Time.Format(f.TimestampFormat)
+	out["time"] = timestamp
+	out["level"] = entry.Level.String()
+	out["msg"] = entry.Message
+	if v, ok := data["file"]; ok {
+		out["file"] = v
+		delete(data, "file")
+	}
+	// Remove func from map if empty or not desired
+	if v, ok := data["func"]; ok {
+		// keep it only if non-empty string
+		if s, ok2 := v.(string); ok2 && s != "" {
+			out["func"] = s
+		}
+		delete(data, "func")
+	}
+
+	// Sort remaining keys for stable output
+	keys := make([]string, 0, len(data))
+	for k := range data {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	for _, k := range keys {
+		out[k] = data[k]
+	}
+
+	var b []byte
+	var err error
+	if f.PrettyPrint {
+		buf := &bytes.Buffer{}
+		encoder := json.NewEncoder(buf)
+		encoder.SetIndent("", "  ")
+		err = encoder.Encode(out)
+		b = buf.Bytes()
+	} else {
+		b, err = json.Marshal(out)
+		if err == nil {
+			b = append(b, '\n')
+		}
+	}
+	return b, err
+}
+
+// ConsoleFormatter formats logs to a concise single-line human-readable form:
+// [timestamp][LEVEL][file:line] - Message ( {k=v}, {k2=v2} )
+type ConsoleFormatter struct {
+	TimestampFormat string
+}
+
+func (f *ConsoleFormatter) Format(entry *logrus.Entry) ([]byte, error) {
+	ts := entry.Time.Format(f.TimestampFormat)
+	lvl := strings.ToUpper(entry.Level.String())
+
+	// file:line if available
+	fileInfo := ""
+	if v, ok := entry.Data["file"]; ok {
+		if s, ok2 := v.(string); ok2 {
+			fileInfo = s
+		}
+	} else if entry.HasCaller() {
+		fileInfo = fmt.Sprintf("%s:%d", filepath.Base(entry.Caller.File), entry.Caller.Line)
+	} else if cf, ok := getExternalCaller(); ok {
+		fileInfo = cf
+	}
+
+	// Build message
+	var b strings.Builder
+	b.WriteString("[")
+	b.WriteString(ts)
+	b.WriteString("][")
+	b.WriteString(lvl)
+	b.WriteString("]")
+	if fileInfo != "" {
+		b.WriteString("[")
+		b.WriteString(fileInfo)
+		b.WriteString("]")
+	}
+	b.WriteString(" - ")
+	b.WriteString(entry.Message)
+
+	// Append details as ( {k=v}, {k2=v2} ) if there are fields
+	if len(entry.Data) > 0 {
+		// Collect keys sorted for stable output
+		keys := make([]string, 0, len(entry.Data))
+		for k := range entry.Data {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		b.WriteString(" [")
+		first := true
+		for _, k := range keys {
+			if !first {
+				b.WriteString(", ")
+			}
+			first = false
+			v := entry.Data[k]
+			// Format value: quote string values that contain spaces
+			switch vv := v.(type) {
+			case string:
+				if strings.ContainsAny(vv, " \t\n") {
+					b.WriteString(fmt.Sprintf("{%s=\"%s\"}", k, vv))
+				} else {
+					b.WriteString(fmt.Sprintf("{%s=%s}", k, vv))
+				}
+			default:
+				b.WriteString(fmt.Sprintf("{%s=%v}", k, vv))
+			}
+		}
+		b.WriteString("]")
+	}
+
+	b.WriteString("\n")
+	return []byte(b.String()), nil
+}
+
 // Logging methods
 func (l *Logger) Debug(msg string, fields ...Field) {
+	// Ensure caller file:line is attached (skip if provided)
+	if !hasField(fields, "file") {
+		if cf, ok := findCallerField(); ok {
+			fields = append([]Field{cf}, fields...)
+		}
+	}
 	l.Logger.WithFields(fieldsToLogrusFields(fields)).Debug(msg)
 }
 
 func (l *Logger) Info(msg string, fields ...Field) {
+	if !hasField(fields, "file") {
+		if cf, ok := findCallerField(); ok {
+			fields = append([]Field{cf}, fields...)
+		}
+	}
 	l.Logger.WithFields(fieldsToLogrusFields(fields)).Info(msg)
 }
 
 func (l *Logger) Warn(msg string, fields ...Field) {
+	if !hasField(fields, "file") {
+		if cf, ok := findCallerField(); ok {
+			fields = append([]Field{cf}, fields...)
+		}
+	}
 	l.Logger.WithFields(fieldsToLogrusFields(fields)).Warn(msg)
 }
 
 func (l *Logger) Error(msg string, fields ...Field) {
+	if !hasField(fields, "file") {
+		if cf, ok := findCallerField(); ok {
+			fields = append([]Field{cf}, fields...)
+		}
+	}
 	l.Logger.WithFields(fieldsToLogrusFields(fields)).Error(msg)
 }
 
 func (l *Logger) Fatal(msg string, fields ...Field) {
+	if !hasField(fields, "file") {
+		if cf, ok := findCallerField(); ok {
+			fields = append([]Field{cf}, fields...)
+		}
+	}
 	l.Logger.WithFields(fieldsToLogrusFields(fields)).Fatal(msg)
+}
+
+// hasField checks if provided fields contain a key
+func hasField(fields []Field, key string) bool {
+	for _, f := range fields {
+		if f.Key == key {
+			return true
+		}
+	}
+	return false
+}
+
+// findCallerField walks the stack to find the first caller outside this package
+// and returns a Field with key "file" and value "filename:line".
+func findCallerField() (Field, bool) {
+	// start at 3 to skip runtime.Callers -> our helper -> logger wrapper
+	for i := 3; i < 16; i++ {
+		pc, file, line, ok := runtime.Caller(i)
+		if !ok {
+			continue
+		}
+		// skip frames inside the logger package
+		if strings.Contains(file, string(filepath.Separator)+"internal"+string(filepath.Separator)+"logger") {
+			continue
+		}
+		_ = pc
+		return String("file", fmt.Sprintf("%s:%d", filepath.Base(file), line)), true
+	}
+	return Field{}, false
+}
+
+// getExternalCaller scans the call stack to find the first frame outside the
+// logger package and returns a "filename:line" string.
+func getExternalCaller() (string, bool) {
+	// skip a few frames from runtime.Callers -> our helper -> logger wrappers
+	pcs := make([]uintptr, 32)
+	n := runtime.Callers(3, pcs)
+	frames := runtime.CallersFrames(pcs[:n])
+	for {
+		frame, more := frames.Next()
+		if !strings.Contains(frame.File, string(filepath.Separator)+"internal"+string(filepath.Separator)+"logger") {
+			return fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line), true
+		}
+		if !more {
+			break
+		}
+	}
+	return "", false
 }
 
 func (l *Logger) Sync() error {
@@ -124,24 +385,32 @@ func buildLogger(cfg *model.Config) (*logrus.Logger, error) {
 	}
 	log.SetLevel(level)
 
-	// Set formatter based on format config
+	// Set formatter for console/syslog based on format config. File output will
+	// be forced to JSON via a hook so file logs are always JSON.
+	var consoleFormatter logrus.Formatter
 	switch strings.ToLower(cfg.Log.Format) {
 	case "json":
-		log.SetFormatter(&logrus.JSONFormatter{
+		consoleFormatter = &logrus.JSONFormatter{
 			TimestampFormat: "2006-01-02 15:04:05",
-		})
+		}
 	case "text", "":
-		log.SetFormatter(&logrus.TextFormatter{
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05",
-			ForceColors:     true,
-		})
+		// Use custom ConsoleFormatter for the terminal human-friendly format
+		consoleFormatter = &ConsoleFormatter{TimestampFormat: "2006-01-02 15:04:05"}
 	default:
-		log.SetFormatter(&logrus.TextFormatter{
-			FullTimestamp:   true,
-			TimestampFormat: "2006-01-02 15:04:05",
-		})
+		consoleFormatter = &ConsoleFormatter{TimestampFormat: "2006-01-02 15:04:05"}
 	}
+	// Ensure console caller prettyfier hides function name and prints file:line.
+	switch cf := consoleFormatter.(type) {
+	case *logrus.TextFormatter:
+		cf.CallerPrettyfier = func(frame *runtime.Frame) (string, string) {
+			return "", fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
+		}
+	case *logrus.JSONFormatter:
+		cf.CallerPrettyfier = func(frame *runtime.Frame) (string, string) {
+			return "", fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
+		}
+	}
+	log.SetFormatter(consoleFormatter)
 
 	// Setup outputs
 	var writers []io.Writer
@@ -171,11 +440,38 @@ func buildLogger(cfg *model.Config) (*logrus.Logger, error) {
 		}
 	}
 
-	// Set output writers
-	if len(writers) > 0 {
-		log.SetOutput(io.MultiWriter(writers...))
+	// If debug level, enable caller reporting so entries include file:line
+	if log.Level == logrus.DebugLevel {
+		log.SetReportCaller(true)
+	}
+
+	// Attach file writer as a hook with a JSON formatter so file output is
+	// JSON regardless of console format. Other writers (console/syslog) will
+	// use the logger's SetOutput target.
+	for _, w := range writers {
+		if w == os.Stdout {
+			continue
+		}
+		// Use our PrettyJSONFormatter for file outputs; compact by default.
+		pfmt := &PrettyJSONFormatter{
+			TimestampFormat: "2006-01-02 15:04:05",
+			PrettyPrint:     false, // compact single-line JSON for file logs
+			CallerPrettyfier: func(frame *runtime.Frame) (string, string) {
+				// Return empty function name to avoid function in output, but
+				// keep file:line.
+				return "", fmt.Sprintf("%s:%d", filepath.Base(frame.File), frame.Line)
+			},
+		}
+		log.AddHook(&writerHook{Writer: w, Formatter: pfmt})
+	}
+
+	// If no writers other than file hooks were configured, default console output
+	// to stdout so logs still appear on console.
+	if len(writers) == 0 || (len(writers) == 1 && writers[0] != os.Stdout) {
+		log.SetOutput(os.Stdout)
 	} else {
-		// Default to stdout if no outputs configured
+		// Keep stdout as the main output for console and syslog; file outputs are
+		// handled via hooks.
 		log.SetOutput(os.Stdout)
 	}
 

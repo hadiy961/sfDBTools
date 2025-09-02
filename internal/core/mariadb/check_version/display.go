@@ -65,7 +65,7 @@ func displayTable(result *VersionCheckResult, showDetails bool) error {
 
 	headers := []string{"Version", "Type", "Status"}
 	if showDetails {
-		headers = append(headers, "Release Date")
+		headers = append(headers, "Release Date", "EOL Date")
 	}
 
 	var data [][]string
@@ -82,7 +82,11 @@ func displayTable(result *VersionCheckResult, showDetails bool) error {
 			if releaseDate == "" {
 				releaseDate = "N/A"
 			}
-			row = append(row, releaseDate)
+			eolDate := GetEOLCached(version.Version)
+			if eolDate == "" {
+				eolDate = "N/A"
+			}
+			row = append(row, releaseDate, eolDate)
 		}
 		data = append(data, row)
 	}
