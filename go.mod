@@ -3,7 +3,9 @@ module sfDBTools
 go 1.23.8
 
 require (
+	github.com/Masterminds/semver/v3 v3.4.0
 	github.com/dustin/go-humanize v1.0.1
+	github.com/go-resty/resty/v2 v2.16.5
 	github.com/go-sql-driver/mysql v1.7.1
 	github.com/klauspost/compress v1.18.0
 	github.com/klauspost/pgzip v1.2.6
@@ -11,6 +13,7 @@ require (
 	github.com/sirupsen/logrus v1.9.3
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
+	github.com/tidwall/gjson v1.18.0
 	golang.org/x/crypto v0.32.0
 	golang.org/x/term v0.28.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
@@ -35,7 +38,10 @@ require (
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
+	github.com/tidwall/match v1.1.1 // indirect
+	github.com/tidwall/pretty v1.2.0 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
+	golang.org/x/net v0.33.0 // indirect
 	golang.org/x/sys v0.34.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

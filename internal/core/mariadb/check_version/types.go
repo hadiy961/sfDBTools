@@ -7,6 +7,7 @@ type VersionInfo struct {
 	Version     string `json:"version"`
 	Type        string `json:"type"` // stable, rc, rolling
 	ReleaseDate string `json:"release_date,omitempty"`
+	EOLDate     string `json:"eol_date,omitempty"`
 }
 
 // VersionCheckResult contains the result of version checking

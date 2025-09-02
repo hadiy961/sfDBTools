@@ -13,7 +13,7 @@ func NewVersionAnalyzer() *VersionAnalyzer {
 	return &VersionAnalyzer{}
 }
 
-// FindCurrentStable finds the current stable version (typically the latest non-rolling, non-rc)
+// FindCurrentStable finds the current stable version
 func (a *VersionAnalyzer) FindCurrentStable(versions []VersionInfo) string {
 	var stableVersions []string
 
@@ -27,7 +27,6 @@ func (a *VersionAnalyzer) FindCurrentStable(versions []VersionInfo) string {
 		return ""
 	}
 
-	// Sort and return the latest stable
 	sort.Slice(stableVersions, func(i, j int) bool {
 		return CompareVersions(stableVersions[i], stableVersions[j])
 	})
@@ -35,23 +34,21 @@ func (a *VersionAnalyzer) FindCurrentStable(versions []VersionInfo) string {
 	return stableVersions[len(stableVersions)-1]
 }
 
-// FindLatestVersion finds the absolute latest version (including rolling/rc)
+// FindLatestVersion finds the absolute latest version
 func (a *VersionAnalyzer) FindLatestVersion(versions []VersionInfo) string {
 	if len(versions) == 0 {
 		return ""
 	}
 
-	// Check for rolling first (it's usually the latest)
 	for _, v := range versions {
 		if strings.Contains(v.Version, "rolling") {
 			return v.Version
 		}
 	}
 
-	// Otherwise find the highest numbered version
 	var allVersions []string
 	for _, v := range versions {
-		if !strings.Contains(v.Version, "rc") { // Exclude RC versions from "latest"
+		if !strings.Contains(v.Version, "rc") {
 			allVersions = append(allVersions, v.Version)
 		}
 	}
@@ -73,44 +70,36 @@ func (a *VersionAnalyzer) FindLatestMinor(versions []VersionInfo) string {
 		return ""
 	}
 
-	// Group versions by major version
 	majorVersions := make(map[string][]string)
 
 	for _, v := range versions {
 		if v.Type != "stable" || strings.Contains(v.Version, "rolling") || strings.Contains(v.Version, "rc") {
-			continue // Only consider stable versions
+			continue
 		}
 
-		// Extract major version (e.g., "10" from "10.5", "11" from "11.4")
 		parts := strings.Split(v.Version, ".")
 		if len(parts) >= 2 {
-			major := parts[0]
-			majorVersions[major] = append(majorVersions[major], v.Version)
+			majorVersions[parts[0]] = append(majorVersions[parts[0]], v.Version)
 		}
 	}
 
-	// Find the latest minor version for each major version
 	var latestMinors []string
 	for _, minorVersions := range majorVersions {
 		if len(minorVersions) == 0 {
 			continue
 		}
 
-		// Sort minor versions within this major version
 		sort.Slice(minorVersions, func(i, j int) bool {
 			return CompareVersions(minorVersions[i], minorVersions[j])
 		})
 
-		// Get the latest (last) minor version for this major
-		latestMinor := minorVersions[len(minorVersions)-1]
-		latestMinors = append(latestMinors, latestMinor)
+		latestMinors = append(latestMinors, minorVersions[len(minorVersions)-1])
 	}
 
 	if len(latestMinors) == 0 {
 		return ""
 	}
 
-	// Sort all latest minor versions and return the absolute latest
 	sort.Slice(latestMinors, func(i, j int) bool {
 		return CompareVersions(latestMinors[i], latestMinors[j])
 	})
@@ -138,7 +127,6 @@ func (a *VersionAnalyzer) GroupVersionsByType(versions []VersionInfo) map[string
 		groups[version.Type] = append(groups[version.Type], version)
 	}
 
-	// Sort each group
 	for versionType, versionList := range groups {
 		sort.Slice(versionList, func(i, j int) bool {
 			return CompareVersions(versionList[i].Version, versionList[j].Version)

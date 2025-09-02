@@ -96,6 +96,7 @@ func convertToVersionInfoMap(versions []check_version.VersionInfo) map[string]ma
 			Version:     info.Version,
 			Type:        info.Type,
 			ReleaseDate: info.ReleaseDate,
+			EOLDate:     mariadb.GetMariaDBEOLDate(info.Version),
 		}
 	}
 	return result
