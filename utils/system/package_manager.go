@@ -8,6 +8,7 @@ import (
 
 // PackageManager interface provides abstraction for package management operations
 type PackageManager interface {
+	Install(packages []string) error
 	Remove(packages []string) error
 	IsInstalled(pkg string) bool
 	GetInstalledPackages() ([]string, error)
@@ -29,6 +30,35 @@ func NewPackageManager() PackageManager {
 		return &packageManager{packageTool: "dnf"}
 	}
 	return &packageManager{packageTool: "unknown"}
+}
+
+// Install installs the specified packages
+func (pm *packageManager) Install(packages []string) error {
+	if len(packages) == 0 {
+		return nil
+	}
+
+	var cmd *exec.Cmd
+	switch pm.packageTool {
+	case "yum":
+		args := append([]string{"install", "-y"}, packages...)
+		cmd = exec.Command("yum", args...)
+	case "apt":
+		args := append([]string{"install", "-y"}, packages...)
+		cmd = exec.Command("apt", args...)
+	case "dnf":
+		args := append([]string{"install", "-y"}, packages...)
+		cmd = exec.Command("dnf", args...)
+	default:
+		return fmt.Errorf("unsupported package manager")
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to install packages %v: %w\nOutput: %s", packages, err, string(output))
+	}
+
+	return nil
 }
 
 // Remove removes the specified packages

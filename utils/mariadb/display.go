@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 	"time"
 
 	"sfDBTools/internal/core/mariadb"
@@ -31,15 +32,15 @@ func displayJSON(result *mariadb.VersionCheckResult) error {
 }
 
 func displaySimple(result *mariadb.VersionCheckResult) error {
-	terminal.PrintSuccess("✅ MariaDB Available Versions")
+	terminal.PrintSuccess("MariaDB Available Versions")
 	fmt.Printf("\nCurrent Stable: %s\n", result.CurrentStable)
 	fmt.Printf("Latest Version: %s\n", result.LatestVersion)
 	fmt.Printf("Latest Minor: %s\n", result.LatestMinor)
 	fmt.Printf("\nSupported Versions:\n")
 
 	for _, version := range result.AvailableVersions {
-		status := getVersionIcon(version.Type)
-		fmt.Printf("  %s %s (%s)\n", status, version.Version, version.Type)
+		// print version and type without emoji/icon
+		fmt.Printf("  %s (%s)\n", version.Version, version.Type)
 	}
 
 	fmt.Printf("\nChecked at: %s\n", result.CheckTime.Format("2006-01-02 15:04:05"))
@@ -49,7 +50,7 @@ func displaySimple(result *mariadb.VersionCheckResult) error {
 func displayTable(result *mariadb.VersionCheckResult, showDetails bool) error {
 	terminal.ClearAndShowHeader("MariaDB Version Information")
 
-	terminal.PrintSubHeader("📋 Summary")
+	terminal.PrintSubHeader("Summary")
 	terminal.PrintInfo(fmt.Sprintf("Current Stable Version: %s%s%s",
 		terminal.ColorGreen, result.CurrentStable, terminal.ColorReset))
 	terminal.PrintInfo(fmt.Sprintf("Latest Available Version: %s%s%s",
@@ -60,7 +61,7 @@ func displayTable(result *mariadb.VersionCheckResult, showDetails bool) error {
 		terminal.ColorCyan, len(result.AvailableVersions), terminal.ColorReset))
 
 	fmt.Println()
-	terminal.PrintSubHeader("📦 Available Versions")
+	terminal.PrintSubHeader("Available Versions")
 
 	headers := []string{"Version", "Type", "Status"}
 	if showDetails {
@@ -130,7 +131,7 @@ func displayGenericJSON(versions map[string]VersionInfo, meta GenericMetaInfo) e
 func displayGenericTable(sortedVersions []string, versions map[string]VersionInfo, meta GenericMetaInfo, config *VersionConfig) error {
 	terminal.ClearAndShowHeader("MariaDB Version Information")
 
-	terminal.PrintSubHeader("📋 Summary")
+	terminal.PrintSubHeader("Summary")
 	terminal.PrintInfo(fmt.Sprintf("Total Versions Available: %s%d%s",
 		terminal.ColorCyan, len(versions), terminal.ColorReset))
 	terminal.PrintInfo(fmt.Sprintf("OS detected: %s%s%s",
@@ -139,7 +140,7 @@ func displayGenericTable(sortedVersions []string, versions map[string]VersionInf
 		terminal.ColorBlue, meta.OSInfo.Arch, terminal.ColorReset))
 
 	fmt.Println()
-	terminal.PrintSubHeader("📦 Available Versions")
+	terminal.PrintSubHeader("Available Versions")
 
 	headers := []string{"Version", "Type", "Release Date"}
 	if config.ShowDetails {
@@ -171,16 +172,8 @@ func displayGenericTable(sortedVersions []string, versions map[string]VersionInf
 }
 
 func getVersionIcon(versionType string) string {
-	switch versionType {
-	case "stable":
-		return "📦"
-	case "rolling":
-		return "🔄"
-	case "rc":
-		return "🧪"
-	default:
-		return "⚪"
-	}
+	// Emojis removed — keep function for backward compatibility (returns empty)
+	return ""
 }
 
 func getVersionStatus(version string, result *mariadb.VersionCheckResult) string {
@@ -197,47 +190,48 @@ func getVersionStatus(version string, result *mariadb.VersionCheckResult) string
 }
 
 func formatVersionType(versionType string) string {
-	icon := getVersionIcon(versionType)
+	// Return colored, human-friendly version type without emoji
 	color := getTypeColor(versionType)
-	return fmt.Sprintf("%s%s %s%s", color, icon, versionType, terminal.ColorReset)
+	return fmt.Sprintf("%s%s%s", color, strings.Title(versionType), terminal.ColorReset)
 }
 
 func formatStatus(status string) string {
+	// Removed emoji prefixes; keep colorized status text
 	switch status {
 	case "Current Stable":
-		return fmt.Sprintf("%s✅ %s%s", terminal.ColorGreen, status, terminal.ColorReset)
+		return fmt.Sprintf("%s%s%s", terminal.ColorGreen, status, terminal.ColorReset)
 	case "Latest":
-		return fmt.Sprintf("%s🆕 %s%s", terminal.ColorBlue, status, terminal.ColorReset)
+		return fmt.Sprintf("%s%s%s", terminal.ColorBlue, status, terminal.ColorReset)
 	case "Latest Minor":
-		return fmt.Sprintf("%s🔥 %s%s", terminal.ColorPurple, status, terminal.ColorReset)
+		return fmt.Sprintf("%s%s%s", terminal.ColorPurple, status, terminal.ColorReset)
 	default:
-		return fmt.Sprintf("%s⚪ %s%s", terminal.ColorWhite, status, terminal.ColorReset)
+		return fmt.Sprintf("%s%s%s", terminal.ColorWhite, status, terminal.ColorReset)
 	}
 }
 
 func formatEOLStatus(eolDate string) string {
 	if eolDate == "No LTS" {
-		return fmt.Sprintf("%s🔄 No LTS%s", terminal.ColorBlue, terminal.ColorReset)
+		return fmt.Sprintf("%sNo LTS%s", terminal.ColorBlue, terminal.ColorReset)
 	}
 	if eolDate == "TBD" || eolDate == "N/A" || eolDate == "" {
-		return fmt.Sprintf("%s❓ N/A%s", terminal.ColorWhite, terminal.ColorReset)
+		return fmt.Sprintf("%sN/A%s", terminal.ColorWhite, terminal.ColorReset)
 	}
 
 	eolTime, err := time.Parse("2006-01-02", eolDate)
 	if err != nil {
-		return fmt.Sprintf("%s❓ Invalid%s", terminal.ColorWhite, terminal.ColorReset)
+		return fmt.Sprintf("%sInvalid%s", terminal.ColorWhite, terminal.ColorReset)
 	}
 
 	now := time.Now()
 	if eolTime.Before(now) {
-		return fmt.Sprintf("%s❌ EOL%s", terminal.ColorRed, terminal.ColorReset)
+		return fmt.Sprintf("%sEOL%s", terminal.ColorRed, terminal.ColorReset)
 	}
 
 	if eolTime.Before(now.AddDate(0, 6, 0)) {
-		return fmt.Sprintf("%s⚠️ EOL Soon%s", terminal.ColorYellow, terminal.ColorReset)
+		return fmt.Sprintf("%sEOL Soon%s", terminal.ColorYellow, terminal.ColorReset)
 	}
 
-	return fmt.Sprintf("%s✅ Supported%s", terminal.ColorGreen, terminal.ColorReset)
+	return fmt.Sprintf("%sSupported%s", terminal.ColorGreen, terminal.ColorReset)
 }
 
 func getTypeColor(versionType string) string {
@@ -262,25 +256,25 @@ func getDateOrNA(date string) string {
 
 func printLegend() {
 	fmt.Println()
-	terminal.PrintSubHeader("ℹ️ Version Types")
-	terminal.PrintInfo("📦 Stable: Production-ready releases")
-	terminal.PrintInfo("🔄 Rolling: Latest development version")
-	terminal.PrintInfo("🧪 RC: Release candidate versions")
+	terminal.PrintSubHeader("Version Types")
+	terminal.PrintInfo("Stable: Production-ready releases")
+	terminal.PrintInfo("Rolling: Latest development version")
+	terminal.PrintInfo("RC: Release candidate versions")
 	fmt.Println()
 }
 
 func printEOLLegend() {
 	fmt.Println()
-	terminal.PrintSubHeader("🕐 Support Status")
-	terminal.PrintInfo("✅ Supported: Version is currently supported")
-	terminal.PrintInfo("⚠️ EOL Soon: Support ends within 6 months")
-	terminal.PrintInfo("❌ EOL: Version is no longer supported")
-	terminal.PrintInfo("🔄 No LTS: Rolling/RC versions have no long-term support")
+	terminal.PrintSubHeader("Support Status")
+	terminal.PrintInfo("Supported: Version is currently supported")
+	terminal.PrintInfo("EOL Soon: Support ends within 6 months")
+	terminal.PrintInfo("EOL: Version is no longer supported")
+	terminal.PrintInfo("No LTS: Rolling/RC versions have no long-term support")
 }
 
 func printMetaInfo(meta GenericMetaInfo) {
 	fmt.Println()
-	terminal.PrintSubHeader("ℹ️ Source Information")
+	terminal.PrintSubHeader("Source Information")
 	terminal.PrintInfo(fmt.Sprintf("Fetched at: %s", meta.FetchedAt.Format("2006-01-02 15:04:05 MST")))
 
 	if len(meta.Sources) > 0 {

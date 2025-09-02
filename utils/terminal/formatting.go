@@ -179,7 +179,7 @@ func PrintWarning(message string) {
 
 // PrintInfo prints info message in blue
 func PrintInfo(message string) {
-	PrintColoredLine("ℹ️ "+message, ColorBlue)
+	PrintColoredLine(message, ColorBlue)
 }
 
 // PrintHeader prints a header with border
