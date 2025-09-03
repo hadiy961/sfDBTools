@@ -49,6 +49,10 @@ func executeRemove(cmd *cobra.Command) error {
 	}
 
 	if !res.Success {
+		// Don't treat "no services found" as an error
+		if res.Message == "no MariaDB services found" {
+			return nil
+		}
 		return fmt.Errorf("remove failed: %s", res.Message)
 	}
 

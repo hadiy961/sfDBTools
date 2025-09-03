@@ -156,6 +156,7 @@ func (i *Installer) performSystemChecks() error {
 	if err := common.CheckMariaDBConnectivity(); err != nil {
 		lg.Error("Internet connectivity check failed", logger.Error(err))
 		i.systemInfo.InternetAvailable = false
+		terminal.PrintError("Internet connectivity check failed")
 		return fmt.Errorf("internet connectivity required for installation: %w", err)
 	}
 	i.systemInfo.InternetAvailable = true
@@ -166,6 +167,7 @@ func (i *Installer) performSystemChecks() error {
 	if err != nil || !available {
 		lg.Error("Repository availability check failed", logger.Error(err))
 		i.systemInfo.RepoAvailable = false
+		terminal.PrintError("Repository availability check failed")
 		return fmt.Errorf("MariaDB repository is not accessible: %w", err)
 	}
 	i.systemInfo.RepoAvailable = true
@@ -193,7 +195,6 @@ func (i *Installer) checkExistingInstallation() error {
 	}
 
 	if i.systemInfo.ExistingService {
-		terminal.PrintWarning("Existing MariaDB/MySQL service detected - aborting installation")
 		lg.Warn("Existing MariaDB/MySQL service detected; aborting installation")
 		return fmt.Errorf("existing MariaDB/MySQL service detected")
 	}
@@ -201,7 +202,7 @@ func (i *Installer) checkExistingInstallation() error {
 	if len(i.systemInfo.ExistingPackages) > 0 {
 		terminal.PrintInfo(fmt.Sprintf("Found %d existing MariaDB/MySQL packages", len(i.systemInfo.ExistingPackages)))
 	} else {
-		terminal.PrintInfo("No existing MariaDB/MySQL packages found")
+		terminal.PrintSuccess("No existing MariaDB/MySQL packages found")
 	}
 
 	return nil
@@ -211,25 +212,30 @@ func (i *Installer) checkExistingInstallation() error {
 func (i *Installer) selectVersion() (string, error) {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Fetching available MariaDB versions...")
+	// Use minimal spinner for version fetching since it might have logs
+	spinner := terminal.NewProgressSpinnerWithStyle("Fetching available MariaDB versions...", terminal.SpinnerMinimal)
+	spinner.Start()
 
 	// Get available versions using existing check_version functionality
 	checkerConfig := check_version.DefaultConfig()
 	checker, err := check_version.NewChecker(checkerConfig)
 	if err != nil {
+		spinner.StopWithError("Failed to create version checker")
 		return "", fmt.Errorf("failed to create version checker: %w", err)
 	}
 
 	result, err := checker.CheckAvailableVersions()
 	if err != nil {
+		spinner.StopWithError("Failed to fetch available versions")
 		return "", fmt.Errorf("failed to get available versions: %w", err)
 	}
 
 	if len(result.AvailableVersions) == 0 {
+		spinner.StopWithError("No MariaDB versions available")
 		return "", fmt.Errorf("no MariaDB versions available")
 	}
 
-	terminal.PrintSuccess("Available MariaDB versions retrieved")
+	spinner.StopWithSuccess("Available MariaDB versions retrieved")
 
 	// Convert to menu options (only stable versions for installation)
 	var stableVersions []string
@@ -247,6 +253,7 @@ func (i *Installer) selectVersion() (string, error) {
 	}
 
 	if len(versionOptions) == 0 {
+		terminal.PrintError("No stable versions available for installation")
 		return "", fmt.Errorf("no stable versions available for installation")
 	}
 
@@ -288,24 +295,30 @@ func (i *Installer) selectVersion() (string, error) {
 func (i *Installer) setupRepository(version string) error {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Setting up MariaDB repository...")
+	spinner := terminal.NewProcessingSpinner("Setting up MariaDB repository...")
+	spinner.Start()
 
 	// Clean existing repositories first
+	spinner.UpdateMessage("Cleaning existing repositories...")
 	if err := i.repoManager.Clean(); err != nil {
 		lg.Warn("Failed to clean existing repositories", logger.Error(err))
 	}
 
 	// Setup official repository
+	spinner.UpdateMessage(fmt.Sprintf("Setting up official MariaDB %s repository...", version))
 	if err := i.repoManager.SetupOfficial(version); err != nil {
+		spinner.StopWithError("Failed to setup repository")
 		return fmt.Errorf("failed to setup repository: %w", err)
 	}
 
 	// Update package cache
+	spinner.UpdateMessage("Updating package cache...")
 	if err := i.repoManager.UpdateCache(); err != nil {
+		spinner.StopWithError("Failed to update package cache")
 		return fmt.Errorf("failed to update package cache: %w", err)
 	}
 
-	terminal.PrintSuccess("Repository setup completed")
+	spinner.StopWithSuccess("Repository setup completed")
 	return nil
 }
 
@@ -316,16 +329,18 @@ func (i *Installer) installPackages() (int, error) {
 	// Determine packages to install based on OS
 	packages := i.getPackagesToInstall()
 
-	terminal.PrintInfo(fmt.Sprintf("Installing %d packages: %v", len(packages), packages))
+	spinner := terminal.NewInstallSpinner(fmt.Sprintf("Installing %d MariaDB packages...", len(packages)))
+	spinner.Start()
 
-	terminal.PrintInfo("Installing MariaDB packages...")
+	spinner.UpdateMessage(fmt.Sprintf("Installing packages: %v", packages))
 
 	if err := i.pkgManager.Install(packages); err != nil {
+		spinner.StopWithError("Package installation failed")
 		return 0, fmt.Errorf("package installation failed: %w", err)
 	}
 
 	lg.Info("Packages installed successfully", logger.Strings("packages", packages))
-	terminal.PrintSuccess("Package installation completed")
+	spinner.StopWithSuccess("Package installation completed")
 
 	return len(packages), nil
 }
@@ -334,22 +349,27 @@ func (i *Installer) installPackages() (int, error) {
 func (i *Installer) configureService() error {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Configuring MariaDB service...")
+	spinner := terminal.NewProcessingSpinner("Configuring MariaDB service...")
+	spinner.Start()
 
 	serviceName := "mariadb"
 
 	// Start the service
+	spinner.UpdateMessage("Starting MariaDB service...")
 	if err := i.svcManager.Start(serviceName); err != nil {
+		spinner.StopWithError("Failed to start service")
 		return fmt.Errorf("failed to start service: %w", err)
 	}
 
 	// Enable the service
+	spinner.UpdateMessage("Enabling MariaDB service...")
 	if err := i.svcManager.Enable(serviceName); err != nil {
+		spinner.StopWithError("Failed to enable service")
 		return fmt.Errorf("failed to enable service: %w", err)
 	}
 
 	lg.Info("Service configured successfully", logger.String("service", serviceName))
-	terminal.PrintSuccess("Service configuration completed")
+	spinner.StopWithSuccess("Service configuration completed")
 
 	return nil
 }
@@ -358,26 +378,30 @@ func (i *Installer) configureService() error {
 func (i *Installer) verifyInstallation() (string, error) {
 	lg, _ := logger.Get()
 
-	terminal.PrintInfo("Verifying installation...")
+	spinner := terminal.NewLoadingSpinner("Verifying installation...")
+	spinner.Start()
 
 	serviceName := "mariadb"
 
 	// Check service status
+	spinner.UpdateMessage("Checking service status...")
 	status, err := i.svcManager.GetStatus(serviceName)
 	if err != nil {
+		spinner.StopWithError("Failed to get service status")
 		return "", fmt.Errorf("failed to get service status: %w", err)
 	}
 
 	if !status.Active || !status.Enabled {
-		return fmt.Sprintf("Service issues - Active: %v, Enabled: %v", status.Active, status.Enabled),
-			fmt.Errorf("service is not properly configured")
+		statusMsg := fmt.Sprintf("Service issues - Active: %v, Enabled: %v", status.Active, status.Enabled)
+		spinner.StopWithWarning("Service is not properly configured")
+		return statusMsg, fmt.Errorf("service is not properly configured")
 	}
 
 	lg.Info("Installation verification completed",
 		logger.Bool("active", status.Active),
 		logger.Bool("enabled", status.Enabled))
 
-	terminal.PrintSuccess("Installation verification completed")
+	spinner.StopWithSuccess("Installation verification completed")
 
 	return "Active and Enabled", nil
 }

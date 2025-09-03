@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"time"
@@ -63,6 +64,25 @@ func (r *Remover) Remove() (*RemoveResult, error) {
 	lg, _ := logger.Get()
 
 	terminal.ClearAndShowHeader("MariaDB Remove")
+
+	// Check if MariaDB services exist before showing confirmation
+	terminal.PrintInfo("Checking MariaDB services...")
+	services := []string{"mariadb", "mysql"}
+	servicesFound := false
+
+	for _, svcName := range services {
+		if r.serviceExists(svcName) {
+			terminal.PrintInfo(fmt.Sprintf("✅ Found %s service", svcName))
+			servicesFound = true
+		}
+	}
+
+	if !servicesFound {
+		terminal.PrintWarning("⚠️  No MariaDB services found on this system")
+		terminal.PrintInfo("Nothing to remove")
+		return &RemoveResult{Success: false, Message: "no MariaDB services found"}, nil
+	}
+
 	terminal.PrintWarning("⚠️  This will remove MariaDB packages, data directories and configuration. This action is irreversible.")
 
 	if !r.cfg.SkipConfirm {
@@ -75,12 +95,9 @@ func (r *Remover) Remove() (*RemoveResult, error) {
 		}
 	}
 
-	// Step 1: Stop and disable service
-	terminal.PrintInfo("Stopping and disabling MariaDB service...")
-	_ = r.svcManager.Stop("mariadb")
-	_ = r.svcManager.Stop("mysql")
-	_ = r.svcManager.Disable("mariadb")
-	_ = r.svcManager.Disable("mysql")
+	// Step 1: Check and stop MariaDB services
+	terminal.PrintInfo("Checking MariaDB services...")
+	r.checkAndStopServices()
 
 	// Step 2: Remove packages
 	terminal.PrintInfo("Removing MariaDB packages...")
@@ -156,6 +173,55 @@ func (r *Remover) Remove() (*RemoveResult, error) {
 
 	lg.Info("MariaDB removal completed")
 	return &RemoveResult{Success: true, Message: "completed", RemovedAt: time.Now()}, nil
+}
+
+// checkAndStopServices checks if MariaDB services exist and stops them if available
+func (r *Remover) checkAndStopServices() {
+	lg, _ := logger.Get()
+
+	services := []string{"mariadb", "mysql"}
+
+	for _, svcName := range services {
+		if r.serviceExists(svcName) {
+			terminal.PrintInfo(fmt.Sprintf("Found %s service", svcName))
+
+			// Check if service is active and stop it
+			if r.svcManager.IsActive(svcName) {
+				terminal.PrintInfo(fmt.Sprintf("Stopping %s service...", svcName))
+				if err := r.svcManager.Stop(svcName); err != nil {
+					lg.Warn("Failed to stop service", logger.String("service", svcName), logger.Error(err))
+					terminal.PrintWarning(fmt.Sprintf("⚠️  Failed to stop %s service: %v", svcName, err))
+				} else {
+					terminal.PrintSuccess(fmt.Sprintf("✅ Stopped %s service", svcName))
+				}
+			} else {
+				terminal.PrintInfo(fmt.Sprintf("%s service is not running", svcName))
+			}
+
+			// Check if service is enabled and disable it
+			if r.svcManager.IsEnabled(svcName) {
+				terminal.PrintInfo(fmt.Sprintf("Disabling %s service...", svcName))
+				if err := r.svcManager.Disable(svcName); err != nil {
+					lg.Warn("Failed to disable service", logger.String("service", svcName), logger.Error(err))
+					terminal.PrintWarning(fmt.Sprintf("⚠️  Failed to disable %s service: %v", svcName, err))
+				} else {
+					terminal.PrintSuccess(fmt.Sprintf("✅ Disabled %s service", svcName))
+				}
+			} else {
+				terminal.PrintInfo(fmt.Sprintf("%s service is not enabled", svcName))
+			}
+		} else {
+			terminal.PrintInfo(fmt.Sprintf("%s service not found, skipping", svcName))
+		}
+	}
+}
+
+// serviceExists checks if a service unit file exists in the system
+func (r *Remover) serviceExists(serviceName string) bool {
+	// Check if systemctl can find the service unit file
+	cmd := exec.Command("systemctl", "cat", serviceName)
+	err := cmd.Run()
+	return err == nil
 }
 
 func exists(path string) bool {

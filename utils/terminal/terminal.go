@@ -112,10 +112,9 @@ func pauseActiveSpinner() *ProgressSpinner {
 	defer spinnerMu.Unlock()
 
 	if activeSpinner != nil && activeSpinner.active {
-		// Stop without logging noise; Stop handles cursor and clearing
+		// Temporarily stop the spinner but keep the reference
 		s := activeSpinner
-		// Do not nil activeSpinner here; Stop() will clear it
-		s.Stop()
+		s.temporaryStop()
 		return s
 	}
 	return nil
@@ -127,7 +126,28 @@ func resumeSpinner(s *ProgressSpinner) {
 		return
 	}
 	// Restart spinner; Start will set activeSpinner under lock
-	s.Start()
+	s.temporaryResume()
+}
+
+// SafePrint prints text with spinner coordination - use this for any output when spinner might be active
+func SafePrint(text string) {
+	s := pauseActiveSpinner()
+	fmt.Print(text)
+	resumeSpinner(s)
+}
+
+// SafePrintln prints text with newline with spinner coordination
+func SafePrintln(text string) {
+	s := pauseActiveSpinner()
+	fmt.Println(text)
+	resumeSpinner(s)
+}
+
+// SafePrintf prints formatted text with spinner coordination
+func SafePrintf(format string, args ...interface{}) {
+	s := pauseActiveSpinner()
+	fmt.Printf(format, args...)
+	resumeSpinner(s)
 }
 
 // MoveCursor moves the cursor to the specified row and column (1-indexed)
