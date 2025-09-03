@@ -9,6 +9,9 @@ import (
 // Config represents installation configuration
 type Config struct {
 	DryRun bool
+	// SkipConfirm, when true, makes the installer non-interactive and
+	// automatically answers confirmations (equivalent to --yes)
+	SkipConfirm bool
 }
 
 // InstallResult represents the result of installation

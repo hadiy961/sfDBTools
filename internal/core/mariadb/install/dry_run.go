@@ -159,10 +159,8 @@ func (d *DryRunInstaller) DryRun() (*InstallResult, error) {
 
 // simulateSystemChecks simulates system validation checks
 func (d *DryRunInstaller) simulateSystemChecks() error {
-	spinner := terminal.NewProgressSpinner("Simulating system checks...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating system checks...")
 	time.Sleep(1 * time.Second) // Simulate work
-	spinner.Stop()
 
 	// Actually perform some real checks for better simulation
 	osDetector := common.NewOSDetector()
@@ -194,10 +192,8 @@ func (d *DryRunInstaller) simulateSystemChecks() error {
 
 // simulateExistingCheck simulates checking for existing installations
 func (d *DryRunInstaller) simulateExistingCheck() error {
-	spinner := terminal.NewProgressSpinner("Simulating existing installation check...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating existing installation check...")
 	time.Sleep(800 * time.Millisecond) // Simulate work
-	spinner.Stop()
 
 	// Actually check for existing services and packages for better simulation
 	existingService := d.svcManager.IsActive("mariadb") || d.svcManager.IsActive("mysql")
@@ -228,26 +224,21 @@ func (d *DryRunInstaller) simulateExistingCheck() error {
 
 // simulateVersionSelection simulates version selection process
 func (d *DryRunInstaller) simulateVersionSelection() (string, error) {
-	spinner := terminal.NewProgressSpinner("Simulating version fetching...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating version fetching...")
 
 	// Actually fetch versions for better simulation
 	checkerConfig := check_version.DefaultConfig()
 	checker, err := check_version.NewChecker(checkerConfig)
 	if err != nil {
-		spinner.Stop()
 		terminal.PrintError("❌ Version checker creation would fail")
 		return "", fmt.Errorf("version checker creation failed: %w", err)
 	}
 
 	result, err := checker.CheckAvailableVersions()
 	if err != nil {
-		spinner.Stop()
 		terminal.PrintError("❌ Version fetching would fail")
 		return "", fmt.Errorf("version fetching failed: %w", err)
 	}
-
-	spinner.Stop()
 
 	if len(result.AvailableVersions) == 0 {
 		terminal.PrintError("❌ No versions available")
@@ -288,10 +279,8 @@ func (d *DryRunInstaller) simulateVersionSelection() (string, error) {
 
 // simulateRepositorySetup simulates repository setup
 func (d *DryRunInstaller) simulateRepositorySetup(version string) error {
-	spinner := terminal.NewProgressSpinner("Simulating repository setup...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating repository setup...")
 	time.Sleep(1200 * time.Millisecond) // Simulate work
-	spinner.Stop()
 
 	terminal.PrintSuccess("✅ Would clean existing repositories")
 	terminal.PrintSuccess(fmt.Sprintf("✅ Would setup official MariaDB %s repository", version))
@@ -310,10 +299,8 @@ func (d *DryRunInstaller) simulatePackageInstallation() (int, error) {
 		terminal.PrintInfo("  - " + pkg)
 	}
 
-	spinner := terminal.NewProgressSpinner("Simulating package installation...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating package installation...")
 	time.Sleep(2 * time.Second) // Simulate longer installation time
-	spinner.Stop()
 
 	terminal.PrintSuccess("✅ Package installation would complete successfully")
 
@@ -322,10 +309,8 @@ func (d *DryRunInstaller) simulatePackageInstallation() (int, error) {
 
 // simulateServiceConfiguration simulates service configuration
 func (d *DryRunInstaller) simulateServiceConfiguration() error {
-	spinner := terminal.NewProgressSpinner("Simulating service configuration...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating service configuration...")
 	time.Sleep(800 * time.Millisecond) // Simulate work
-	spinner.Stop()
 
 	terminal.PrintSuccess("✅ Would start MariaDB service")
 	terminal.PrintSuccess("✅ Would enable MariaDB service")
@@ -335,10 +320,8 @@ func (d *DryRunInstaller) simulateServiceConfiguration() error {
 
 // simulateVerification simulates installation verification
 func (d *DryRunInstaller) simulateVerification() (string, error) {
-	spinner := terminal.NewProgressSpinner("Simulating installation verification...")
-	spinner.Start()
+	terminal.PrintInfo("Simulating installation verification...")
 	time.Sleep(600 * time.Millisecond) // Simulate work
-	spinner.Stop()
 
 	terminal.PrintSuccess("✅ Service would be active and enabled")
 	terminal.PrintSuccess("✅ Installation verification would pass")

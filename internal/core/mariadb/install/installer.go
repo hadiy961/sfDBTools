@@ -150,9 +150,7 @@ func (i *Installer) Install() (*InstallResult, error) {
 func (i *Installer) performSystemChecks() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Performing system checks...")
-	spinner.Start()
-	defer spinner.Stop()
+	terminal.PrintInfo("Performing system checks...")
 
 	// Check internet connectivity
 	if err := common.CheckMariaDBConnectivity(); err != nil {
@@ -181,9 +179,7 @@ func (i *Installer) performSystemChecks() error {
 func (i *Installer) checkExistingInstallation() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Checking existing installations...")
-	spinner.Start()
-	defer spinner.Stop()
+	terminal.PrintInfo("Checking existing installations...")
 
 	// Check for existing service
 	i.systemInfo.ExistingService = i.svcManager.IsActive("mariadb") || i.svcManager.IsActive("mysql")
@@ -197,17 +193,9 @@ func (i *Installer) checkExistingInstallation() error {
 	}
 
 	if i.systemInfo.ExistingService {
-		terminal.PrintWarning("Existing MariaDB/MySQL service detected")
-
-		// Ask user if they want to continue
-		confirmed, err := terminal.ConfirmAndClear("Continue with installation? This may affect existing data")
-		if err != nil {
-			return fmt.Errorf("confirmation failed: %w", err)
-		}
-
-		if !confirmed {
-			return fmt.Errorf("installation cancelled by user")
-		}
+		terminal.PrintWarning("Existing MariaDB/MySQL service detected - aborting installation")
+		lg.Warn("Existing MariaDB/MySQL service detected; aborting installation")
+		return fmt.Errorf("existing MariaDB/MySQL service detected")
 	}
 
 	if len(i.systemInfo.ExistingPackages) > 0 {
@@ -223,24 +211,19 @@ func (i *Installer) checkExistingInstallation() error {
 func (i *Installer) selectVersion() (string, error) {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Fetching available MariaDB versions...")
-	spinner.Start()
+	terminal.PrintInfo("Fetching available MariaDB versions...")
 
 	// Get available versions using existing check_version functionality
 	checkerConfig := check_version.DefaultConfig()
 	checker, err := check_version.NewChecker(checkerConfig)
 	if err != nil {
-		spinner.Stop()
 		return "", fmt.Errorf("failed to create version checker: %w", err)
 	}
 
 	result, err := checker.CheckAvailableVersions()
 	if err != nil {
-		spinner.Stop()
 		return "", fmt.Errorf("failed to get available versions: %w", err)
 	}
-
-	spinner.Stop()
 
 	if len(result.AvailableVersions) == 0 {
 		return "", fmt.Errorf("no MariaDB versions available")
@@ -271,6 +254,23 @@ func (i *Installer) selectVersion() (string, error) {
 	terminal.ClearAndShowHeader("MariaDB Version Selection")
 	terminal.PrintInfo("Select a MariaDB version to install:")
 
+	// If SkipConfirm is enabled, auto-select recommended/current stable version
+	if i.config != nil && i.config.SkipConfirm {
+		// prefer current stable
+		if result.CurrentStable != "" {
+			terminal.PrintInfo(fmt.Sprintf("Auto-selecting recommended version: MariaDB %s", result.CurrentStable))
+			terminal.PrintSuccess(fmt.Sprintf("Selected MariaDB %s for installation", result.CurrentStable))
+			return result.CurrentStable, nil
+		}
+
+		// fallback to first stable
+		if len(stableVersions) > 0 {
+			terminal.PrintInfo(fmt.Sprintf("Auto-selecting first stable version: MariaDB %s", stableVersions[0]))
+			terminal.PrintSuccess(fmt.Sprintf("Selected MariaDB %s for installation", stableVersions[0]))
+			return stableVersions[0], nil
+		}
+	}
+
 	selected, err := terminal.ShowMenuAndClear("Available Versions", versionOptions)
 	if err != nil {
 		return "", fmt.Errorf("version selection failed: %w", err)
@@ -288,9 +288,7 @@ func (i *Installer) selectVersion() (string, error) {
 func (i *Installer) setupRepository(version string) error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Setting up MariaDB repository...")
-	spinner.Start()
-	defer spinner.Stop()
+	terminal.PrintInfo("Setting up MariaDB repository...")
 
 	// Clean existing repositories first
 	if err := i.repoManager.Clean(); err != nil {
@@ -320,9 +318,7 @@ func (i *Installer) installPackages() (int, error) {
 
 	terminal.PrintInfo(fmt.Sprintf("Installing %d packages: %v", len(packages), packages))
 
-	spinner := terminal.NewProgressSpinner("Installing MariaDB packages...")
-	spinner.Start()
-	defer spinner.Stop()
+	terminal.PrintInfo("Installing MariaDB packages...")
 
 	if err := i.pkgManager.Install(packages); err != nil {
 		return 0, fmt.Errorf("package installation failed: %w", err)
@@ -338,9 +334,7 @@ func (i *Installer) installPackages() (int, error) {
 func (i *Installer) configureService() error {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Configuring MariaDB service...")
-	spinner.Start()
-	defer spinner.Stop()
+	terminal.PrintInfo("Configuring MariaDB service...")
 
 	serviceName := "mariadb"
 
@@ -364,9 +358,7 @@ func (i *Installer) configureService() error {
 func (i *Installer) verifyInstallation() (string, error) {
 	lg, _ := logger.Get()
 
-	spinner := terminal.NewProgressSpinner("Verifying installation...")
-	spinner.Start()
-	defer spinner.Stop()
+	terminal.PrintInfo("Verifying installation...")
 
 	serviceName := "mariadb"
 

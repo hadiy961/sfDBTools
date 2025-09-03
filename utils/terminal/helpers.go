@@ -70,6 +70,10 @@ func ClearLastLines(n int) error {
 
 // ConfirmAndClear shows a confirmation dialog then clears screen
 func ConfirmAndClear(question string) (bool, error) {
+	// Pause any active spinner so prompt is not overwritten
+	s := pauseActiveSpinner()
+	defer resumeSpinner(s)
+
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("%s [y/N]: ", question)
 
@@ -98,6 +102,10 @@ func ShowMenuAndClear(title string, options []string) (int, error) {
 	for i, option := range options {
 		fmt.Printf("   %d. %s\n", i+1, option)
 	}
+
+	// Pause any active spinner so menu and prompt are visible
+	s := pauseActiveSpinner()
+	defer resumeSpinner(s)
 
 	reader := bufio.NewReader(os.Stdin)
 	fmt.Printf("\nSelect option (1-%d): ", len(options))

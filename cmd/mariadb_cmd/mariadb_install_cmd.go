@@ -52,10 +52,12 @@ Examples:
 
 func init() {
 	InstallCmd.Flags().Bool("dry-run", false, "Perform a dry run without actual installation")
+	InstallCmd.Flags().Bool("yes", false, "Skip confirmations and run non-interactively (dangerous)")
 }
 
 func executeInstall(cmd *cobra.Command) error {
 	dryRun, _ := cmd.Flags().GetBool("dry-run")
+	skipConfirm, _ := cmd.Flags().GetBool("yes")
 
 	if dryRun {
 		fmt.Println("🧪 Running in dry-run mode - no actual installation will be performed")
@@ -67,7 +69,13 @@ func executeInstall(cmd *cobra.Command) error {
 		return err
 	}
 
-	installer, err := install.NewInstaller(nil)
+	// Build installer config from flags
+	cfg := &install.Config{
+		DryRun:      dryRun,
+		SkipConfirm: skipConfirm,
+	}
+
+	installer, err := install.NewInstaller(cfg)
 	if err != nil {
 		return err
 	}
