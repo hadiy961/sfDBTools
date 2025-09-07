@@ -23,25 +23,30 @@ func InstallMariaDB() error {
 
 	terminal.ClearAndShowHeader("MariaDB Installation")
 
-	// Step 1: Check if running as root
+	// Step 1: Check if MariaDB service already exists
+	if err := checkExistingMariaDBService(); err != nil {
+		return err
+	}
+
+	// Step 2: Check if running as root
 	if os.Geteuid() != 0 {
 		return fmt.Errorf("installation requires root privileges. Please run with sudo")
 	}
 
-	// Step 2: Detect OS
+	// Step 3: Detect OS
 	osInfo, err := system.DetectOS()
 	if err != nil {
 		return fmt.Errorf("failed to detect operating system: %w", err)
 	}
 
-	// Step 3: Get available versions
+	// Step 4: Get available versions
 	fmt.Println("📦 Fetching available MariaDB versions...")
 	versions, err := GetAvailableVersions()
 	if err != nil {
 		return fmt.Errorf("failed to get available versions: %w", err)
 	}
 
-	// Step 4: Let user select version
+	// Step 5: Let user select version
 	selectedVersion, err := selectVersion(versions)
 	if err != nil {
 		return fmt.Errorf("version selection failed: %w", err)
@@ -189,5 +194,62 @@ func startServiceWithUtils() error {
 		return fmt.Errorf("failed to enable mariadb service: %w", err)
 	}
 
+	return nil
+}
+
+// checkExistingMariaDBService checks if MariaDB service already exists and is active
+func checkExistingMariaDBService() error {
+	lg, _ := logger.Get()
+	svcManager := system.NewServiceManager()
+
+	// Services to check (common MariaDB/MySQL service names)
+	services := []string{"mariadb", "mysql", "mysqld"}
+
+	for _, serviceName := range services {
+		lg.Debug("Checking service status", logger.String("service", serviceName))
+
+		// Check if service is active
+		if svcManager.IsActive(serviceName) {
+			fmt.Printf("🚨 MariaDB/MySQL service '%s' is already running!\n", serviceName)
+			fmt.Println("\nTo avoid conflicts, please:")
+			fmt.Printf("  1. Stop the service: sudo systemctl stop %s\n", serviceName)
+			fmt.Printf("  2. Remove existing installation: sudo ./sfdbtools mariadb remove\n")
+			fmt.Println("  3. Then run this installation again")
+			fmt.Println("\nOr check the running service with:")
+			fmt.Printf("  sudo systemctl status %s\n", serviceName)
+
+			lg.Info("Installation blocked - existing MariaDB service found",
+				logger.String("active_service", serviceName))
+			return fmt.Errorf("MariaDB/MySQL service '%s' is already active", serviceName)
+		}
+
+		// Check if service exists (enabled or disabled) by checking if it's known to systemd
+		if svcManager.IsEnabled(serviceName) {
+			fmt.Printf("⚠️  MariaDB/MySQL service '%s' exists (enabled but not running)\n", serviceName)
+			fmt.Println("\nRecommendation:")
+			fmt.Printf("  Remove existing installation: sudo ./sfdbtools mariadb remove\n")
+			fmt.Println("  Then run this installation again for a clean setup")
+
+			lg.Info("Installation blocked - existing MariaDB service found (enabled)",
+				logger.String("enabled_service", serviceName))
+			return fmt.Errorf("MariaDB/MySQL service '%s' already exists and is enabled", serviceName)
+		}
+
+		// Additional check using systemctl status to see if service unit file exists
+		processMgr := system.NewProcessManager()
+		if _, err := processMgr.ExecuteWithOutput("systemctl", []string{"status", serviceName}); err == nil {
+			// If systemctl status succeeds, service unit exists (even if disabled)
+			fmt.Printf("⚠️  MariaDB/MySQL service '%s' exists (disabled)\n", serviceName)
+			fmt.Println("\nRecommendation:")
+			fmt.Printf("  Remove existing installation: sudo ./sfdbtools mariadb remove\n")
+			fmt.Println("  Then run this installation again for a clean setup")
+
+			lg.Info("Installation blocked - existing MariaDB service found (disabled)",
+				logger.String("disabled_service", serviceName))
+			return fmt.Errorf("MariaDB/MySQL service '%s' already exists", serviceName)
+		}
+	}
+
+	lg.Debug("No existing MariaDB services found - proceeding with installation")
 	return nil
 }

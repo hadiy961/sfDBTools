@@ -77,12 +77,11 @@ func stopMariaDBServices() {
 	services := []string{"mariadb", "mysql", "mysqld"}
 
 	for _, service := range services {
+		// Stop service (ignore errors if service doesn't exist)
 		serviceMgr.Stop(service)
 		serviceMgr.Disable(service)
 	}
-}
-
-// removeMariaDBPackages removes MariaDB packages using system package manager
+} // removeMariaDBPackages removes MariaDB packages using system package manager
 func removeMariaDBPackages() error {
 	packageMgr := system.NewPackageManager()
 
@@ -112,6 +111,8 @@ func removeMariaDBDirectories() {
 		"/tmp/mysql.sock",
 		"/usr/share/mysql",
 		"/usr/share/mariadb",
+		"/etc/systemd/system/mariadb.service.d", // Systemd service override directory
+		"/etc/systemd/system/mysql.service.d",   // Systemd service override directory
 	}
 
 	// Custom directories from config files
@@ -124,9 +125,10 @@ func removeMariaDBDirectories() {
 			os.RemoveAll(dir)
 		}
 	}
-}
 
-// findCustomMariaDBDirectories finds custom directories from config files
+	// Also remove any systemd service files
+	removeSystemdServiceFiles()
+} // findCustomMariaDBDirectories finds custom directories from config files
 func findCustomMariaDBDirectories() []string {
 	var customDirs []string
 
@@ -193,6 +195,29 @@ func removeMariaDBUser() {
 	// Remove groups (ignore errors as they might not exist)
 	processMgr.Execute("groupdel", []string{"mysql"})
 	processMgr.Execute("groupdel", []string{"mariadb"})
+}
+
+// removeSystemdServiceFiles removes any remaining systemd service files
+func removeSystemdServiceFiles() {
+	serviceFiles := []string{
+		"/etc/systemd/system/mariadb.service",
+		"/etc/systemd/system/mysql.service",
+		"/etc/systemd/system/mysqld.service",
+		"/usr/lib/systemd/system/mariadb.service",
+		"/usr/lib/systemd/system/mysql.service",
+		"/usr/lib/systemd/system/mysqld.service",
+	}
+
+	for _, file := range serviceFiles {
+		if _, err := os.Stat(file); err == nil {
+			fmt.Printf("   Removing service file: %s\n", file)
+			os.Remove(file)
+		}
+	}
+
+	// Reload systemd daemon to refresh service list
+	processMgr := system.NewProcessManager()
+	processMgr.Execute("systemctl", []string{"daemon-reload"})
 }
 
 // cleanMariaDBRepos removes MariaDB repositories
