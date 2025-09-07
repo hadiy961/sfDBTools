@@ -4,11 +4,11 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/system"
 )
 
 // GetVersionsForOS returns MariaDB versions available for the specified OS
-func GetVersionsForOS(osInfo *common.OSInfo, fetchers []VersionFetcher) ([]VersionInfo, error) {
+func GetVersionsForOS(osInfo *system.OSInfo, fetchers []VersionFetcher) ([]VersionInfo, error) {
 	lg, _ := logger.Get()
 
 	lg.Info("Fetching MariaDB versions for OS",
@@ -53,7 +53,7 @@ func GetVersionsForOS(osInfo *common.OSInfo, fetchers []VersionFetcher) ([]Versi
 }
 
 // isVersionCompatibleWithOS checks if a version is compatible with the given OS
-func isVersionCompatibleWithOS(version VersionInfo, osInfo *common.OSInfo) bool {
+func isVersionCompatibleWithOS(version VersionInfo, osInfo *system.OSInfo) bool {
 	// All stable versions are generally compatible
 	// This can be enhanced with more specific OS/version compatibility rules
 

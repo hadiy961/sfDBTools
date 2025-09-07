@@ -1,8 +1,8 @@
 package mariadb
 
 import (
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/mariadb/check_version"
+	"sfDBTools/utils/system"
 )
 
 // Compatibility aliases - re-export types from check_version package
@@ -29,7 +29,7 @@ func DetermineVersionType(version string) string {
 }
 
 // GetVersionsForOS returns MariaDB versions available for the specified OS
-func GetVersionsForOS(osInfo *common.OSInfo, fetchers []VersionFetcher) ([]VersionInfo, error) {
+func GetVersionsForOS(osInfo *system.OSInfo, fetchers []VersionFetcher) ([]VersionInfo, error) {
 	return check_version.GetVersionsForOS(osInfo, fetchers)
 }
 

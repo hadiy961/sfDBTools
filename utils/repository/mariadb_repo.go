@@ -5,16 +5,16 @@ import (
 	"os/exec"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/system"
 )
 
 // Manager handles MariaDB repository setup using official script
 type Manager struct {
-	osInfo *common.OSInfo
+	osInfo *system.OSInfo
 }
 
 // NewManager creates a new repository manager
-func NewManager(osInfo *common.OSInfo) *Manager {
+func NewManager(osInfo *system.OSInfo) *Manager {
 	return &Manager{osInfo: osInfo}
 }
 
