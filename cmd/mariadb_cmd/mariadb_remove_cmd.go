@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"sfDBTools/internal/core/mariadb/remove"
+	"sfDBTools/internal/core/mariadb"
 	"sfDBTools/internal/logger"
 
 	"github.com/spf13/cobra"
@@ -20,12 +20,9 @@ This action is destructive. Use --yes to skip confirmations.`,
 		if err := executeRemove(cmd); err != nil {
 			lg, _ := logger.Get()
 			lg.Error("MariaDB remove failed", logger.Error(err))
+			fmt.Printf("Error: %v\n", err)
 			os.Exit(1)
 		}
-	},
-	Annotations: map[string]string{
-		"command":  "remove",
-		"category": "mariadb",
 	},
 }
 
@@ -35,26 +32,5 @@ func init() {
 
 func executeRemove(cmd *cobra.Command) error {
 	skipConfirm, _ := cmd.Flags().GetBool("yes")
-
-	cfg := &remove.Config{SkipConfirm: skipConfirm}
-
-	r, err := remove.NewRemover(cfg)
-	if err != nil {
-		return err
-	}
-
-	res, err := r.Remove()
-	if err != nil {
-		return err
-	}
-
-	if !res.Success {
-		// Don't treat "no services found" as an error
-		if res.Message == "no MariaDB services found" {
-			return nil
-		}
-		return fmt.Errorf("remove failed: %s", res.Message)
-	}
-
-	return nil
+	return mariadb.RemoveMariaDB(skipConfirm)
 }
