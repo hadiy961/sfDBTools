@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/repository"
 	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
@@ -33,8 +32,7 @@ func NewDryRunInstaller() (*DryRunInstaller, error) {
 	}
 
 	// Detect OS
-	osDetector := common.NewOSDetector()
-	osInfo, err := osDetector.DetectOS()
+	osInfo, err := system.DetectOS()
 	if err != nil {
 		lg.Error("Failed to detect OS", logger.Error(err))
 		return nil, fmt.Errorf("failed to detect OS: %w", err)

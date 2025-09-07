@@ -5,8 +5,8 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/repository"
+	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
 
@@ -47,8 +47,7 @@ func NewRemover(cfg *Config) (*Remover, error) {
 	}
 
 	// Use existing helpers to detect OS
-	osDetector := common.NewOSDetector()
-	osInfo, err := osDetector.DetectOS()
+	osInfo, err := system.DetectOS()
 	if err != nil {
 		return nil, fmt.Errorf("failed to detect OS: %w", err)
 	}

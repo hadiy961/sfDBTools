@@ -7,16 +7,16 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/system"
 )
 
 // VersionValidator handles validation of MariaDB versions against repository availability
 type VersionValidator struct {
-	osInfo *common.OSInfo
+	osInfo *system.OSInfo
 }
 
 // NewVersionValidator creates a new version validator instance
-func NewVersionValidator(osInfo *common.OSInfo) *VersionValidator {
+func NewVersionValidator(osInfo *system.OSInfo) *VersionValidator {
 	return &VersionValidator{
 		osInfo: osInfo,
 	}
@@ -25,18 +25,18 @@ func NewVersionValidator(osInfo *common.OSInfo) *VersionValidator {
 // SupportedVersions returns the list of versions supported by the official repository script
 func (vv *VersionValidator) GetSupportedVersions() ([]string, error) {
 	lg, _ := logger.Get()
-	
+
 	lg.Info("Checking supported versions from MariaDB repository script")
-	
+
 	// Try to get supported versions by running the repository script with an invalid version
 	// This will return an error message containing the supported versions
 	scriptURL := "https://r.mariadb.com/downloads/mariadb_repo_setup"
 	cmd := exec.Command("bash", "-c",
 		fmt.Sprintf("curl -LsSf %s | sudo bash -s -- --mariadb-server-version=invalid_version_to_get_list 2>&1", scriptURL))
-	
+
 	output, err := cmd.CombinedOutput()
 	outputStr := string(output)
-	
+
 	if err != nil {
 		// Parse the error output to extract supported versions
 		versions := vv.parseSupportedVersionsFromError(outputStr)
@@ -46,19 +46,19 @@ func (vv *VersionValidator) GetSupportedVersions() ([]string, error) {
 				logger.Strings("versions", versions))
 			return versions, nil
 		}
-		
+
 		// Fallback to hardcoded known versions if parsing fails
 		lg.Warn("Failed to parse supported versions from script output, using fallback list",
 			logger.String("output", outputStr))
 		return vv.getFallbackVersions(), nil
 	}
-	
+
 	// If no error, try to parse supported versions anyway
 	versions := vv.parseSupportedVersionsFromError(outputStr)
 	if len(versions) > 0 {
 		return versions, nil
 	}
-	
+
 	// Final fallback
 	return vv.getFallbackVersions(), nil
 }
@@ -68,12 +68,12 @@ func (vv *VersionValidator) parseSupportedVersionsFromError(output string) []str
 	// Look for the line containing version numbers (format like "10.6.23 10.11.14 11.4.8 11.8.3")
 	re := regexp.MustCompile(`(?m)^\s*(\d+\.\d+\.\d+(?:\s+\d+\.\d+\.\d+)*)\s*$`)
 	matches := re.FindStringSubmatch(output)
-	
+
 	if len(matches) > 1 {
 		// Split the version string into individual versions
 		versionLine := strings.TrimSpace(matches[1])
 		versions := strings.Fields(versionLine)
-		
+
 		// Filter out any non-version strings
 		var validVersions []string
 		versionRegex := regexp.MustCompile(`^\d+\.\d+\.\d+$`)
@@ -82,10 +82,10 @@ func (vv *VersionValidator) parseSupportedVersionsFromError(output string) []str
 				validVersions = append(validVersions, version)
 			}
 		}
-		
+
 		return validVersions
 	}
-	
+
 	return nil
 }
 
@@ -101,13 +101,13 @@ func (vv *VersionValidator) IsVersionSupported(version string) (bool, error) {
 	if err != nil {
 		return false, err
 	}
-	
+
 	for _, supportedVersion := range supportedVersions {
 		if supportedVersion == version {
 			return true, nil
 		}
 	}
-	
+
 	return false, nil
 }
 
@@ -117,31 +117,31 @@ func (vv *VersionValidator) FindBestMatch(requestedVersion string) (string, erro
 	if err != nil {
 		return "", err
 	}
-	
+
 	// First check for exact match
 	for _, supportedVersion := range supportedVersions {
 		if supportedVersion == requestedVersion {
 			return supportedVersion, nil
 		}
 	}
-	
+
 	// Parse requested version to find closest match
 	requestedMajor, requestedMinor, err := vv.parseVersion(requestedVersion)
 	if err != nil {
 		// If we can't parse, return the latest stable version
 		return vv.getLatestVersion(supportedVersions), nil
 	}
-	
+
 	// Find closest version by major.minor
 	var bestMatch string
 	var bestScore int = -1
-	
+
 	for _, supportedVersion := range supportedVersions {
 		supportedMajor, supportedMinor, err := vv.parseVersion(supportedVersion)
 		if err != nil {
 			continue
 		}
-		
+
 		// Calculate match score
 		score := vv.calculateVersionScore(requestedMajor, requestedMinor, supportedMajor, supportedMinor)
 		if score > bestScore {
@@ -149,12 +149,12 @@ func (vv *VersionValidator) FindBestMatch(requestedVersion string) (string, erro
 			bestMatch = supportedVersion
 		}
 	}
-	
+
 	if bestMatch == "" {
 		// Fallback to latest version
 		return vv.getLatestVersion(supportedVersions), nil
 	}
-	
+
 	return bestMatch, nil
 }
 
@@ -164,16 +164,16 @@ func (vv *VersionValidator) parseVersion(version string) (int, int, error) {
 	if len(parts) < 2 {
 		return 0, 0, fmt.Errorf("invalid version format: %s", version)
 	}
-	
+
 	var major, minor int
 	if _, err := fmt.Sscanf(parts[0], "%d", &major); err != nil {
 		return 0, 0, fmt.Errorf("invalid major version: %s", parts[0])
 	}
-	
+
 	if _, err := fmt.Sscanf(parts[1], "%d", &minor); err != nil {
 		return 0, 0, fmt.Errorf("invalid minor version: %s", parts[1])
 	}
-	
+
 	return major, minor, nil
 }
 
@@ -183,7 +183,7 @@ func (vv *VersionValidator) calculateVersionScore(reqMajor, reqMinor, supMajor, 
 	if reqMajor == supMajor && reqMinor == supMinor {
 		return 1000
 	}
-	
+
 	// Same major version gets medium score
 	if reqMajor == supMajor {
 		minorDiff := reqMinor - supMinor
@@ -192,7 +192,7 @@ func (vv *VersionValidator) calculateVersionScore(reqMajor, reqMinor, supMajor, 
 		}
 		return 500 - minorDiff
 	}
-	
+
 	// Different major version gets low score
 	majorDiff := reqMajor - supMajor
 	if majorDiff < 0 {
@@ -206,7 +206,7 @@ func (vv *VersionValidator) getLatestVersion(versions []string) string {
 	if len(versions) == 0 {
 		return ""
 	}
-	
+
 	// Simple approach: return the last version (assuming they're sorted)
 	// For more sophisticated sorting, we could implement proper version comparison
 	latest := versions[0]
@@ -215,7 +215,7 @@ func (vv *VersionValidator) getLatestVersion(versions []string) string {
 			latest = version
 		}
 	}
-	
+
 	return latest
 }
 
@@ -223,7 +223,7 @@ func (vv *VersionValidator) getLatestVersion(versions []string) string {
 func (vv *VersionValidator) isVersionGreater(v1, v2 string) bool {
 	major1, minor1, patch1 := vv.parseVersionComponents(v1)
 	major2, minor2, patch2 := vv.parseVersionComponents(v2)
-	
+
 	if major1 != major2 {
 		return major1 > major2
 	}
@@ -237,7 +237,7 @@ func (vv *VersionValidator) isVersionGreater(v1, v2 string) bool {
 func (vv *VersionValidator) parseVersionComponents(version string) (int, int, int) {
 	parts := strings.Split(version, ".")
 	major, minor, patch := 0, 0, 0
-	
+
 	if len(parts) >= 1 {
 		fmt.Sscanf(parts[0], "%d", &major)
 	}
@@ -247,6 +247,6 @@ func (vv *VersionValidator) parseVersionComponents(version string) (int, int, in
 	if len(parts) >= 3 {
 		fmt.Sscanf(parts[2], "%d", &patch)
 	}
-	
+
 	return major, minor, patch
 }

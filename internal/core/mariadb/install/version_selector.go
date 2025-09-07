@@ -5,7 +5,7 @@ import (
 
 	"sfDBTools/internal/core/mariadb/check_version"
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
 
@@ -16,7 +16,7 @@ type VersionSelector struct {
 }
 
 // NewVersionSelector creates a new version selector instance
-func NewVersionSelector(config *Config, osInfo *common.OSInfo) *VersionSelector {
+func NewVersionSelector(config *Config, osInfo *system.OSInfo) *VersionSelector {
 	return &VersionSelector{
 		config:    config,
 		validator: NewVersionValidator(osInfo),
@@ -26,27 +26,27 @@ func NewVersionSelector(config *Config, osInfo *common.OSInfo) *VersionSelector 
 // SelectVersion allows user to select MariaDB version to install
 func (vs *VersionSelector) SelectVersion() (string, error) {
 	lg, _ := logger.Get()
-	
+
 	// First, get repository-supported versions
 	supportedVersions, err := vs.validator.GetSupportedVersions()
 	if err != nil {
 		lg.Warn("Failed to get repository-supported versions, falling back to version check", logger.Error(err))
 		return vs.selectVersionFallback()
 	}
-	
+
 	if len(supportedVersions) == 0 {
 		lg.Warn("No repository-supported versions found, falling back to version check")
 		return vs.selectVersionFallback()
 	}
-	
+
 	// Use repository-supported versions directly
 	stableVersions, versionOptions := vs.prepareRepositoryVersionOptions(supportedVersions)
-	
+
 	// Handle auto-selection for non-interactive mode
 	if vs.config != nil && vs.config.SkipConfirm {
 		return vs.autoSelectRepositoryVersion(supportedVersions)
 	}
-	
+
 	// Interactive version selection
 	return vs.interactiveVersionSelection(stableVersions, versionOptions)
 }
@@ -65,7 +65,7 @@ func (vs *VersionSelector) selectVersionFallback() (string, error) {
 	}
 
 	var selectedVersion string
-	
+
 	// Handle auto-selection for non-interactive mode
 	if vs.config != nil && vs.config.SkipConfirm {
 		selectedVersion, err = vs.autoSelectVersion(availableVersions, stableVersions)
@@ -73,11 +73,11 @@ func (vs *VersionSelector) selectVersionFallback() (string, error) {
 		// Interactive version selection
 		selectedVersion, err = vs.interactiveVersionSelection(stableVersions, versionOptions)
 	}
-	
+
 	if err != nil {
 		return "", err
 	}
-	
+
 	// Validate the selected version against repository support
 	return vs.validateAndOfferAlternative(selectedVersion)
 }
@@ -188,57 +188,57 @@ func (vs *VersionSelector) prepareRepositoryVersionOptions(supportedVersions []s
 // autoSelectRepositoryVersion automatically selects version from repository-supported versions
 func (vs *VersionSelector) autoSelectRepositoryVersion(supportedVersions []string) (string, error) {
 	lg, _ := logger.Get()
-	
+
 	if len(supportedVersions) == 0 {
 		return "", fmt.Errorf("no repository-supported versions available for auto-selection")
 	}
-	
+
 	// Select the latest version (last in the list)
 	selectedVersion := vs.validator.getLatestVersion(supportedVersions)
-	
+
 	terminal.PrintInfo(fmt.Sprintf("Auto-selecting latest repository-supported version: MariaDB %s", selectedVersion))
 	terminal.PrintSuccess(fmt.Sprintf("Selected MariaDB %s for installation", selectedVersion))
 	lg.Info("Auto-selected latest repository-supported version", logger.String("version", selectedVersion))
-	
+
 	return selectedVersion, nil
 }
 
 // validateAndOfferAlternative validates version and offers alternatives if not supported
 func (vs *VersionSelector) validateAndOfferAlternative(requestedVersion string) (string, error) {
 	lg, _ := logger.Get()
-	
+
 	// Check if the version is supported
 	isSupported, err := vs.validator.IsVersionSupported(requestedVersion)
 	if err != nil {
-		lg.Warn("Failed to validate version support", 
+		lg.Warn("Failed to validate version support",
 			logger.String("version", requestedVersion),
 			logger.Error(err))
 		return requestedVersion, nil // Continue with original version on validation error
 	}
-	
+
 	if isSupported {
 		return requestedVersion, nil
 	}
-	
+
 	// Version not supported, find best match
-	lg.Warn("Requested version not supported by repository", 
+	lg.Warn("Requested version not supported by repository",
 		logger.String("requested", requestedVersion))
-	
+
 	bestMatch, err := vs.validator.FindBestMatch(requestedVersion)
 	if err != nil {
 		return "", fmt.Errorf("failed to find alternative version: %w", err)
 	}
-	
+
 	// In interactive mode, ask user for confirmation
 	if vs.config == nil || !vs.config.SkipConfirm {
 		terminal.PrintWarning(fmt.Sprintf("⚠️ MariaDB %s is not supported by the official repository", requestedVersion))
 		terminal.PrintInfo(fmt.Sprintf("📋 Closest supported version is: MariaDB %s", bestMatch))
-		
+
 		confirmed, err := terminal.ConfirmAndClear(fmt.Sprintf("Would you like to install MariaDB %s instead?", bestMatch))
 		if err != nil {
 			return "", fmt.Errorf("failed to get user confirmation: %w", err)
 		}
-		
+
 		if !confirmed {
 			return "", fmt.Errorf("installation cancelled by user")
 		}
@@ -247,11 +247,11 @@ func (vs *VersionSelector) validateAndOfferAlternative(requestedVersion string) 
 		terminal.PrintWarning(fmt.Sprintf("⚠️ MariaDB %s is not supported by the official repository", requestedVersion))
 		terminal.PrintInfo(fmt.Sprintf("📋 Auto-selecting closest supported version: MariaDB %s", bestMatch))
 	}
-	
+
 	terminal.PrintSuccess(fmt.Sprintf("Selected MariaDB %s for installation", bestMatch))
-	lg.Info("Selected alternative version", 
+	lg.Info("Selected alternative version",
 		logger.String("requested", requestedVersion),
 		logger.String("selected", bestMatch))
-	
+
 	return bestMatch, nil
 }

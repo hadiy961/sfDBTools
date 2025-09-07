@@ -7,8 +7,8 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/mariadb"
+	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 
 	"golang.org/x/sync/errgroup"
@@ -17,19 +17,18 @@ import (
 // Checker handles MariaDB version checking operations
 type Checker struct {
 	config   *Config
-	osInfo   *common.OSInfo
+	osInfo   *system.OSInfo
 	analyzer *mariadb.VersionAnalyzer
 }
 
 // NewChecker creates a new version checker instance
 func NewChecker(config *Config) (*Checker, error) {
 	// Detect OS if OS-specific checking is enabled
-	var osInfo *common.OSInfo
+	var osInfo *system.OSInfo
 	var err error
 
 	if config.OSSpecific {
-		detector := common.NewOSDetector()
-		osInfo, err = detector.DetectOS()
+		osInfo, err = system.DetectOS()
 		if err != nil {
 			return nil, fmt.Errorf("failed to detect OS: %w", err)
 		}

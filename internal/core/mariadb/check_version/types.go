@@ -1,9 +1,8 @@
 package check_version
 
 import (
+	"sfDBTools/utils/system"
 	"time"
-
-	"sfDBTools/utils/common"
 )
 
 // VersionInfo represents MariaDB version information
@@ -21,7 +20,7 @@ type VersionCheckResult struct {
 	LatestVersion     string         `json:"latest_version"`
 	LatestMinor       string         `json:"latest_minor"`
 	CheckTime         time.Time      `json:"check_time"`
-	OSInfo            *common.OSInfo `json:"os_info,omitempty"`
+	OSInfo            *system.OSInfo `json:"os_info,omitempty"`
 }
 
 // VersionType constants

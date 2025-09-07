@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
@@ -12,11 +11,11 @@ import (
 // PackageInstaller handles MariaDB package installation operations
 type PackageInstaller struct {
 	pkgManager system.PackageManager
-	osInfo     *common.OSInfo
+	osInfo     *system.OSInfo
 }
 
 // NewPackageInstaller creates a new package installer instance
-func NewPackageInstaller(pkgManager system.PackageManager, osInfo *common.OSInfo) *PackageInstaller {
+func NewPackageInstaller(pkgManager system.PackageManager, osInfo *system.OSInfo) *PackageInstaller {
 	return &PackageInstaller{
 		pkgManager: pkgManager,
 		osInfo:     osInfo,

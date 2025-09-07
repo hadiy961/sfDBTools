@@ -2,7 +2,6 @@ package remove
 
 import (
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
@@ -41,8 +40,7 @@ func (pm *PackageManager) RemoveMariaDBPackages() error {
 // getPackagesToRemove determines which packages to remove based on the OS
 func (pm *PackageManager) getPackagesToRemove() []string {
 	// Use OS detector to determine package type
-	osDetector := common.NewOSDetector()
-	osInfo, err := osDetector.DetectOS()
+	osInfo, err := system.DetectOS()
 	if err != nil {
 		// Fallback to generic names
 		return []string{"mariadb-server", "mariadb-client", "mariadb"}

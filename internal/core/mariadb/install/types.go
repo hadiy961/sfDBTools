@@ -1,9 +1,8 @@
 package install
 
 import (
+	"sfDBTools/utils/system"
 	"time"
-
-	"sfDBTools/utils/common"
 )
 
 // Config represents installation configuration
@@ -27,7 +26,7 @@ type InstallResult struct {
 
 // SystemInfo represents system information for installation
 type SystemInfo struct {
-	OSInfo            *common.OSInfo
+	OSInfo            *system.OSInfo
 	ExistingService   bool
 	ExistingPackages  []string
 	InternetAvailable bool
