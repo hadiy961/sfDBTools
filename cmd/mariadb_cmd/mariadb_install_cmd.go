@@ -1,11 +1,6 @@
 package mariadb_cmd
 
 import (
-	"os"
-
-	"sfDBTools/internal/core/mariadb"
-	"sfDBTools/internal/logger"
-
 	"github.com/spf13/cobra"
 )
 
@@ -28,20 +23,8 @@ Examples:
   # Interactive MariaDB installation
   sudo sfdbtools mariadb install`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := executeInstall(cmd); err != nil {
-			lg, _ := logger.Get()
-			lg.Error("MariaDB installation failed", logger.Error(err))
-			os.Exit(1)
-		}
-	},
-	Annotations: map[string]string{
-		"command":  "install",
-		"category": "mariadb",
-	},
-}
 
-func executeInstall(cmd *cobra.Command) error {
-	return mariadb.InstallMariaDB()
+	},
 }
 
 func init() {
