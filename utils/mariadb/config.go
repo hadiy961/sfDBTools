@@ -1,38 +1,29 @@
 package mariadb
 
 import (
-	"sfDBTools/utils/common"
-
 	"github.com/spf13/cobra"
 )
 
 // VersionConfig holds configuration for version checking operations
 type VersionConfig struct {
-	ShowDetails     bool   `json:"show_details"`
-	OutputFormat    string `json:"output_format"` // table, json, simple
-	Format          string `json:"format"`        // alias for OutputFormat
-	ShowLatestMinor bool   `json:"show_latest_minor"`
-	Quiet           bool   `json:"quiet"` // suppress operational logs
+	OutputFormat string `json:"output_format"` // json or default
 }
 
 // AddCommonVersionFlags adds common flags for version checking commands
 func AddCommonVersionFlags(cmd *cobra.Command) {
-	cmd.Flags().Bool("details", false, "Show detailed version information")
-	cmd.Flags().String("output", "table", "Output format (table, json, simple)")
-	cmd.Flags().Bool("latest-minor", false, "Show latest minor version for each major version")
-	cmd.Flags().Bool("quiet", false, "Suppress operational logs, show only results")
+	// No flags for now - keep it simple
 }
 
 // ResolveVersionConfig resolves version checking configuration from command flags
 func ResolveVersionConfig(cmd *cobra.Command) (*VersionConfig, error) {
 	config := &VersionConfig{}
 
-	// Get flags using shared helpers
-	config.ShowDetails = common.GetBoolFlagOrEnv(cmd, "details", "SFDBTOOLS_SHOW_DETAILS", false)
-	config.OutputFormat = common.GetStringFlagOrEnv(cmd, "output", "SFDBTOOLS_OUTPUT_FORMAT", "table")
-	config.Format = config.OutputFormat // Set alias
-	config.ShowLatestMinor = common.GetBoolFlagOrEnv(cmd, "latest-minor", "SFDBTOOLS_SHOW_LATEST_MINOR", false)
-	config.Quiet = common.GetBoolFlagOrEnv(cmd, "quiet", "SFDBTOOLS_QUIET", false)
+	// Check if output flag exists and use it
+	if cmd.Flags().Lookup("output") != nil {
+		if output, err := cmd.Flags().GetString("output"); err == nil {
+			config.OutputFormat = output
+		}
+	}
 
 	return config, nil
 }

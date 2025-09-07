@@ -3,7 +3,6 @@ module sfDBTools
 go 1.23.8
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.3
 	github.com/dustin/go-humanize v1.0.1
 	github.com/go-resty/resty/v2 v2.16.5
 	github.com/go-sql-driver/mysql v1.7.1
@@ -15,13 +14,11 @@ require (
 	github.com/spf13/cobra v1.9.1
 	github.com/spf13/viper v1.20.1
 	golang.org/x/crypto v0.37.0
-	golang.org/x/sync v0.16.0
 	golang.org/x/term v0.31.0
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
 require (
-	github.com/andybalholm/cascadia v1.3.3 // indirect
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
