@@ -98,7 +98,7 @@ func (ch *ConfigHelper) BackupConfigFile(filePath string) (string, error) {
 		return "", fmt.Errorf("failed to create backup: %v", err)
 	}
 
-	terminal.PrintInfo(fmt.Sprintf("📁 Backup created: %s", filepath.Base(backupPath)))
+	terminal.PrintInfo(fmt.Sprintf("Backup created: %s", filepath.Base(backupPath)))
 	return backupPath, nil
 }
 

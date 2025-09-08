@@ -61,7 +61,7 @@ func (bp *BaseProcessor) HandleOperationResult(operation string, err error) erro
 		return err
 	}
 
-	terminal.PrintSuccess(fmt.Sprintf("🎉 %s completed successfully!", operation))
+	terminal.PrintSuccess(fmt.Sprintf("%s completed successfully!", operation))
 	return nil
 }
 

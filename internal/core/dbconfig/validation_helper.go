@@ -59,11 +59,11 @@ func (vh *ValidationHelper) ValidateWithDecryption(filePath string, result *dbco
 
 	if err != nil {
 		result.Errors = append(result.Errors, "Decryption failed")
-		terminal.PrintError("❌ Decryption failed")
+		terminal.PrintError("Decryption failed")
 		return common.HandleDecryptionError(err, filePath)
 	}
 
-	terminal.PrintSuccess("✅ Configuration decrypted successfully")
+	terminal.PrintSuccess("Configuration decrypted successfully")
 
 	// Display configuration info
 	vh.displayConfigInfo(dbConfig)
@@ -104,7 +104,7 @@ func (vh *ValidationHelper) testDatabaseConnection(dbConfig *config.EncryptedDat
 	if err != nil {
 		spinner.Stop()
 		result.Errors = append(result.Errors, fmt.Sprintf("Connection failed: %v", err))
-		terminal.PrintError("❌ Failed to connect to database")
+		terminal.PrintError("Failed to connect to database")
 		return fmt.Errorf("failed to open database connection: %w", err)
 	}
 	defer db.Close()
@@ -114,7 +114,7 @@ func (vh *ValidationHelper) testDatabaseConnection(dbConfig *config.EncryptedDat
 	if err != nil {
 		spinner.Stop()
 		result.Errors = append(result.Errors, fmt.Sprintf("Connection test failed: %v", err))
-		terminal.PrintError("❌ Database connection test failed")
+		terminal.PrintError("Database connection test failed")
 		return fmt.Errorf("database connection test failed: %w", err)
 	}
 
@@ -125,10 +125,10 @@ func (vh *ValidationHelper) testDatabaseConnection(dbConfig *config.EncryptedDat
 
 	if err != nil {
 		result.Warnings = append(result.Warnings, "Could not retrieve server version")
-		terminal.PrintWarning("⚠️ Could not retrieve server version")
+		terminal.PrintWarning("Could not retrieve server version")
 	} else {
 		result.TestResults["connection_test"] = true
-		terminal.PrintSuccess("✅ Database connection successful")
+		terminal.PrintSuccess("Database connection successful")
 		terminal.PrintInfo(fmt.Sprintf("🗃️ Server Version: %s", serverVersion))
 	}
 
