@@ -13,8 +13,4 @@ var ConfigureMariadbCMD = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		fmt.Println("Coming soon: configure")
 	},
-	Annotations: map[string]string{
-		"command":  "configure",
-		"category": "mariadb",
-	},
 }

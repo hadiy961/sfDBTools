@@ -15,7 +15,3 @@ Informasi diambil dari dokumentasi resmi MariaDB Repository Setup Script.`,
 		return nil
 	},
 }
-
-func init() {
-	// No flags needed since we only have one display format
-}

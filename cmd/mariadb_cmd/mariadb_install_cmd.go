@@ -26,7 +26,3 @@ Examples:
 
 	},
 }
-
-func init() {
-	// No flags needed for simple installation
-}
