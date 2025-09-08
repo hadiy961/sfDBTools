@@ -31,10 +31,10 @@ Sensitive data (passwords) must be provided via environment variables:
 If environment variables are not set, you will be prompted interactively.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Clear screen and show header
-		terminal.ClearAndShowHeader("🔐 Generate Database Configuration")
+		terminal.ClearAndShowHeader("Generate database configuration")
 
 		// Show generation info
-		terminal.PrintSubHeader("📋 Configuration Generation")
+		terminal.PrintSubHeader("Configuration generation")
 		terminal.PrintInfo("This will create an encrypted database configuration file.")
 		terminal.PrintInfo("You'll be prompted for database connection details.")
 		fmt.Println()
@@ -54,7 +54,7 @@ If environment variables are not set, you will be prompted interactively.`,
 			os.Exit(1)
 		}
 
-		terminal.PrintSuccess("✅ Configuration generated successfully!")
+		terminal.PrintSuccess("Configuration generated successfully!")
 		terminal.WaitForEnterWithMessage("Press Enter to continue...")
 	},
 }
