@@ -1,8 +1,6 @@
 package mariadb_cmd
 
 import (
-	"sfDBTools/internal/core/mariadb"
-
 	"github.com/spf13/cobra"
 )
 
@@ -13,7 +11,8 @@ var CheckVersionCmd = &cobra.Command{
 	Long: `Menampilkan daftar versi MariaDB yang tersedia untuk instalasi.
 Informasi diambil dari dokumentasi resmi MariaDB Repository Setup Script.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		return mariadb.DisplayAvailableVersions()
+		// return mariadb.DisplayAvailableVersions()
+		return nil
 	},
 }
 
