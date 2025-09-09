@@ -138,12 +138,12 @@ type ConfigDirConfig struct {
 	DatabaseList   string `mapstructure:"database_list"`
 }
 
-type MariaDBConfig struct {
-	DefaultVersion string                    `mapstructure:"default_version"`
-	Installation   MariaDBInstallationConfig `mapstructure:"installation"`
-}
+// type MariaDBConfig struct {
+// 	DefaultVersion string                    `mapstructure:"default_version"`
+// 	Installation   MariaDBInstallationConfig `mapstructure:"installation"`
+// }
 
-type MariaDBInstallationConfig struct {
+type MariaDBConfig struct {
 	Version   string `mapstructure:"version"`
 	BaseDir   string `mapstructure:"base_dir"`
 	DataDir   string `mapstructure:"data_dir"`

@@ -1,116 +1,320 @@
-//go:build linux
-// +build linux
-
+// Package disk menyediakan utilitas pemeriksaan disk (multi-platform).
+// Sebelumnya file ini hanya untuk Linux; build tag dihapus supaya bisa
+// dikompilasi di platform lain. Implementasi menggunakan gopsutil yang
+// bersifat cross-platform.
 package disk
 
 import (
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
-	"syscall"
+	"time"
+
+	gopsutildisk "github.com/shirou/gopsutil/v3/disk"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 )
 
-// CheckDiskSpace checks if there's enough disk space available
+// CheckDiskSpace mengecek apakah tersedia minimal `minFreeSpace` (MB)
+// pada filesystem yang menampung `path`. Jika `path` kosong, root akan
+// dipakai. Nilai `minFreeSpace` diasumsikan dalam megabyte.
 func CheckDiskSpace(path string, minFreeSpace int64) error {
 	lg, _ := logger.Get()
 
-	// Find the first existing parent directory to check disk space
+	// normalize and find an existing directory to check
 	checkPath := path
+	if checkPath == "" {
+		checkPath = string(os.PathSeparator)
+	}
+
+	// Walk up until we find an existing path (or reach root)
 	for {
-		var stat syscall.Statfs_t
-		if err := syscall.Statfs(checkPath, &stat); err != nil {
-			// If path doesn't exist, try parent directory
-			parentDir := filepath.Dir(checkPath)
-			if parentDir == checkPath || parentDir == "." || parentDir == "/" {
-				// We've reached the root and still can't find an existing directory
-				lg.Error("Failed to get disk space info", logger.Error(err))
-				return fmt.Errorf("failed to get disk space info: %w", err)
+		if _, err := os.Stat(checkPath); err != nil {
+			if os.IsNotExist(err) {
+				parent := filepath.Dir(checkPath)
+				if parent == checkPath || parent == "." || parent == string(os.PathSeparator) {
+					// as a last resort use root
+					checkPath = string(os.PathSeparator)
+					break
+				}
+				checkPath = parent
+				continue
 			}
-			checkPath = parentDir
+			lg.Error("Failed to stat path for disk check",
+				logger.String("path", checkPath),
+				logger.Error(err))
+			return fmt.Errorf("failed to access path '%s': %w", checkPath, err)
+		}
+		break
+	}
+
+	// Gunakan gopsutil untuk mengambil informasi penggunaan disk
+	usage, err := gopsutildisk.Usage(checkPath)
+	if err != nil {
+		lg.Error("Failed to get disk usage info",
+			logger.String("path", checkPath),
+			logger.Error(err))
+		return fmt.Errorf("failed to get disk usage info for '%s': %w", checkPath, err)
+	}
+	// gopsutil mengembalikan Free sebagai uint64, jaga agar tidak overflow
+	var available int64
+	if usage.Free > uint64(math.MaxInt64) {
+		available = math.MaxInt64
+	} else {
+		available = int64(usage.Free)
+	}
+
+	required := mbToBytes(minFreeSpace)
+
+	percentFree := 100.0 - usage.UsedPercent // aproksimasi
+
+	if available < required {
+		lg.Error("Ruang disk tidak mencukupi",
+			logger.String("available", common.FormatSizeWithPrecision(available, 2)),
+			logger.String("required", common.FormatSizeWithPrecision(required, 2)),
+			logger.String("checked_path", checkPath),
+			logger.String("percent_free", common.FormatPercent(percentFree, 1)))
+		return fmt.Errorf("insufficient disk space: available %s, required %s (free %s)",
+			common.FormatSizeWithPrecision(available, 2), common.FormatSizeWithPrecision(required, 2), common.FormatPercent(percentFree, 1))
+	}
+
+	lg.Debug("Disk space check passed",
+		logger.String("available", common.FormatSizeWithPrecision(available, 2)),
+		logger.String("checked_path", checkPath),
+		logger.String("percent_free", common.FormatPercent(percentFree, 1)))
+	return nil
+}
+
+// DiskUsage represents usage metrics for a filesystem/mountpoint.
+type DiskUsage struct {
+	Path        string
+	Mountpoint  string
+	Fstype      string
+	Total       int64
+	Free        int64
+	Used        int64
+	UsedPercent float64
+}
+
+// DiskProvider abstracts gopsutil so it can be mocked in tests.
+type DiskProvider interface {
+	Usage(path string) (*gopsutildisk.UsageStat, error)
+}
+
+type realDiskProvider struct{}
+
+func (r realDiskProvider) Usage(path string) (*gopsutildisk.UsageStat, error) {
+	return gopsutildisk.Usage(path)
+}
+
+var defaultDiskProvider DiskProvider = realDiskProvider{}
+
+// GetUsage returns DiskUsage for the given path using the DiskProvider.
+func GetUsage(path string) (DiskUsage, error) {
+	lg, _ := logger.Get()
+	checkPath := path
+	if checkPath == "" {
+		checkPath = string(os.PathSeparator)
+	}
+
+	// Walk up to find existing path as in CheckDiskSpace
+	for {
+		if _, err := os.Stat(checkPath); err != nil {
+			if os.IsNotExist(err) {
+				parent := filepath.Dir(checkPath)
+				if parent == checkPath || parent == "." || parent == string(os.PathSeparator) {
+					checkPath = string(os.PathSeparator)
+					break
+				}
+				checkPath = parent
+				continue
+			}
+			lg.Error("Failed to stat path for GetUsage", logger.String("path", checkPath), logger.Error(err))
+			return DiskUsage{}, fmt.Errorf("failed to access path '%s': %w", checkPath, err)
+		}
+		break
+	}
+
+	usage, err := defaultDiskProvider.Usage(checkPath)
+	if err != nil {
+		lg.Error("Failed to get disk usage info", logger.String("path", checkPath), logger.Error(err))
+		return DiskUsage{}, fmt.Errorf("failed to get disk usage info for '%s': %w", checkPath, err)
+	}
+
+	var free int64
+	if usage.Free > uint64(math.MaxInt64) {
+		free = math.MaxInt64
+	} else {
+		free = int64(usage.Free)
+	}
+
+	var total int64
+	if usage.Total > uint64(math.MaxInt64) {
+		total = math.MaxInt64
+	} else {
+		total = int64(usage.Total)
+	}
+
+	used := total - free
+
+	du := DiskUsage{
+		Path:        path,
+		Mountpoint:  usage.Path,
+		Fstype:      usage.Fstype,
+		Total:       total,
+		Free:        free,
+		Used:        used,
+		UsedPercent: usage.UsedPercent,
+	}
+	return du, nil
+}
+
+// GetFreeBytes returns free bytes for path.
+func GetFreeBytes(path string) (int64, error) {
+	u, err := GetUsage(path)
+	if err != nil {
+		return 0, err
+	}
+	return u.Free, nil
+}
+
+// GetTotalBytes returns total bytes for path.
+func GetTotalBytes(path string) (int64, error) {
+	u, err := GetUsage(path)
+	if err != nil {
+		return 0, err
+	}
+	return u.Total, nil
+}
+
+// GetUsedPercent returns used percent for path.
+func GetUsedPercent(path string) (float64, error) {
+	u, err := GetUsage(path)
+	if err != nil {
+		return 0, err
+	}
+	return u.UsedPercent, nil
+}
+
+// CheckDiskSpaceBytes checks free bytes threshold instead of MB.
+func CheckDiskSpaceBytes(path string, minFreeBytes int64) error {
+	available, err := GetFreeBytes(path)
+	if err != nil {
+		return err
+	}
+	if available < minFreeBytes {
+		return fmt.Errorf("insufficient disk space: available %s, required %s",
+			common.FormatSizeWithPrecision(available, 2), common.FormatSizeWithPrecision(minFreeBytes, 2))
+	}
+	return nil
+}
+
+// MonitorDisk starts a background monitor that calls cb when used percent
+// exceeds thresholdPercent. It returns a stop function to stop monitoring.
+func MonitorDisk(path string, interval time.Duration, thresholdPercent float64, cb func(DiskUsage)) func() {
+	stopCh := make(chan struct{})
+	go func() {
+		ticker := time.NewTicker(interval)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-stopCh:
+				return
+			case <-ticker.C:
+				u, err := GetUsage(path)
+				if err != nil {
+					// don't spam logs, just continue
+					lg, _ := logger.Get()
+					lg.Error("MonitorDisk: failed to get usage", logger.Error(err))
+					continue
+				}
+				if u.UsedPercent >= thresholdPercent {
+					cb(u)
+				}
+			}
+		}
+	}()
+	return func() { close(stopCh) }
+}
+
+// FindBestOutputMount picks the path with the most free bytes from candidates.
+func FindBestOutputMount(candidates []string) (DiskUsage, error) {
+	var best DiskUsage
+	var found bool
+	for _, p := range candidates {
+		u, err := GetUsage(p)
+		if err != nil {
+			continue
+		}
+		if !found || u.Free > best.Free {
+			best = u
+			found = true
+		}
+	}
+	if !found {
+		return DiskUsage{}, fmt.Errorf("no valid candidate paths")
+	}
+	return best, nil
+}
+
+// GetAllUsages returns DiskUsage for all mounted partitions (similar to `df -h`).
+func GetAllUsages() ([]DiskUsage, error) {
+	lg, _ := logger.Get()
+	parts, err := gopsutildisk.Partitions(false)
+	if err != nil {
+		lg.Error("Failed to list partitions", logger.Error(err))
+		return nil, fmt.Errorf("failed to list partitions: %w", err)
+	}
+
+	var out []DiskUsage
+	for _, p := range parts {
+		// p.Mountpoint may be empty or not accessible; skip on error
+		usage, err := defaultDiskProvider.Usage(p.Mountpoint)
+		if err != nil {
+			// skip this partition but log debug
+			lg.Debug("Skipping partition, cannot get usage", logger.String("mount", p.Mountpoint), logger.Error(err))
 			continue
 		}
 
-		// Available space in bytes
-		available := int64(stat.Bavail) * int64(stat.Bsize)
-
-		if available < minFreeSpace*1024*1024 { // Convert MB to bytes
-			lg.Error("Insufficient disk space",
-				logger.String("available", common.FormatSize(available)),
-				logger.String("required", common.FormatSize(minFreeSpace*1024*1024)),
-				logger.String("checked_path", checkPath))
-			return fmt.Errorf("insufficient disk space: available %s, required %s MB",
-				common.FormatSize(available), common.FormatSize(minFreeSpace*1024*1024))
+		var free int64
+		if usage.Free > uint64(math.MaxInt64) {
+			free = math.MaxInt64
+		} else {
+			free = int64(usage.Free)
 		}
+		var total int64
+		if usage.Total > uint64(math.MaxInt64) {
+			total = math.MaxInt64
+		} else {
+			total = int64(usage.Total)
+		}
+		used := total - free
 
-		lg.Debug("Disk space check passed",
-			logger.String("available", common.FormatSize(available)),
-			logger.String("checked_path", checkPath))
-		return nil
+		du := DiskUsage{
+			Path:        p.Mountpoint,
+			Mountpoint:  p.Mountpoint,
+			Fstype:      usage.Fstype,
+			Total:       total,
+			Free:        free,
+			Used:        used,
+			UsedPercent: usage.UsedPercent,
+		}
+		out = append(out, du)
 	}
+	return out, nil
 }
 
-// CreateOutputDirectory creates the output directory if it doesn't exist
-func CreateOutputDirectory(outputDir string) error {
-	lg, _ := logger.Get()
-
-	if err := os.MkdirAll(outputDir, 0755); err != nil {
-		lg.Error("Failed to create output directory",
-			logger.String("dir", outputDir),
-			logger.Error(err))
-		return fmt.Errorf("failed to create output directory '%s': %w", outputDir, err)
+// mbToBytes converts megabytes to bytes safely.
+// mbToBytes mengonversi MB ke byte dengan pengecekan overflow.
+func mbToBytes(mb int64) int64 {
+	const mbUnit = int64(1024 * 1024)
+	if mb <= 0 {
+		return 0
 	}
-
-	lg.Debug("Output directory created/verified", logger.String("dir", outputDir))
-	return nil
-}
-
-// ValidateOutputDir memastikan outputDir ada dan bisa ditulis.
-// Jika belum ada, akan mencoba membuatnya.
-func ValidateOutputDir(outputDir string) error {
-	lg, _ := logger.Get()
-
-	if outputDir == "" {
-		lg.Error("Output directory is required")
-		return fmt.Errorf("output directory is required")
+	if mb > math.MaxInt64/mbUnit {
+		return math.MaxInt64
 	}
-	info, err := os.Stat(outputDir)
-	if os.IsNotExist(err) {
-		lg.Debug("Output directory does not exist, attempting to create", logger.String("dir", outputDir))
-		// Coba buat direktori
-		if err := os.MkdirAll(outputDir, 0755); err != nil {
-			lg.Error("Failed to create output directory",
-				logger.String("dir", outputDir),
-				logger.Error(err))
-			return fmt.Errorf("failed to create output directory '%s': %w", outputDir, err)
-		}
-		lg.Info("Output directory created", logger.String("dir", outputDir))
-		return nil
-	}
-	if err != nil {
-		lg.Error("Failed to access output directory",
-			logger.String("dir", outputDir),
-			logger.Error(err))
-		return fmt.Errorf("failed to access output directory '%s': %w", outputDir, err)
-	}
-	if !info.IsDir() {
-		lg.Error("Output path is not a directory", logger.String("dir", outputDir))
-		return fmt.Errorf("output path '%s' is not a directory", outputDir)
-	}
-	// Cek permission tulis
-	testFile := outputDir + "/.sfbackup_test"
-	lg.Debug("Checking write permission for output directory", logger.String("dir", outputDir))
-	f, err := os.Create(testFile)
-	if err != nil {
-		lg.Error("Output directory is not writable",
-			logger.String("dir", outputDir),
-			logger.Error(err))
-		return fmt.Errorf("output directory '%s' is not writable: %w", outputDir, err)
-	}
-	f.Close()
-	os.Remove(testFile)
-	lg.Debug("Output directory is writable", logger.String("dir", outputDir))
-	return nil
+	return mb * mbUnit
 }

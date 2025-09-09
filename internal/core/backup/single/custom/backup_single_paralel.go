@@ -9,7 +9,7 @@ import (
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
 	"sfDBTools/utils/database/info"
-	"sfDBTools/utils/disk"
+	"sfDBTools/utils/file"
 )
 
 // BackupSingle performs a backup of a single database
@@ -19,7 +19,7 @@ func BackupCustom(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 		return nil, fmt.Errorf("failed to get logger: %w", err)
 	}
 
-	errDir := disk.ValidateOutputDir(options.OutputDir)
+	errDir := file.ValidateOutputDir(options.OutputDir)
 	if errDir != nil {
 		lg.Error(errDir.Error())
 		fmt.Printf("Error: %v\n", errDir)

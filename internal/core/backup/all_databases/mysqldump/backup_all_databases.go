@@ -10,7 +10,7 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
-	"sfDBTools/utils/disk"
+	"sfDBTools/utils/file"
 )
 
 // BackupAllDatabases performs a backup of all databases into a single file
@@ -27,7 +27,7 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions, availabl
 	}
 
 	// Validate output directory
-	errDir := disk.ValidateOutputDir(options.OutputDir)
+	errDir := file.ValidateOutputDir(options.OutputDir)
 	if errDir != nil {
 		lg.Error(errDir.Error())
 		return nil, errDir

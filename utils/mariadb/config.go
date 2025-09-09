@@ -42,8 +42,8 @@ func ResolveMariaDBInstallConfig(cmd *cobra.Command) (*MariaDBInstallConfig, err
 			version = "10.6.23"
 		} else {
 			// Ambil dari config file
-			if cfg.MariaDB.Installation.Version != "" {
-				version = cfg.MariaDB.Installation.Version
+			if cfg.MariaDB.Version != "" {
+				version = cfg.MariaDB.Version
 			} else {
 				// Fallback ke default hardcoded jika config kosong
 				version = "10.6.23"
