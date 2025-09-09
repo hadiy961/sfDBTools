@@ -1,6 +1,8 @@
 module sfDBTools
 
-go 1.23.8
+go 1.24.0
+
+toolchain go1.24.6
 
 require (
 	github.com/dustin/go-humanize v1.0.1
@@ -19,6 +21,7 @@ require (
 )
 
 require (
+	github.com/bmatcuk/doublestar/v4 v4.9.1
 	github.com/fatih/color v1.15.0 // indirect
 	github.com/fsnotify/fsnotify v1.8.0 // indirect
 	github.com/go-ole/go-ole v1.2.6 // indirect
@@ -37,7 +40,7 @@ require (
 	github.com/sagikazarmark/locafero v0.7.0 // indirect
 	github.com/shoenig/go-m1cpu v0.1.6 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
-	github.com/spf13/afero v1.12.0 // indirect
+	github.com/spf13/afero v1.15.0 // indirect
 	github.com/spf13/cast v1.7.1 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/subosito/gotenv v1.6.0 // indirect
@@ -46,7 +49,7 @@ require (
 	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.uber.org/multierr v1.10.0 // indirect
 	golang.org/x/net v0.39.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.24.0 // indirect
+	golang.org/x/sys v0.36.0 // indirect
+	golang.org/x/text v0.28.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
