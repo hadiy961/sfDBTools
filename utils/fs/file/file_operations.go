@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
 )
 
 // JSONWriter handles JSON file operations
@@ -16,6 +17,12 @@ func NewJSONWriter() *JSONWriter {
 
 // WriteToFile writes data as JSON to the specified file path
 func (jw *JSONWriter) WriteToFile(filePath string, data interface{}) error {
+	// Ensure parent directory exists
+	parent := filepath.Dir(filePath)
+	if err := os.MkdirAll(parent, 0o755); err != nil {
+		return fmt.Errorf("failed to ensure directory '%s': %w", parent, err)
+	}
+
 	file, err := os.Create(filePath)
 	if err != nil {
 		return fmt.Errorf("failed to create file: %w", err)
