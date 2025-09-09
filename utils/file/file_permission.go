@@ -1,10 +1,9 @@
-package common
+package file
 
 import (
 	"fmt"
 	"os"
 	"os/exec"
-
 	"sfDBTools/internal/logger"
 )
 
@@ -17,15 +16,25 @@ func SetFilePermissions(filePath string, mode os.FileMode, owner, group string) 
 		return err
 	}
 
-	// Change ownership if owner/group specified
-	if owner != "" && group != "" {
-		cmd := exec.Command("chown", owner+":"+group, filePath)
-		if err := cmd.Run(); err != nil {
+	// Change ownership if owner or group specified (allow either)
+	if owner != "" || group != "" {
+		ownerGroup := owner
+		if group != "" {
+			if owner != "" {
+				ownerGroup = owner + ":" + group
+			} else {
+				ownerGroup = ":" + group
+			}
+		}
+
+		cmd := exec.Command("chown", ownerGroup, filePath)
+		if out, err := cmd.CombinedOutput(); err != nil {
 			lg.Warn("Failed to set file ownership",
 				logger.String("file", filePath),
-				logger.String("owner", owner+":"+group),
+				logger.String("owner", ownerGroup),
+				logger.String("output", string(out)),
 				logger.Error(err))
-			return err
+			return fmt.Errorf("chown failed: %w: %s", err, string(out))
 		}
 	}
 
@@ -42,12 +51,21 @@ func SetDirectoryPermissions(dirPath string, mode os.FileMode, owner, group stri
 	lg, _ := logger.Get()
 
 	// Change ownership (if requested)
-	if owner != "" && group != "" {
-		cmd := exec.Command("chown", "-R", owner+":"+group, dirPath)
+	if owner != "" || group != "" {
+		ownerGroup := owner
+		if group != "" {
+			if owner != "" {
+				ownerGroup = owner + ":" + group
+			} else {
+				ownerGroup = ":" + group
+			}
+		}
+
+		cmd := exec.Command("chown", "-R", ownerGroup, dirPath)
 		if out, err := cmd.CombinedOutput(); err != nil {
 			lg.Warn("Failed to set directory ownership",
 				logger.String("directory", dirPath),
-				logger.String("owner", owner+":"+group),
+				logger.String("owner", ownerGroup),
 				logger.String("output", string(out)),
 				logger.Error(err))
 			return fmt.Errorf("chown failed: %w: %s", err, string(out))
@@ -83,8 +101,8 @@ func CreateDirectoryWithPermissions(dirPath string, mode os.FileMode, owner, gro
 		return err
 	}
 
-	// Set ownership if specified
-	if owner != "" && group != "" {
+	// Set ownership if specified (allow owner or group)
+	if owner != "" || group != "" {
 		if err := SetDirectoryPermissions(dirPath, mode, owner, group); err != nil {
 			return err
 		}

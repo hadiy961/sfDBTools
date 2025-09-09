@@ -27,7 +27,7 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions, availabl
 	}
 
 	// Validate output directory
-	errDir := file.ValidateOutputDir(options.OutputDir)
+	errDir := file.ValidateDir(options.OutputDir)
 	if errDir != nil {
 		lg.Error(errDir.Error())
 		return nil, errDir

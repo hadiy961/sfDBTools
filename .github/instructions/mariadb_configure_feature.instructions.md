@@ -10,8 +10,96 @@ Tujuan: sediakan command yang aman, teruji, dan sesuai pola arsitektur repo `sfD
 - Logika inti: `internal/core/mariadb/configure/configure.go`.
 - Reuse helper: `utils/common`, `utils/terminal`, `utils/crypto`, `utils/database`, `utils/system`, `utils/mariadb` sesuai pola repo.
 
-### Flow fitur
+### Pola Arsitektur yang Harus Diikuti
 
+#### 1. Command Pattern (cmd/)
+```go
+// cmd/mariadb_cmd/mariadb_configure_cmd.go
+var mariadbConfigureCmd = &cobra.Command{
+    Use:   "configure",
+    Short: "Configure MariaDB server",
+    RunE:  executeMariaDBConfigure,
+}
+
+func executeMariaDBConfigure(cmd *cobra.Command, args []string) error {
+    // 1. Resolve config dari flags/env/file
+    config, err := mariadb_utils.ResolveMariaDBConfigureConfig(cmd)
+    if err != nil {
+        return err
+    }
+
+    // 2. Panggil core business logic
+    return mariadb_configure.RunMariaDBConfigure(context.Background(), config)
+}
+
+func init() {
+    mariadb_utils.AddMariaDBConfigureFlags(mariadbConfigureCmd)
+    mariadbCmd.AddCommand(mariadbConfigureCmd)
+}
+```
+
+#### 2. Config Resolution Pattern (utils/mariadb/)
+Ikuti pola yang ada di `utils/mariadb/config.go`:
+```go
+// MariaDBConfigureConfig berisi konfigurasi untuk setup MariaDB
+type MariaDBConfigureConfig struct {
+    ServerID               int    
+    Port                   int    
+    DataDir                string 
+    LogDir                 string 
+    BinlogDir              string 
+    InnodbEncryptTables    bool   
+    EncryptionKeyFile      string 
+    InnodbBufferPoolSize   string 
+    InnodbBufferPoolInstances int 
+    NonInteractive         bool   
+}
+
+// ResolveMariaDBConfigureConfig menggunakan pola priority: flags > env > config > defaults
+func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig, error) {
+    // Ikuti pola yang ada: flags -> env -> config file -> defaults
+    serverID := common.GetIntFlagOrEnv(cmd, "server-id", "SFDBTOOLS_MARIADB_SERVER_ID", 1)
+    port := common.GetIntFlagOrEnv(cmd, "port", "SFDBTOOLS_MARIADB_PORT", 3306)
+    // dst...
+    
+    // Validasi input user (penting untuk konfigurasi sistem)
+    if err := validateConfigureInput(cfg); err != nil {
+        return nil, fmt.Errorf("validasi konfigurasi gagal: %w", err)
+    }
+    
+    return cfg, nil
+}
+```
+
+#### 3. Flag Helper Pattern (utils/mariadb/)
+```go
+func AddMariaDBConfigureFlags(cmd *cobra.Command) {
+    cmd.Flags().Int("server-id", 0, "Server ID for replication")
+    cmd.Flags().Int("port", 0, "MariaDB port")
+    cmd.Flags().String("data-dir", "", "Data directory path")
+    cmd.Flags().String("log-dir", "", "Log directory path") 
+    cmd.Flags().String("binlog-dir", "", "Binary log directory path")
+    cmd.Flags().Bool("innodb-encrypt-tables", false, "Enable table encryption")
+    cmd.Flags().String("encryption-key-file", "", "Encryption key file path")
+    cmd.Flags().Bool("non-interactive", false, "Non-interactive mode")
+}
+```
+
+#### 4. Core Logic Pattern (internal/core/mariadb/configure/)
+```
+internal/core/mariadb/configure/
+├── configure.go        // Entry point RunMariaDBConfigure(ctx, cfg)
+├── precheck.go         // Cek privilege, installasi, service status
+├── template.go         // Load template config dari /etc/sfDBTools/server.cnf
+├── validation.go       // Validasi input, direktori, port, permissions
+├── interactive.go      // Input interaktif untuk nilai konfigurasi
+├── autotuning.go       // Auto-tune berdasarkan CPU/RAM
+├── migration.go        // Data migration untuk direktori
+└── service.go          // Restart service, verify connection
+```
+
+### Flow Implementasi yang Harus Diikuti
+```plain
 1. Installation Checks
   - Apakah user memiliki privilege sudo/root
   - Cek apakah MariaDB sudah terinstall.
@@ -81,36 +169,92 @@ Tujuan: sediakan command yang aman, teruji, dan sesuai pola arsitektur repo `sfD
 23. Verifikasi konfigurasi diterapkan (baca dari `SHOW VARIABLES LIKE '...'`).
 24. Hapus config sementara. Log hasil ke terminal (pakai `utils/terminal`).
 25. Update file konfigurasi apps (`/etc/sfDBTools/config/config.yaml`) (point 5).
+```
 
-Semua item di atas harus tercakup oleh command baru.
-
-### Detail implementasi
-Prinsip implementasi dan best practices Go
-
-- Single Responsibility: satu fungsi melakukan satu tugas. Jika fungsi > 50 baris atau bercabang berat, pecah.
-- Dependency Injection: terima dependency (package manager, process manager, service manager) sebagai interface di argumen supaya mudah di-mock di test.
-- Idempotency: buat operasi yang dapat dijalankan ulang tanpa menimbulkan efek samping berbahaya — cek kondisi sebelum melakukan perubahan (contoh: cek repo sudah ada / paket sudah terinstall).
-- No duplication: jika menemukan logic yang sama di beberapa tempat, buat helper di `utils/` dan gunakan kembali. Favor composition over copy-paste.
-- Small exported surface: hanya export fungsi yang diperlukan; prefer unexported (lowercase) untuk helper internal.
-- Linters & formatting: pakai `gofmt`/`gofumpt`, `go vet`, dan linting (`golangci-lint`) di CI.
-- Logging: gunakan logger yang sudah ada (`internal/logger`) dan hindari mencetak langsung ke stdout dari dalam core logic; gunakan `utils/terminal` di `cmd/` untuk UX interaktif.
-
-### Rancangan struktur kode
-- cmd/
-  - mariadb_cmd/
-    - mariadb_install_cmd.go   // flags -> build config -> call core
-
-- internal/core/mariadb/install/
-  - install.go                // entry point RunMariaDBInstall(ctx, cfg, deps)
-  - precheck.go               // cek existing mariadb, os, internet
-  - repo_setup.go             // download + run mariadb_repo_setup
-  - package_install.go        // pm.Install + pin/version logic
-  - service.go                // start/enable/verify service
-
-- utils/
-  - system/                   // os_detection, package_manager, process, service_manager
-  - terminal/                 // terminal helpers
-  - mariadb/ (opsional)       // mariadb-specific small helpers (version parsing, repo file parsing)
+### Pola yang Harus Digunakan dari Existing Code
+1. **Flag Resolution**: Gunakan `common.GetStringFlagOrEnv()`, `common.GetIntFlagOrEnv()`, `common.GetBoolFlagOrEnv()`
+2. **Config Loading**: Ikuti pola di `internal/config/loader.go` untuk encrypted config
+3. **Terminal UI**: Gunakan `utils/terminal` untuk spinner, progress, tables, colored output
+4. **Service Operations**: Gunakan `utils/system/service_manager.go` untuk systemctl operations
+5. **File Operations**: Gunakan `utils/common/file_ops.go` untuk permissions, directory creation
+6. **Database Operations**: Gunakan `utils/database/connection_wrapper.go` untuk connections
+7. **Logging**: Gunakan `internal/logger` dengan structured logging
 
 
-Dengan panduan ini, implementasi akan terstruktur, mudah diuji, dan mudah dipelihara.
+### Validasi Input Khusus untuk MariaDB Configure
+
+```go
+func validateConfigureInput(cfg *MariaDBConfigureConfig) error {
+    // Server ID validation
+    if cfg.ServerID <= 0 || cfg.ServerID > 4294967295 {
+        return fmt.Errorf("server_id must be between 1 and 4294967295")
+    }
+    
+    // Port validation  
+    if cfg.Port < 1024 || cfg.Port > 65535 {
+        return fmt.Errorf("port must be between 1024 and 65535")
+    }
+    
+    // Directory validation
+    for _, dir := range []string{cfg.DataDir, cfg.LogDir, cfg.BinlogDir} {
+        if !filepath.IsAbs(dir) {
+            return fmt.Errorf("directory must be absolute path: %s", dir)
+        }
+    }
+    
+    // Directories must be different
+    if cfg.DataDir == cfg.LogDir || cfg.DataDir == cfg.BinlogDir || cfg.LogDir == cfg.BinlogDir {
+        return fmt.Errorf("directories must be different")
+    }
+    
+    return nil
+}
+```
+
+### Structure Directory yang Harus Dibuat
+
+```
+cmd/
+├── mariadb_cmd/
+│   └── mariadb_configure_cmd.go    // Command definition + flag registration
+
+internal/core/mariadb/configure/
+├── configure.go                    // Entry point RunMariaDBConfigure()
+├── precheck.go                     // Permission, installation, service checks
+├── template.go                     // Template config loading
+├── validation.go                   // Input validation
+├── interactive.go                  // Interactive input gathering
+├── autotuning.go                   // CPU/RAM based auto-tuning
+├── migration.go                    // Directory migration logic
+└── service.go                      // Service restart & verification
+
+utils/mariadb/
+├── config.go                       // Config resolution (sudah ada, tambah configure)
+└── flags.go                        // Flag definitions (buat baru)
+```
+
+### Dependencies yang Harus Digunakan
+
+- `utils/common` - Flag resolution, file operations
+- `utils/terminal` - Interactive UI, progress indicators
+- `utils/system` - Service management, package management, system checks
+- `utils/database` - Database connections, validation
+- `utils/crypto` - Encrypted config file handling
+- `utils/disk` - Disk operations, space checks
+- `utils/file` - File operations, permissions checks
+- `internal/logger` - Structured logging
+- `internal/config` - Config file loading
+
+### Error Handling Pattern
+
+```go
+// Gunakan error wrapping yang konsisten
+if err := validateConfiguration(cfg); err != nil {
+    return fmt.Errorf("configuration validation failed: %w", err)
+}
+
+// Log errors dengan context
+lg.Error("Failed to restart MariaDB service", 
+    logger.String("service", "mariadb"),
+    logger.Error(err))
+```

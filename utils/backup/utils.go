@@ -39,7 +39,7 @@ func InitializeBackupResult(options BackupOptions) *BackupResult {
 // setupBackupPaths generates output file paths and creates directories
 func SetupBackupPaths(options BackupOptions) (string, string, error) {
 	// Create output directory
-	if err := file.CreateOutputDirectory(options.OutputDir); err != nil {
+	if err := file.CreateDir(options.OutputDir); err != nil {
 		return "", "", err
 	}
 

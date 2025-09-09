@@ -44,7 +44,7 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 	// 	lg.Error("Database validation failed", logger.Error(err))
 	// }
 
-	errDir := file.ValidateOutputDir(options.OutputDir)
+	errDir := file.ValidateDir(options.OutputDir)
 	if errDir != nil {
 		lg.Error(errDir.Error())
 		fmt.Printf("Error: %v\n", errDir)
