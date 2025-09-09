@@ -47,6 +47,11 @@ func Float64(key string, val float64) Field   { return Field{Key: key, Value: va
 func Bool(key string, val bool) Field         { return Field{Key: key, Value: val} }
 func Error(err error) Field                   { return Field{Key: "error", Value: err} }
 
+// Time returns a Field containing time.Time value for structured logging
+func Time(key string, t time.Time) Field {
+	return Field{Key: key, Value: t}
+}
+
 // Convert our Fields to logrus.Fields
 func fieldsToLogrusFields(fields []Field) logrus.Fields {
 	logrusFields := make(logrus.Fields)

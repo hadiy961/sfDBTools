@@ -10,7 +10,7 @@ import (
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
 	"sfDBTools/utils/database/info"
-	"sfDBTools/utils/file"
+	"sfDBTools/utils/dir"
 )
 
 // BackupSingle performs a backup of a single database
@@ -44,7 +44,7 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 	// 	lg.Error("Database validation failed", logger.Error(err))
 	// }
 
-	errDir := file.ValidateDir(options.OutputDir)
+	errDir := dir.Validate(options.OutputDir)
 	if errDir != nil {
 		lg.Error(errDir.Error())
 		fmt.Printf("Error: %v\n", errDir)
