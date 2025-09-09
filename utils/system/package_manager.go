@@ -12,6 +12,7 @@ type PackageManager interface {
 	Remove(packages []string) error
 	IsInstalled(pkg string) bool
 	GetInstalledPackages() ([]string, error)
+	UpdateCache() error
 }
 
 // packageManager implements PackageManager interface
@@ -146,6 +147,28 @@ func (pm *packageManager) GetInstalledPackages() ([]string, error) {
 	}
 
 	return packages, nil
+}
+
+// UpdateCache updates the package manager cache
+func (pm *packageManager) UpdateCache() error {
+	var cmd *exec.Cmd
+	switch pm.packageTool {
+	case "yum":
+		cmd = exec.Command("yum", "makecache")
+	case "apt":
+		cmd = exec.Command("apt", "update")
+	case "dnf":
+		cmd = exec.Command("dnf", "makecache")
+	default:
+		return fmt.Errorf("unsupported package manager: %s", pm.packageTool)
+	}
+
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to update package cache: %w\nOutput: %s", err, string(output))
+	}
+
+	return nil
 }
 
 // isCommandAvailable checks if a command is available in PATH

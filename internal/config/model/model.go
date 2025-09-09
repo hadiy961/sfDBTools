@@ -139,10 +139,11 @@ type ConfigDirConfig struct {
 }
 
 type MariaDBConfig struct {
-	Installation MariaDBInstallConfig `mapstructure:"mariadb_installation"`
+	DefaultVersion string                    `mapstructure:"default_version"`
+	Installation   MariaDBInstallationConfig `mapstructure:"installation"`
 }
 
-type MariaDBInstallConfig struct {
+type MariaDBInstallationConfig struct {
 	Version   string `mapstructure:"version"`
 	BaseDir   string `mapstructure:"base_dir"`
 	DataDir   string `mapstructure:"data_dir"`
