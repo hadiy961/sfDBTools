@@ -10,7 +10,7 @@ import (
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
 	"sfDBTools/utils/database/info"
-	"sfDBTools/utils/dir"
+	dir "sfDBTools/utils/fs/dir"
 )
 
 // BackupSingle performs a backup of a single database

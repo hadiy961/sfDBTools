@@ -10,7 +10,7 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
-	"sfDBTools/utils/dir"
+	dir "sfDBTools/utils/fs/dir"
 )
 
 // BackupAllDatabases performs a backup of all databases into a single file
