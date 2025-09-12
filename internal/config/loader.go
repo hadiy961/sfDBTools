@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 )
@@ -14,11 +15,25 @@ func fileExists(path string) bool {
 }
 
 func loadViper() (*viper.Viper, error) {
-	// First, check if config file exists at the required path
-	requiredPath := "/etc/sfDBTools/config/config.yaml"
+	// Determine possible config locations:
+	// 1) <appDir>/config/config.yaml (preferred if present)
+	// 2) /etc/sfDBTools/config/config.yaml (fallback)
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("gagal menentukan path executable: %w", err)
+	}
+	appDir := filepath.Dir(exePath)
+	appConfigDir := filepath.Join(appDir, "config")
+	systemConfigDir := "/etc/sfDBTools/config"
 
-	if !fileExists(requiredPath) {
-		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s", requiredPath)
+	// Check for the presence of config.yaml in app path first, then system path
+	var chosenConfigDir string
+	if fileExists(filepath.Join(appConfigDir, "config.yaml")) {
+		chosenConfigDir = appConfigDir
+	} else if fileExists(filepath.Join(systemConfigDir, "config.yaml")) {
+		chosenConfigDir = systemConfigDir
+	} else {
+		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s atau %s", appConfigDir, systemConfigDir)
 	}
 
 	v := viper.New()
@@ -26,8 +41,8 @@ func loadViper() (*viper.Viper, error) {
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
 
-	// Add only the system-wide config path
-	v.AddConfigPath("/etc/sfDBTools/config") // system-wide config (for root)
+	// Add chosen config path (app-local preferred)
+	v.AddConfigPath(chosenConfigDir)
 
 	// Default values (opsional)
 	v.SetDefault("log.level", "info")

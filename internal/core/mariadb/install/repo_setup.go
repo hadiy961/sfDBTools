@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"sfDBTools/internal/logger"
@@ -84,11 +85,30 @@ func downloadRepoSetupScript(ctx context.Context) (string, error) {
 func buildRepoSetupArgs(cfg *mariadb.MariaDBInstallConfig) []string {
 	args := []string{}
 
-	// Tambahkan versi MariaDB
-	args = append(args, "--mariadb-server-version="+cfg.Version)
+	// Tambahkan versi MariaDB (normalisasi ke major.minor karena skrip repo tidak selalu
+	// menerima patch version seperti 10.6.23 — skrip biasanya menerima 10.6 atau 11.4)
+	normalized := normalizeVersionForRepo(cfg.Version)
+	args = append(args, "--mariadb-server-version="+normalized)
 
 	// Skip MaxScale (tidak diperlukan untuk instalasi dasar)
 	args = append(args, "--skip-maxscale")
 
 	return args
+}
+
+// normalizeVersionForRepo mengubah versi lengkap (mis. 10.6.23) menjadi major.minor (10.6)
+// Skrip resmi `mariadb_repo_setup` terkadang menolak patch-level releases; gunakan format
+// mayor.minor saat memanggil script.
+func normalizeVersionForRepo(version string) string {
+	if version == "" {
+		return version
+	}
+
+	// Split into at most 3 parts: major, minor, patch
+	parts := strings.SplitN(version, ".", 3)
+	if len(parts) >= 2 {
+		return parts[0] + "." + parts[1]
+	}
+	// if version doesn't contain a minor part, return as-is
+	return version
 }
