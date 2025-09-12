@@ -59,7 +59,7 @@ func init() {
 func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 	lg, err := logger.Get()
 	if err != nil {
-		terminal.SafePrintln("❌ Gagal inisialisasi logger: " + err.Error())
+		terminal.SafePrintln("Gagal inisialisasi logger: " + err.Error())
 		return err
 	}
 
@@ -68,13 +68,11 @@ func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 		terminal.ClearScreen()
 	}
 
-	terminal.SafePrintln("🚀 Memulai instalasi MariaDB...")
-
 	// Resolve konfigurasi dari flags dan environment (tanpa interactive)
 	cfg, err := mariadb.ResolveMariaDBInstallConfig(cmd)
 	if err != nil {
 		lg.Error("Gagal resolve konfigurasi", logger.Error(err))
-		terminal.SafePrintln("❌ Konfigurasi tidak valid: " + err.Error())
+		terminal.SafePrintln("Konfigurasi tidak valid: " + err.Error())
 		return err
 	}
 
@@ -86,7 +84,7 @@ func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 	ctx := context.Background()
 	if err := install.RunMariaDBInstall(ctx, cfg); err != nil {
 		lg.Error("Instalasi MariaDB gagal", logger.Error(err))
-		terminal.SafePrintln("❌ Instalasi gagal: " + err.Error())
+		terminal.SafePrintln("Instalasi gagal: " + err.Error())
 		return err
 	}
 

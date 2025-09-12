@@ -180,6 +180,22 @@ internal/core/mariadb/configure/
 6. **Database Operations**: Gunakan `utils/database/connection_wrapper.go` untuk connections
 7. **Logging**: Gunakan `internal/logger` dengan structured logging
 
+### Utils yang SUDAH ADA dan Siap Pakai (Tidak Perlu Dibuat):
+
+Terminal Utilities - utils/terminal/input.go, utils/terminal/helpers.go, utils/terminal/wizard.go
+Database Config - utils/dbconfig/interaction.go, utils/dbconfig/input.go, utils/dbconfig/display.go
+System Management - utils/system/service_manager.go, utils/system/package_manager.go, utils/system/process.go
+File Operations - utils/common/file_ops.go, utils/disk/disk.go, utils/crypto/crypto.go
+Network - utils/common/network.go
+Config Handling - utils/common/config_utils.go, utils/common/common_flag.go
+
+## Utils yang BENAR-BENAR Perlu Dibuat (Hanya 5 file):
+
+utils/system/hardware.go - Hardware detection (RAM, CPU cores)
+utils/system/port.go - Port management
+utils/config/template.go - Template processing
+utils/mariadb/discovery.go - MariaDB discovery
+utils/mariadb/variables.go - MariaDB variables
 
 ### Validasi Input Khusus untuk MariaDB Configure
 
@@ -235,13 +251,13 @@ utils/mariadb/
 
 ### Dependencies yang Harus Digunakan
 
-- `utils/common` - Flag resolution, file operations
+- `utils/common` - Common Utilities, flag resolution
 - `utils/terminal` - Interactive UI, progress indicators
 - `utils/system` - Service management, package management, system checks
 - `utils/database` - Database connections, validation
 - `utils/crypto` - Encrypted config file handling
-- `utils/disk` - Disk operations, space checks
-- `utils/file` - File operations, permissions checks
+- `utils/fs/disk` - Disk operations, space checks
+- `utils/fs/file` - File operations, permissions checks
 - `internal/logger` - Structured logging
 - `internal/config` - Config file loading
 
