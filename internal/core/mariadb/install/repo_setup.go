@@ -12,11 +12,12 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/mariadb"
+	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/terminal"
 )
 
 // setupMariaDBRepository mengunduh dan menjalankan script setup repository
-func setupMariaDBRepository(ctx context.Context, cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
+func setupMariaDBRepository(ctx context.Context, cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 	lg.Info("[Repository] Setup Start")
 

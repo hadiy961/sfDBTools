@@ -7,11 +7,12 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/mariadb"
+	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/system"
 )
 
 // preInstallationChecks melakukan pemeriksaan sebelum instalasi
-func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
+func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 
 	// Internal diagnostic only; reduce noise on normal runs
@@ -72,7 +73,7 @@ func validateFinalConfig(cfg *mariadb.MariaDBInstallConfig) error {
 
 // Helper functions untuk pre-check
 
-func isMariaDBInstalled(deps *Dependencies) bool {
+func isMariaDBInstalled(deps *defaultsetup.Dependencies) bool {
 	// Cek berbagai kemungkinan nama paket MariaDB
 	packages := []string{
 		"mariadb-server", "MariaDB-server", // MariaDB packages
@@ -88,7 +89,7 @@ func isMariaDBInstalled(deps *Dependencies) bool {
 	return false
 }
 
-func getInstalledMariaDBVersion(deps *Dependencies) string {
+func getInstalledMariaDBVersion(deps *defaultsetup.Dependencies) string {
 	// Coba jalankan mysql --version untuk mendapatkan versi
 	output, err := deps.ProcessManager.ExecuteWithOutput("mysql", []string{"--version"})
 	if err != nil {

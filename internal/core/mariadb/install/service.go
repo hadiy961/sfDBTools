@@ -5,11 +5,12 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/mariadb"
+	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/terminal"
 )
 
 // startMariaDBService memulai dan mengaktifkan service MariaDB
-func startMariaDBService(deps *Dependencies) error {
+func startMariaDBService(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 
 	serviceName := "mariadb"
@@ -29,7 +30,7 @@ func startMariaDBService(deps *Dependencies) error {
 }
 
 // verifyInstallation memverifikasi bahwa instalasi berhasil
-func verifyInstallation(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
+func verifyInstallation(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 
 	// Cek apakah service berjalan

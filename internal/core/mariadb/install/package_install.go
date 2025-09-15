@@ -4,12 +4,13 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
+	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
 
 // updatePackageCache mengupdate cache package manager
-func updatePackageCache(deps *Dependencies) error {
+func updatePackageCache(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 
 	// Show spinner while updating package cache so user sees progress
@@ -30,7 +31,7 @@ func updatePackageCache(deps *Dependencies) error {
 }
 
 // installMariaDBPackages menginstall paket MariaDB server dan client
-func installMariaDBPackages(deps *Dependencies) error {
+func installMariaDBPackages(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 	// Use spinner to provide user feedback while determining and installing packages
 	spinner := terminal.NewInstallSpinner("Menentukan dan menginstall paket MariaDB...")
