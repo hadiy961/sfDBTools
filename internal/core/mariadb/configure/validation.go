@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"syscall"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/disk"
@@ -84,9 +86,6 @@ func validateDirectories(config *mariadb_utils.MariaDBConfigureConfig) error {
 	}
 
 	// Pastikan direktori tidak sama
-	if config.DataDir == config.LogDir {
-		return fmt.Errorf("data-dir and log-dir cannot be the same: %s", config.DataDir)
-	}
 	if config.DataDir == config.BinlogDir {
 		return fmt.Errorf("data-dir and binlog-dir cannot be the same: %s", config.DataDir)
 	}
@@ -108,11 +107,29 @@ func validatePort(port int) error {
 	}
 
 	// Cek apakah port sudah digunakan
-	if isPortInUse(port) {
-		return fmt.Errorf("port %d is already in use", port)
+	pi, err := system.CheckPortConflict(port)
+	if err != nil {
+		// jika gagal mendapatkan info process, fallback ke simple check
+		if isPortInUse(port) {
+			return fmt.Errorf("port %d is already in use", port)
+		}
+		return nil
 	}
 
-	return nil
+	// Jika tersedia, ok
+	if pi.Status == "available" {
+		return nil
+	}
+
+	// Jika port sedang digunakan, periksa apakah listener adalah MariaDB (mysqld/mariadbd)
+	proc := strings.ToLower(pi.ProcessName)
+	if proc == "mysqld" || proc == "mariadbd" || strings.Contains(proc, "mysqld") || strings.Contains(proc, "mariadb") {
+		lg.Info("Port digunakan oleh MariaDB, mengabaikan konflik", logger.Int("port", port), logger.String("process", pi.ProcessName))
+		return nil
+	}
+
+	return fmt.Errorf("port %d is already in use by process %s (pid=%s)", port, pi.ProcessName, pi.PID)
+
 }
 
 // validateEncryptionKeyFile memverifikasi file kunci enkripsi
@@ -252,13 +269,26 @@ func checkMySQLUserAccess(dir string) error {
 		return err
 	}
 
-	// Untuk implementasi sederhana, cek apakah world-writable atau group-writable
+	// Untuk implementasi, cek ownership dan permission
 	mode := info.Mode()
 	if mode&0020 != 0 || mode&0002 != 0 { // group-writable atau world-writable
 		return nil
 	}
 
-	// TODO: Cek ownership yang sebenarnya dengan syscall
+	// Periksa owner uid/gid dari file stat
+	statT, ok := info.Sys().(*syscall.Stat_t)
+	if !ok {
+		// Jika tidak bisa mendapatkan stat info, anggap tidak accessible
+		return fmt.Errorf("cannot determine owner of %s", dir)
+	}
+
+	// Jika owner adalah mysql (uid 992 biasanya, but we check by name later in fix), return nil
+	// We'll treat non-root/non-mysql ownership as not accessible to mysql
+	if statT.Uid == 0 {
+		// owned by root, likely not writable by mysql
+		return fmt.Errorf("directory %s owned by root (uid 0)", dir)
+	}
+
 	return nil
 }
 
@@ -272,8 +302,36 @@ func fixDirectoryPermissions(dir string) error {
 		return fmt.Errorf("failed to set directory permissions: %w", err)
 	}
 
-	// TODO: Chown ke mysql user jika diperlukan
-	// Perlu syscall untuk mengubah ownership
+	// Chown ke mysql:mysql - coba lookup user mysql uid/gid via system call
+	// Default to UID/GID commonly used by distributions if lookup not available
+	mysqlUID := uint32(992)
+	mysqlGID := uint32(991)
+
+	// Attempt to get uid/gid from passwd entry if available
+	if pw, err := os.ReadFile("/etc/passwd"); err == nil {
+		// simple parse: look for line starting with "mysql:"
+		lines := strings.Split(string(pw), "\n")
+		for _, l := range lines {
+			if strings.HasPrefix(l, "mysql:") {
+				fields := strings.Split(l, ":")
+				if len(fields) >= 4 {
+					// fields[2]=uid, fields[3]=gid
+					var uid, gid int
+					fmt.Sscanf(fields[2], "%d", &uid)
+					fmt.Sscanf(fields[3], "%d", &gid)
+					if uid >= 0 && gid >= 0 {
+						mysqlUID = uint32(uid)
+						mysqlGID = uint32(gid)
+					}
+				}
+				break
+			}
+		}
+	}
+
+	if err := os.Chown(dir, int(mysqlUID), int(mysqlGID)); err != nil {
+		return fmt.Errorf("failed to chown directory to mysql:mysql: %w", err)
+	}
 
 	return nil
 }

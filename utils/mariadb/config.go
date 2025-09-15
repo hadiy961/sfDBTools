@@ -195,7 +195,7 @@ func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig,
 
 	// Backup and safety configuration
 	backupCurrentConfig := common.GetBoolFlagOrEnv(cmd, "backup-current-config", "SFDBTOOLS_MARIADB_BACKUP_CONFIG", true)
-	backupDir := common.GetStringFlagOrEnv(cmd, "backup-dir", "SFDBTOOLS_MARIADB_BACKUP_DIR", "/tmp/sfdbtools_backup")
+	backupDir := common.GetStringFlagOrEnv(cmd, "backup-dir", "SFDBTOOLS_MARIADB_BACKUP_DIR", "config/backups")
 
 	// Migration configuration
 	migrateData := common.GetBoolFlagOrEnv(cmd, "migrate-data", "SFDBTOOLS_MARIADB_MIGRATE_DATA", true)
@@ -253,9 +253,7 @@ func validateConfigureInput(cfg *MariaDBConfigureConfig) error {
 	}
 
 	// Directories must be different
-	if cfg.DataDir == cfg.LogDir {
-		return fmt.Errorf("data-dir dan log-dir tidak boleh sama: %s", cfg.DataDir)
-	}
+
 	if cfg.DataDir == cfg.BinlogDir {
 		return fmt.Errorf("data-dir dan binlog-dir tidak boleh sama: %s", cfg.DataDir)
 	}

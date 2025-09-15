@@ -29,7 +29,7 @@ func AddMariaDBConfigureFlags(cmd *cobra.Command) {
 
 	// Backup and safety flags
 	cmd.Flags().Bool("backup-current-config", true, "Backup konfigurasi saat ini sebelum mengubah")
-	cmd.Flags().String("backup-dir", "/tmp/sfdbtools_backup", "Direktori untuk backup")
+	cmd.Flags().String("backup-dir", "config/backups", "Direktori untuk backup")
 
 	// Migration flags
 	cmd.Flags().Bool("migrate-data", true, "Migrasi data jika direktori berubah")

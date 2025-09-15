@@ -10,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sort"
@@ -27,13 +26,13 @@ var SystemStorageMonitorCmd = &cobra.Command{
 		lg, _ := logger.Get()
 
 		// load config
-		cfg, err := config.Get()
-		if err != nil {
-			fmt.Printf("failed to load config: %v\n", err)
-			os.Exit(1)
-		}
+		// cfg, err := config.Get()
+		// if err != nil {
+		// 	fmt.Printf("failed to load config: %v\n", err)
+		// 	os.Exit(1)
+		// }
 
-		dataDir := cfg.MariaDB.DataDir
+		dataDir := ""
 		if dataDir == "" {
 			fmt.Println("data_dir not configured in config.yaml")
 			os.Exit(1)

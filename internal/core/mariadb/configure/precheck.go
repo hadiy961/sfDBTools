@@ -38,14 +38,6 @@ func performPreChecks(ctx context.Context, config *mariadb_utils.MariaDBConfigur
 	}
 	lg.Info("MariaDB installation check passed")
 
-	// 1.3: Cek versi MariaDB yang terinstall
-	lg.Info("MariaDB version detected", logger.String("version", installation.Version))
-
-	// 1.4: Cek apakah service berjalan
-	lg.Info("MariaDB service status",
-		logger.String("service", installation.ServiceName),
-		logger.Bool("is_running", installation.IsRunning))
-
 	// 1.5: Cek koneksi ke database
 	if err := checkDatabaseConnection(installation); err != nil {
 		lg.Warn("Database connection check failed, but continuing", logger.Error(err))

@@ -5,6 +5,8 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/core/mariadb/configure/interactive"
+	"sfDBTools/internal/core/mariadb/configure/migration"
+	"sfDBTools/internal/core/mariadb/configure/template"
 	"sfDBTools/internal/logger"
 	mariadb_utils "sfDBTools/utils/mariadb"
 )
@@ -35,7 +37,7 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_utils.MariaDBConfi
 
 	// Step 2-4: Template dan konfigurasi discovery - gunakan hasil discovery yang sudah ada
 	// lg.Info("Loading MariaDB configuration template")
-	template, err := loadConfigurationTemplateWithInstallation(ctx, mariadbInstallation)
+	template, err := template.LoadConfigurationTemplateWithInstallation(ctx, mariadbInstallation)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration template: %w", err)
 	}
@@ -43,21 +45,19 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_utils.MariaDBConfi
 	// Step 5: Baca konfigurasi aplikasi (sudah dilakukan di ResolveMariaDBConfigureConfig)
 	lg.Info("Configuration loaded from application config")
 
-	// Step 6: Interactive input gathering (jika tidak non-interactive)
-	if !config.NonInteractive {
-		lg.Info("Gathering interactive configuration input")
-		// Convert template type untuk kompatibilitas
-		interactiveTemplate := &interactive.MariaDBConfigTemplate{
-			TemplatePath:  template.TemplatePath,
-			Content:       template.Content,
-			Placeholders:  template.Placeholders,
-			DefaultValues: template.DefaultValues,
-			CurrentConfig: template.CurrentConfig,
-			CurrentPath:   template.CurrentPath,
-		}
-		if err := interactive.GatherInteractiveInput(ctx, config, interactiveTemplate); err != nil {
-			return fmt.Errorf("failed to gather interactive input: %w", err)
-		}
+	// Step 6: Interactive input gathering
+	lg.Info("Gathering interactive configuration input")
+	// Convert template type untuk kompatibilitas
+	interactiveTemplate := &interactive.MariaDBConfigTemplate{
+		TemplatePath:  template.TemplatePath,
+		Content:       template.Content,
+		Placeholders:  template.Placeholders,
+		DefaultValues: template.DefaultValues,
+		CurrentConfig: template.CurrentConfig,
+		CurrentPath:   template.CurrentPath,
+	}
+	if err := interactive.GatherInteractiveInput(ctx, config, interactiveTemplate); err != nil {
+		return fmt.Errorf("failed to gather interactive input: %w", err)
 	}
 
 	// Step 7-11: Validasi input dan sistem
@@ -74,40 +74,39 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_utils.MariaDBConfi
 		}
 	}
 
-	// Step 11: Konfirmasi user (jika tidak non-interactive)
-	if !config.NonInteractive {
-		lg.Info("Requesting user confirmation for configuration changes")
-		if err := interactive.RequestUserConfirmationForConfig(ctx, config); err != nil {
-			return fmt.Errorf("user confirmation failed: %w", err)
-		}
+	// Step 11: Konfirmasi user
+	lg.Info("Requesting user confirmation for configuration changes")
+	if err := interactive.RequestUserConfirmationForConfig(ctx, config); err != nil {
+		return fmt.Errorf("user confirmation failed: %w", err)
 	}
 
 	// Step 15-18: Backup dan konfigurasi
 	lg.Info("Backing up current configuration and applying new settings")
-	if err := applyConfiguration(ctx, config, template); err != nil {
+	if err := migration.ApplyConfiguration(ctx, config, template); err != nil {
 		return fmt.Errorf("failed to apply configuration: %w", err)
 	}
 
 	// Step 19: Data Migration (jika diperlukan)
 	if config.MigrateData {
 		lg.Info("Starting data migration process")
-		if err := performDataMigration(ctx, config); err != nil {
+		// Use the already discovered installation to avoid duplicated discovery work
+		if err := migration.PerformDataMigrationWithInstallation(ctx, config, mariadbInstallation); err != nil {
 			return fmt.Errorf("data migration failed: %w", err)
 		}
 	}
 
-	// Step 20-23: Service restart dan verifikasi
-	lg.Info("Restarting MariaDB service and verifying configuration")
-	if err := restartAndVerifyService(ctx, config); err != nil {
-		return fmt.Errorf("service restart/verification failed: %w", err)
-	}
+	// // Step 20-23: Service restart dan verifikasi
+	// lg.Info("Restarting MariaDB service and verifying configuration")
+	// if err := restartAndVerifyService(ctx, config); err != nil {
+	// 	return fmt.Errorf("service restart/verification failed: %w", err)
+	// }
 
-	// Step 24-25: Cleanup dan update konfigurasi aplikasi
-	lg.Info("Finalizing configuration and updating application settings")
-	if err := finalizeConfiguration(ctx, config); err != nil {
-		return fmt.Errorf("failed to finalize configuration: %w", err)
-	}
+	// // Step 24-25: Cleanup dan update konfigurasi aplikasi
+	// lg.Info("Finalizing configuration and updating application settings")
+	// if err := finalizeConfiguration(ctx, config); err != nil {
+	// 	return fmt.Errorf("failed to finalize configuration: %w", err)
+	// }
 
-	lg.Info("MariaDB configuration completed successfully")
+	// lg.Info("MariaDB configuration completed successfully")
 	return nil
 }

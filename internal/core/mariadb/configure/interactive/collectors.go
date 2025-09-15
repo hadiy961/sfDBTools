@@ -22,8 +22,8 @@ func NewInputCollector(defaults *ConfigDefaults) *InputCollector {
 }
 
 // CollectString mengumpulkan input string dengan validasi
-func (ic *InputCollector) CollectString(question string, currentValue string, templateKey string, appConfigValue string, hardcodedDefault string, validator func(string) error) (string, error) {
-	defaultValue := ic.Defaults.GetStringDefault(templateKey, appConfigValue, hardcodedDefault)
+func (ic *InputCollector) CollectString(question string, currentValue string, templateKey string, hardcodedDefault string, validator func(string) error) (string, error) {
+	defaultValue := ic.Defaults.GetStringDefault(templateKey, hardcodedDefault)
 	if currentValue != "" {
 		defaultValue = currentValue
 	}
@@ -45,8 +45,8 @@ func (ic *InputCollector) CollectString(question string, currentValue string, te
 }
 
 // CollectInt mengumpulkan input integer dengan validasi
-func (ic *InputCollector) CollectInt(question string, currentValue int, templateKey string, appConfigValue int, hardcodedDefault int, validator func(int) error) (int, error) {
-	defaultValue := ic.Defaults.GetIntDefault(templateKey, appConfigValue, hardcodedDefault)
+func (ic *InputCollector) CollectInt(question string, currentValue int, templateKey string, hardcodedDefault int, validator func(int) error) (int, error) {
+	defaultValue := ic.Defaults.GetIntDefault(templateKey, hardcodedDefault)
 	if currentValue > 0 {
 		defaultValue = currentValue
 	}
@@ -81,21 +81,20 @@ func (ic *InputCollector) CollectBool(question string, defaultValue bool) bool {
 }
 
 // CollectDirectory khusus untuk directory dengan path extraction dari template
-func (ic *InputCollector) CollectDirectory(question string, currentValue string, templateKey string, appConfigValue string, hardcodedDefault string) (string, error) {
+func (ic *InputCollector) CollectDirectory(question string, currentValue string, templateKey string, hardcodedDefault string) (string, error) {
 	// Coba extract directory dari template value jika ada
 	templateDir := ic.Defaults.GetDirectoryFromTemplate(templateKey)
-	
-	// Tentukan default value dengan priority
-	defaultValue := hardcodedDefault
-	if appConfigValue != "" {
-		defaultValue = appConfigValue
-	}
+
 	if templateDir != "" {
-		defaultValue = templateDir
+		hardcodedDefault = templateDir
+	}
+	// Tentukan default value dengan priority
+	if hardcodedDefault != "" {
+		hardcodedDefault = hardcodedDefault
 	}
 	if currentValue != "" {
-		defaultValue = currentValue
+		hardcodedDefault = currentValue
 	}
 
-	return ic.CollectString(question, "", "", defaultValue, hardcodedDefault, ValidateAbsolutePath)
+	return ic.CollectString(question, "", "", hardcodedDefault, ValidateAbsolutePath)
 }

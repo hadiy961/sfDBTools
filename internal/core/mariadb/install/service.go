@@ -12,8 +12,6 @@ import (
 func startMariaDBService(deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.SafePrintln("🚀 Memulai service MariaDB...")
-
 	serviceName := "mariadb"
 
 	// Start service
@@ -33,8 +31,6 @@ func startMariaDBService(deps *Dependencies) error {
 // verifyInstallation memverifikasi bahwa instalasi berhasil
 func verifyInstallation(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
-
-	terminal.SafePrintln("✅ Memverifikasi instalasi...")
 
 	// Cek apakah service berjalan
 	if !deps.ServiceManager.IsActive("mariadb") {

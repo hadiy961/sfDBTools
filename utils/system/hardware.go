@@ -1,14 +1,13 @@
 package system
 
 import (
-	"bufio"
 	"fmt"
-	"os"
 	"runtime"
-	"strconv"
-	"strings"
 
 	"sfDBTools/internal/logger"
+
+	gcpu "github.com/shirou/gopsutil/v3/cpu"
+	gmem "github.com/shirou/gopsutil/v3/mem"
 )
 
 // HardwareInfo berisi informasi hardware sistem
@@ -24,15 +23,22 @@ func GetHardwareInfo() (*HardwareInfo, error) {
 	lg, _ := logger.Get()
 
 	// Deteksi CPU cores
+	// prefer using gopsutil to get CPU info; fallback to runtime
 	cpuCores := runtime.NumCPU()
+	if counts, err := gcpu.Counts(true); err == nil && counts > 0 {
+		cpuCores = counts
+	}
 	lg.Info("Detected CPU cores", logger.Int("cores", cpuCores))
 
 	// Deteksi RAM
-	totalRAMBytes, err := getTotalRAM()
+	// Use gopsutil to get memory info
+	vm, err := gmem.VirtualMemory()
 	if err != nil {
 		return nil, fmt.Errorf("gagal mendeteksi RAM: %w", err)
 	}
 
+	totalRAMBytes := int64(vm.Total)
+	// compute MB and GB using rounding down for MB and GB integer values
 	totalRAMMB := int(totalRAMBytes / (1024 * 1024))
 	totalRAMGB := int(totalRAMBytes / (1024 * 1024 * 1024))
 
@@ -47,38 +53,6 @@ func GetHardwareInfo() (*HardwareInfo, error) {
 		TotalRAMGB:    totalRAMGB,
 		TotalRAMMB:    totalRAMMB,
 	}, nil
-}
-
-// getTotalRAM membaca total RAM dari /proc/meminfo
-func getTotalRAM() (int64, error) {
-	file, err := os.Open("/proc/meminfo")
-	if err != nil {
-		return 0, fmt.Errorf("gagal membuka /proc/meminfo: %w", err)
-	}
-	defer file.Close()
-
-	scanner := bufio.NewScanner(file)
-	for scanner.Scan() {
-		line := scanner.Text()
-		if strings.HasPrefix(line, "MemTotal:") {
-			fields := strings.Fields(line)
-			if len(fields) >= 2 {
-				// MemTotal biasanya dalam kB
-				ramKB, err := strconv.ParseInt(fields[1], 10, 64)
-				if err != nil {
-					return 0, fmt.Errorf("gagal parsing MemTotal: %w", err)
-				}
-				// Convert kB ke bytes
-				return ramKB * 1024, nil
-			}
-		}
-	}
-
-	if err := scanner.Err(); err != nil {
-		return 0, fmt.Errorf("error reading /proc/meminfo: %w", err)
-	}
-
-	return 0, fmt.Errorf("MemTotal tidak ditemukan di /proc/meminfo")
 }
 
 // CalculateOptimalInnoDBBufferPool menghitung optimal InnoDB buffer pool size

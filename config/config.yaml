@@ -13,7 +13,7 @@ log:
   timezone: "Asia/Jakarta"
   output:
       console: 
-        enabled: true
+        enabled: false
       file:
         enabled: true
         dir: "/var/log/sfDBTools"
@@ -69,11 +69,11 @@ config_dir:
   database_config: "/etc/sfDBTools/config/db_config"
   database_list: "/etc/sfDBTools/config/db_list"
   mariadb_key: "/etc/sfDBTools/key_maria_nbc.txt"
-  mariadb_config: "/etc/sfDBTools/server.cnf"
-mariadb_installation:
+  mariadb_config: "config/templates/server.cnf"
+mariadb:
   version: "10.6.23"
-  base_dir: "/var/lib/mysql"
-  data_dir: "/var/lib/mysql"
-  log_dir: "/var/lib/mysql"
-  binlog_dir: "/var/lib/mysqlbinlogs"
+  base_dir: "/mnt/vmshare/mariadb"
+  data_dir: "/mnt/vmshare/mariadb/data"
+  log_dir: "/mnt/vmshare/mariadb/log"
+  binlog_dir: "/mnt/vmshare/mariadb/binlog"
   port: 3306

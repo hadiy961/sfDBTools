@@ -22,8 +22,6 @@ func ShowConfigurationSummary(config *mariadb_utils.MariaDBConfigureConfig) {
 	if config.InnodbEncryptTables {
 		fmt.Printf("Encryption Key File: %s\n", config.EncryptionKeyFile)
 	}
-	fmt.Printf("Buffer Pool Size: %s\n", config.InnodbBufferPoolSize)
-	fmt.Printf("Buffer Pool Instances: %d\n", config.InnodbBufferPoolInstances)
 
 	fmt.Println()
 }

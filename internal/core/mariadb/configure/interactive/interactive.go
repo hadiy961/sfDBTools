@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 	mariadb_utils "sfDBTools/utils/mariadb"
 	"sfDBTools/utils/terminal"
@@ -33,11 +32,6 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_utils.Ma
 	lg.Info("Starting interactive configuration input")
 
 	// Task 1: Load application config sebagai fallback defaults
-	appConfig, err := config.Get()
-	if err != nil {
-		lg.Warn("Failed to load application config, using hardcoded defaults", logger.Error(err))
-		appConfig = nil
-	}
 
 	// Show welcome message
 	terminal.PrintInfo("MariaDB Configuration Setup")
@@ -47,8 +41,7 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_utils.Ma
 
 	// Create config defaults helper dengan prioritas: template -> appConfig -> hardcoded
 	defaults := &ConfigDefaults{
-		AppConfig: appConfig,
-		Template:  template,
+		Template: template,
 	}
 
 	// Create input collector untuk simplify input gathering (Task 2: modular)
@@ -77,10 +70,6 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_utils.Ma
 
 	if err := GatherEncryptionSettings(mariadbConfig, collector); err != nil {
 		return fmt.Errorf("failed to gather encryption settings: %w", err)
-	}
-
-	if err := GatherBufferPoolSettings(mariadbConfig, collector); err != nil {
-		return fmt.Errorf("failed to gather buffer pool settings: %w", err)
 	}
 
 	// Show summary (Task 2: modular function)

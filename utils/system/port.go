@@ -3,8 +3,12 @@ package system
 import (
 	"fmt"
 	"net"
+	"strconv"
 	"strings"
 	"time"
+
+	gnet "github.com/shirou/gopsutil/v3/net"
+	gproc "github.com/shirou/gopsutil/v3/process"
 
 	"sfDBTools/internal/logger"
 )
@@ -87,10 +91,43 @@ func CheckPortConflict(port int) (*PortInfo, error) {
 
 // getPortUsage mencoba mendapatkan informasi process yang menggunakan port
 func getPortUsage(port int) (*PortInfo, error) {
-	// Implementasi sederhana: coba connect ke port untuk mendeteksi service
-	address := fmt.Sprintf("localhost:%d", port)
+	lg, _ := logger.Get()
 
-	// Test dengan timeout singkat
+	// Use gopsutil to find listening tcp sockets and the owning process
+	conns, err := gnet.Connections("tcp")
+	if err == nil {
+		for _, c := range conns {
+			// Match local port and LISTEN state
+			if int(c.Laddr.Port) == port && strings.ToUpper(c.Status) == "LISTEN" {
+				pid := c.Pid
+				procName := ""
+				if pid != 0 {
+					if p, err := gproc.NewProcess(pid); err == nil {
+						if name, err := p.Name(); err == nil {
+							procName = name
+						}
+					}
+				}
+				lg.Debug("Found listening connection",
+					logger.Int("port", port),
+					logger.String("process", procName),
+					logger.String("pid", strconv.Itoa(int(pid))))
+
+				return &PortInfo{
+					Port:        port,
+					Protocol:    "tcp",
+					Status:      "in_use",
+					ProcessName: procName,
+					PID:         strconv.Itoa(int(pid)),
+				}, nil
+			}
+		}
+	} else {
+		lg.Warn("gopsutil failed to list connections, fallback to simple check", logger.Error(err))
+	}
+
+	// Fallback: try connect
+	address := fmt.Sprintf("localhost:%d", port)
 	conn, err := net.DialTimeout("tcp", address, 2*time.Second)
 	if err != nil {
 		// Port mungkin digunakan tapi tidak menerima koneksi
@@ -100,7 +137,7 @@ func getPortUsage(port int) (*PortInfo, error) {
 			Status:   "in_use",
 		}, nil
 	}
-	defer conn.Close()
+	conn.Close()
 
 	// Port digunakan dan menerima koneksi
 	return &PortInfo{

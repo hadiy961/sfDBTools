@@ -15,9 +15,10 @@ func fileExists(path string) bool {
 }
 
 func loadViper() (*viper.Viper, error) {
-	// Determine possible config locations:
-	// 1) <appDir>/config/config.yaml (preferred if present)
-	// 2) /etc/sfDBTools/config/config.yaml (fallback)
+	// Determine possible config locations (order of preference):
+	// 1) ./config/config.yaml (when running from project root via `go run`)
+	// 2) <appDir>/config/config.yaml (preferred when running installed binary)
+	// 3) /etc/sfDBTools/config/config.yaml (system-wide fallback)
 	exePath, err := os.Executable()
 	if err != nil {
 		return nil, fmt.Errorf("gagal menentukan path executable: %w", err)
@@ -26,14 +27,21 @@ func loadViper() (*viper.Viper, error) {
 	appConfigDir := filepath.Join(appDir, "config")
 	systemConfigDir := "/etc/sfDBTools/config"
 
+	// Also consider relative ./config in case we're running with `go run` from project root
+	// or during tests. Use working directory's ./config as highest priority when present.
+	cwd, _ := os.Getwd()
+	cwdConfigDir := filepath.Join(cwd, "config")
+
 	// Check for the presence of config.yaml in app path first, then system path
 	var chosenConfigDir string
-	if fileExists(filepath.Join(appConfigDir, "config.yaml")) {
+	if fileExists(filepath.Join(cwdConfigDir, "config.yaml")) {
+		chosenConfigDir = cwdConfigDir
+	} else if fileExists(filepath.Join(appConfigDir, "config.yaml")) {
 		chosenConfigDir = appConfigDir
 	} else if fileExists(filepath.Join(systemConfigDir, "config.yaml")) {
 		chosenConfigDir = systemConfigDir
 	} else {
-		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s atau %s", appConfigDir, systemConfigDir)
+		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s, %s atau %s", cwdConfigDir, appConfigDir, systemConfigDir)
 	}
 
 	v := viper.New()

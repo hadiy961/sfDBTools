@@ -17,14 +17,18 @@ import (
 // setupMariaDBRepository mengunduh dan menjalankan script setup repository
 func setupMariaDBRepository(ctx context.Context, cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
+	lg.Info("[Repository] Setup Start")
 
-	terminal.SafePrintln("📦 Menyiapkan repository MariaDB...")
-
-	// Download mariadb_repo_setup script
+	// Download mariadb_repo_setup script (show spinner for the download)
+	dlSpinner := terminal.NewDownloadSpinner("Mengunduh script setup repository...")
+	dlSpinner.Start()
 	scriptPath, err := downloadRepoSetupScript(ctx)
 	if err != nil {
+		dlSpinner.StopWithError("Gagal mengunduh script setup repository")
+		lg.Debug("gagal mengunduh script setup repository", logger.Error(err))
 		return fmt.Errorf("gagal mengunduh script setup repository: %w", err)
 	}
+	dlSpinner.StopWithSuccess("Script setup repository berhasil diunduh")
 	defer os.Remove(scriptPath)
 
 	// Buat permission executable
@@ -35,13 +39,16 @@ func setupMariaDBRepository(ctx context.Context, cfg *mariadb.MariaDBInstallConf
 	// Jalankan script dengan parameter yang sesuai
 	args := buildRepoSetupArgs(cfg)
 
-	lg.Info("Menjalankan mariadb_repo_setup script", logger.Strings("args", args))
-
+	runSpinner := terminal.NewInstallSpinner("Menjalankan script setup repository...")
+	runSpinner.Start()
 	if err := deps.ProcessManager.ExecuteWithTimeout("bash", append([]string{scriptPath}, args...), 5*time.Minute); err != nil {
+		runSpinner.StopWithError("Gagal menjalankan script setup repository")
+		lg.Debug("[Repository] gagal menjalankan script setup", logger.Error(err))
 		return fmt.Errorf("gagal menjalankan script setup repository: %w", err)
 	}
+	runSpinner.StopWithSuccess("Script setup repository berhasil dijalankan")
+	lg.Info("[Repository] Setup selesai")
 
-	lg.Info("Repository MariaDB berhasil dikonfigurasi")
 	return nil
 }
 

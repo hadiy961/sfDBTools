@@ -49,6 +49,12 @@ func performAutoTuning(ctx context.Context, config *mariadb_utils.MariaDBConfigu
 	return nil
 }
 
+// AutoTuneConfig is the exported entrypoint to perform hardware-based auto-tuning
+// It uses background context and delegates to internal performAutoTuning.
+func AutoTuneConfig(config *mariadb_utils.MariaDBConfigureConfig) error {
+	return performAutoTuning(context.Background(), config)
+}
+
 // autoTuneBufferPool melakukan auto-tuning untuk InnoDB buffer pool
 func autoTuneBufferPool(config *mariadb_utils.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
 	lg, _ := logger.Get()

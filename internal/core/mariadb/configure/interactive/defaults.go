@@ -3,38 +3,31 @@ package interactive
 import (
 	"path/filepath"
 	"strconv"
-
-	"sfDBTools/internal/config/model"
 )
 
 // ConfigDefaults menyediakan fallback values untuk konfigurasi interaktif
 // Task 1: Menggunakan config.yaml sebagai fallback jika template kosong
 type ConfigDefaults struct {
-	AppConfig *model.Config
-	Template  *MariaDBConfigTemplate
+	// AppConfig *model.Config
+	Template *MariaDBConfigTemplate
 }
 
 // GetStringDefault mendapatkan string default dengan prioritas:
 // 1. Template value (dari MariaDB config saat ini)
 // 2. App config value (dari config.yaml)
 // 3. Hardcoded default
-func (cd *ConfigDefaults) GetStringDefault(templateKey string, appConfigValue string, hardcodedDefault string) string {
+func (cd *ConfigDefaults) GetStringDefault(templateKey string, hardcodedDefault string) string {
 	// Priority 1: Template value (konfigurasi MariaDB saat ini)
 	if cd.Template != nil && cd.Template.DefaultValues[templateKey] != "" {
 		return cd.Template.DefaultValues[templateKey]
 	}
 
-	// Priority 2: App config value (dari config.yaml)
-	if appConfigValue != "" {
-		return appConfigValue
-	}
-
-	// Priority 3: Hardcoded default
+	// Priority 2: Hardcoded default
 	return hardcodedDefault
 }
 
 // GetIntDefault mendapatkan int default dengan prioritas yang sama
-func (cd *ConfigDefaults) GetIntDefault(templateKey string, appConfigValue int, hardcodedDefault int) int {
+func (cd *ConfigDefaults) GetIntDefault(templateKey string, hardcodedDefault int) int {
 	// Priority 1: Template value
 	if cd.Template != nil && cd.Template.DefaultValues[templateKey] != "" {
 		if val, err := strconv.Atoi(cd.Template.DefaultValues[templateKey]); err == nil {
@@ -42,12 +35,7 @@ func (cd *ConfigDefaults) GetIntDefault(templateKey string, appConfigValue int, 
 		}
 	}
 
-	// Priority 2: App config value
-	if appConfigValue > 0 {
-		return appConfigValue
-	}
-
-	// Priority 3: Hardcoded default
+	// Priority 2: Hardcoded default
 	return hardcodedDefault
 }
 
@@ -64,20 +52,20 @@ func (cd *ConfigDefaults) GetDirectoryFromTemplate(templateKey string) string {
 }
 
 // GetAppConfigDefaults mengambil default values dari config.yaml
-func (cd *ConfigDefaults) GetAppConfigDefaults() AppConfigDefaults {
-	defaults := AppConfigDefaults{}
+// func (cd *ConfigDefaults) GetAppConfigDefaults() AppConfigDefaults {
+// 	defaults := AppConfigDefaults{}
 
-	if cd.AppConfig != nil {
-		defaults.ServerID = 1 // Server ID tidak ada di config.yaml, gunakan default
-		defaults.Port = cd.AppConfig.MariaDB.Port
-		defaults.DataDir = cd.AppConfig.MariaDB.DataDir
-		defaults.LogDir = cd.AppConfig.MariaDB.LogDir
-		defaults.BinlogDir = cd.AppConfig.MariaDB.BinlogDir
-		defaults.EncryptionKeyFile = cd.AppConfig.ConfigDir.MariaDBKey
-	}
+// 	if cd.AppConfig != nil {
+// 		defaults.ServerID = 1 // Server ID tidak ada di config.yaml, gunakan default
+// 		defaults.Port = cd.AppConfig.MariaDB.Port
+// 		defaults.DataDir = cd.AppConfig.MariaDB.DataDir
+// 		defaults.LogDir = cd.AppConfig.MariaDB.LogDir
+// 		defaults.BinlogDir = cd.AppConfig.MariaDB.BinlogDir
+// 		defaults.EncryptionKeyFile = cd.AppConfig.ConfigDir.MariaDBKey
+// 	}
 
-	return defaults
-}
+// 	return defaults
+// }
 
 // AppConfigDefaults berisi default values dari config.yaml
 type AppConfigDefaults struct {

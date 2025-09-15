@@ -51,7 +51,7 @@ func RunMariaDBInstall(ctx context.Context, cfg *mariadb.MariaDBInstallConfig) e
 	}
 
 	// Langkah 5: Install MariaDB packages
-	if err := installMariaDBPackages(cfg, deps); err != nil {
+	if err := installMariaDBPackages(deps); err != nil {
 		return fmt.Errorf("instalasi paket MariaDB gagal: %w", err)
 	}
 
