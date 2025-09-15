@@ -7,9 +7,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var MariaDBCmd = &cobra.Command{
-	Use:   "mariadb",
+	Use:   "maria",
 	Short: "Database configuration management commands",
 	Long: `Database configuration management commands for generating, validating, editing, viewing, and deleting encrypted database configurations.
 All database configurations are stored in encrypted format for security.`,
