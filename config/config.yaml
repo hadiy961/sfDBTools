@@ -1,5 +1,5 @@
 general:
-  client_code: "DataOn"
+  client_code: "dataon"
   app_name: "sfDBTools"
   version: "1.0.0"
   author: "Hadiyatna Muflihun"
@@ -69,11 +69,13 @@ config_dir:
   database_config: "/etc/sfDBTools/config/db_config"
   database_list: "/etc/sfDBTools/config/db_list"
   mariadb_key: "/etc/sfDBTools/key_maria_nbc.txt"
-  mariadb_config: "config/templates/server.cnf"
+  mariadb_config_templates: "config/templates/server.cnf"
 mariadb:
   version: "10.6.23"
-  base_dir: "/mnt/vmshare/mariadb"
-  data_dir: "/mnt/vmshare/mariadb/data"
-  log_dir: "/mnt/vmshare/mariadb/log"
-  binlog_dir: "/mnt/vmshare/mariadb/binlog"
+  base_dir: "/var/lib/mysql"
+  data_dir: "/var/lib/mysql"
+  log_dir: "/var/lib/mysql"
+  binlog_dir: "/var/lib/mysqlbinlogs"
+  socket: "/var/run/mysqld/mysqld.sock"
+  config_dir: "/etc/my.cnf.d/server.cnf"
   port: 3306

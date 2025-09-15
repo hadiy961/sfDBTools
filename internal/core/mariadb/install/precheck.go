@@ -22,9 +22,9 @@ func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies
 		return fmt.Errorf("sistem operasi tidak didukung: %w", err)
 	}
 
-	// Cek apakah MariaDB/MySQL sudah terinstall
-	if isMariaDBInstalled(deps) {
-		installedVersion := getInstalledMariaDBVersion(deps)
+	// Cek apakah MariaDB/MySQL sudah terinstall — gunakan modul discovery untuk akurasi
+	if installation, err := mariadb.DiscoverMariaDBInstallation(); err == nil && installation != nil && installation.IsInstalled {
+		installedVersion := installation.Version
 		if installedVersion != "" {
 			// Use debug-level logs for internal state to avoid duplicate console output
 			lg.Debug("MariaDB sudah terinstall di sistem",
@@ -40,6 +40,10 @@ func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies
 
 			return fmt.Errorf("MariaDB sudah terinstall (versi: %s). Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang", installedVersion)
 		}
+
+		// Jika instalasi terdeteksi namun versi tidak diketahui, tolak instalasi juga
+		lg.Debug("MariaDB terdeteksi namun versi tidak ditemukan", logger.String("service", installation.ServiceName))
+		return fmt.Errorf("MariaDB sudah terinstall. Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang")
 	}
 
 	// Cek hak akses root

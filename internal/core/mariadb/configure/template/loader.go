@@ -26,8 +26,8 @@ func LoadConfigurationTemplateWithInstallation(ctx context.Context, installation
 	// Step 2: Prefer template path from application config (config_dir.mariadb_config)
 	templatePath := "/etc/sfDBTools/server.cnf"
 	if cfg, err := config.Get(); err == nil && cfg != nil {
-		if cfg.ConfigDir.MariaDBConfig != "" {
-			templatePath = cfg.ConfigDir.MariaDBConfig
+		if cfg.ConfigDir.MariaDBConfigTemplate != "" {
+			templatePath = cfg.ConfigDir.MariaDBConfigTemplate
 		}
 	}
 

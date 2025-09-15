@@ -3,8 +3,6 @@ package configure
 import (
 	"context"
 	"fmt"
-	"os"
-	"os/user"
 
 	"sfDBTools/internal/logger"
 	mariadb_utils "sfDBTools/utils/mariadb"
@@ -23,7 +21,7 @@ func performPreChecks(ctx context.Context, config *mariadb_utils.MariaDBConfigur
 	lg.Info("Starting pre-checks for MariaDB configuration")
 
 	// 1.1: Cek privilege sudo/root
-	if err := checkPrivileges(); err != nil {
+	if err := system.CheckPrivileges(); err != nil {
 		return nil, fmt.Errorf("privilege check failed: %w", err)
 	}
 	lg.Info("Privilege check passed")
@@ -48,45 +46,6 @@ func performPreChecks(ctx context.Context, config *mariadb_utils.MariaDBConfigur
 
 	lg.Info("All pre-checks completed successfully")
 	return installation, nil
-}
-
-// checkPrivileges memeriksa apakah user memiliki privilege sudo/root
-func checkPrivileges() error {
-	// Cek apakah running sebagai root
-	if os.Geteuid() == 0 {
-		return nil
-	}
-
-	// Jika bukan root, cek apakah ada sudo access
-	currentUser, err := user.Current()
-	if err != nil {
-		return fmt.Errorf("failed to get current user: %w", err)
-	}
-
-	// Cek apakah user ada di grup sudo/wheel
-	groups, err := currentUser.GroupIds()
-	if err != nil {
-		return fmt.Errorf("failed to get user groups: %w", err)
-	}
-
-	// Cek grup sudo (Ubuntu/Debian) atau wheel (CentOS/RHEL)
-	hasSudo := false
-	for _, gid := range groups {
-		group, err := user.LookupGroupId(gid)
-		if err != nil {
-			continue
-		}
-		if group.Name == "sudo" || group.Name == "wheel" || group.Name == "admin" {
-			hasSudo = true
-			break
-		}
-	}
-
-	if !hasSudo {
-		return fmt.Errorf("user %s does not have sudo privileges. Please run with sudo or as root", currentUser.Username)
-	}
-
-	return nil
 }
 
 // checkMariaDBInstallation memeriksa apakah MariaDB sudah terinstall

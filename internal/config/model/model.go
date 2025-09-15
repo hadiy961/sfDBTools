@@ -132,16 +132,11 @@ type SystemUsers struct {
 }
 
 type ConfigDirConfig struct {
-	DatabaseConfig string `mapstructure:"database_config"`
-	MariaDBConfig  string `mapstructure:"mariadb_config"`
-	MariaDBKey     string `mapstructure:"mariadb_key"`
-	DatabaseList   string `mapstructure:"database_list"`
+	DatabaseConfig        string `mapstructure:"database_config"`
+	MariaDBConfigTemplate string `mapstructure:"mariadb_config_templates"`
+	MariaDBKey            string `mapstructure:"mariadb_key"`
+	DatabaseList          string `mapstructure:"database_list"`
 }
-
-// type MariaDBConfig struct {
-// 	DefaultVersion string                    `mapstructure:"default_version"`
-// 	Installation   MariaDBInstallationConfig `mapstructure:"installation"`
-// }
 
 type MariaDBConfig struct {
 	Version   string `mapstructure:"version"`
@@ -150,4 +145,6 @@ type MariaDBConfig struct {
 	LogDir    string `mapstructure:"log_dir"`
 	BinlogDir string `mapstructure:"binlog_dir"`
 	Port      int    `mapstructure:"port"`
+	Socket    string `mapstructure:"socket"`
+	ConfigDir string `mapstructure:"config_dir"`
 }
