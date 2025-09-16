@@ -11,13 +11,13 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/terminal"
 )
 
 // setupMariaDBRepository mengunduh dan menjalankan script setup repository
-func setupMariaDBRepository(ctx context.Context, cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
+func setupMariaDBRepository(ctx context.Context, cfg *mariadb_config.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 	lg.Info("[Repository] Setup Start")
 
@@ -235,7 +235,7 @@ func downloadRepoSetupScript(ctx context.Context) (string, error) {
 }
 
 // buildRepoSetupArgs membangun argumen untuk script setup repository
-func buildRepoSetupArgs(cfg *mariadb.MariaDBInstallConfig) []string {
+func buildRepoSetupArgs(cfg *mariadb_config.MariaDBInstallConfig) []string {
 	args := []string{}
 
 	// Tambahkan versi MariaDB (normalisasi ke major.minor karena skrip repo tidak selalu

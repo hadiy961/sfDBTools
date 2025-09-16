@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
 // RunMariaDBConfigure adalah entry point utama untuk konfigurasi MariaDB
 // Mengikuti flow implementasi yang telah ditentukan dalam dokumentasi
-func RunMariaDBConfigure(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	terminal.ClearScreen()
 	terminal.PrintHeader("MariaDB Configuration Process")
 	terminal.PrintSubHeader("Table of Existing Configurations from Application Config")

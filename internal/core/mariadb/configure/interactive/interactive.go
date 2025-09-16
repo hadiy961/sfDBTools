@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
@@ -23,7 +23,7 @@ type MariaDBConfigTemplate struct {
 // GatherInteractiveInput mengumpulkan input konfigurasi secara interaktif
 // Task 1: Menggunakan config.yaml sebagai fallback defaults
 // Task 2: Refactored menjadi modular dengan helper functions
-func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_utils.MariaDBConfigureConfig, template *MariaDBConfigTemplate) error {
+func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.MariaDBConfigureConfig, template *MariaDBConfigTemplate) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -81,7 +81,7 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_utils.Ma
 
 // RequestUserConfirmationForConfig meminta konfirmasi user untuk menerapkan konfigurasi
 // Task 2: Wrapper function untuk modular confirmation
-func RequestUserConfirmationForConfig(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func RequestUserConfirmationForConfig(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Info("Requesting user confirmation for configuration")
 

@@ -5,14 +5,15 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/mariadb/discovery"
 	"sfDBTools/utils/system"
 )
 
 // performPreChecks melakukan pemeriksaan prasyarat sebelum konfigurasi
 // Sesuai dengan Step 1 dalam flow implementasi
 // Mengembalikan MariaDBInstallation untuk digunakan kembali di tahap selanjutnya
-func performPreChecks(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) (*mariadb_utils.MariaDBInstallation, error) {
+func performPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) (*discovery.MariaDBInstallation, error) {
 	lg, err := logger.Get()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get logger: %w", err)
@@ -49,9 +50,9 @@ func performPreChecks(ctx context.Context, config *mariadb_utils.MariaDBConfigur
 }
 
 // checkMariaDBInstallation memeriksa apakah MariaDB sudah terinstall
-func checkMariaDBInstallation() (*mariadb_utils.MariaDBInstallation, error) {
+func checkMariaDBInstallation() (*discovery.MariaDBInstallation, error) {
 	// Gunakan discovery function yang sudah ada
-	installation, err := mariadb_utils.DiscoverMariaDBInstallation()
+	installation, err := discovery.DiscoverMariaDBInstallation()
 	if err != nil {
 		return nil, fmt.Errorf("failed to discover MariaDB installation: %w", err)
 	}
@@ -60,14 +61,14 @@ func checkMariaDBInstallation() (*mariadb_utils.MariaDBInstallation, error) {
 }
 
 // checkDatabaseConnection memeriksa koneksi ke database
-func checkDatabaseConnection(installation *mariadb_utils.MariaDBInstallation) error {
+func checkDatabaseConnection(installation *discovery.MariaDBInstallation) error {
 	// Jika service tidak berjalan, tidak perlu coba koneksi
 	if !installation.IsRunning {
 		return fmt.Errorf("MariaDB service is not running")
 	}
 
 	// Buat database config dari installation info
-	dbConfig := mariadb_utils.CreateDatabaseConfigFromInstallation(installation)
+	dbConfig := mariadb_config.CreateDatabaseConfigFromInstallation(installation)
 	if dbConfig == nil {
 		return fmt.Errorf("failed to create database config from installation info")
 	}

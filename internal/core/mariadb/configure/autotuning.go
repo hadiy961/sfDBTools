@@ -7,13 +7,13 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/system"
 )
 
 // PerformAutoTuning melakukan auto-tuning berdasarkan hardware sistem
 // Sesuai dengan Step 12-14 dalam flow implementasi
-func PerformAutoTuning(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func PerformAutoTuning(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -51,12 +51,12 @@ func PerformAutoTuning(ctx context.Context, config *mariadb_utils.MariaDBConfigu
 
 // AutoTuneConfig is the exported entrypoint to perform hardware-based auto-tuning
 // It uses background context and delegates to PerformAutoTuning.
-func AutoTuneConfig(config *mariadb_utils.MariaDBConfigureConfig) error {
+func AutoTuneConfig(config *mariadb_config.MariaDBConfigureConfig) error {
 	return PerformAutoTuning(context.Background(), config)
 }
 
 // autoTuneBufferPool melakukan auto-tuning untuk InnoDB buffer pool
-func autoTuneBufferPool(config *mariadb_utils.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
+func autoTuneBufferPool(config *mariadb_config.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
 	lg, _ := logger.Get()
 
 	// Jika user sudah set manual, skip auto-tuning
@@ -104,7 +104,7 @@ func autoTuneBufferPool(config *mariadb_utils.MariaDBConfigureConfig, hw *system
 }
 
 // autoTuneBufferPoolInstances melakukan auto-tuning untuk buffer pool instances
-func autoTuneBufferPoolInstances(config *mariadb_utils.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
+func autoTuneBufferPoolInstances(config *mariadb_config.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
 	lg, _ := logger.Get()
 
 	// Jika user sudah set manual, skip auto-tuning
@@ -151,7 +151,7 @@ func autoTuneBufferPoolInstances(config *mariadb_utils.MariaDBConfigureConfig, h
 }
 
 // autoTunePerformanceSettings melakukan auto-tuning untuk setting performance lainnya
-func autoTunePerformanceSettings(config *mariadb_utils.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
+func autoTunePerformanceSettings(config *mariadb_config.MariaDBConfigureConfig, hw *system.HardwareInfo) error {
 	lg, _ := logger.Get()
 
 	// Auto-tune buffer pool instances

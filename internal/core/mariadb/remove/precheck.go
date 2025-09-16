@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
 // preRemovalChecks melakukan pemeriksaan sebelum penghapusan
-func preRemovalChecks(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func preRemovalChecks(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
 
 	terminal.SafePrintln("🔍 Melakukan pemeriksaan sistem untuk penghapusan...")
@@ -51,7 +51,7 @@ func preRemovalChecks(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) erro
 }
 
 // confirmRemoval meminta konfirmasi user untuk penghapusan
-func confirmRemoval(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func confirmRemoval(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	// Skip konfirmasi jika force mode atau non-interactive
 	if cfg.Force || cfg.NonInteractive {
 		return nil

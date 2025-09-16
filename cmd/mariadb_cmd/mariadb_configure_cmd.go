@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"sfDBTools/internal/core/mariadb/configure"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 
 	"github.com/spf13/cobra"
 )
@@ -27,7 +27,7 @@ This command will safely migrate existing data if directories are changed.`,
 
 func executeMariaDBConfigure(cmd *cobra.Command, args []string) error {
 	// 1. Resolve config dari flags/env/file
-	config, err := mariadb_utils.ResolveMariaDBConfigureConfig(cmd)
+	config, err := mariadb_config.ResolveMariaDBConfigureConfig(cmd)
 	if err != nil {
 		return err
 	}
@@ -38,5 +38,5 @@ func executeMariaDBConfigure(cmd *cobra.Command, args []string) error {
 
 func init() {
 	// Add flags untuk MariaDB configure
-	mariadb_utils.AddMariaDBConfigureFlags(ConfigureMariadbCMD)
+	mariadb_config.AddMariaDBConfigureFlags(ConfigureMariadbCMD)
 }

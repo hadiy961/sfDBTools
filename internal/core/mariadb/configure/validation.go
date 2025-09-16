@@ -10,13 +10,13 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/disk"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/system"
 )
 
 // validateSystemRequirements melakukan validasi sistem dan input user
 // Sesuai dengan Step 7-11 dalam flow implementasi
-func validateSystemRequirements(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func validateSystemRequirements(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -57,7 +57,7 @@ func validateSystemRequirements(ctx context.Context, config *mariadb_utils.Maria
 }
 
 // validateDirectories memverifikasi bahwa direktori ada dan bisa ditulis
-func validateDirectories(config *mariadb_utils.MariaDBConfigureConfig) error {
+func validateDirectories(config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 
 	directories := map[string]string{
@@ -175,7 +175,7 @@ func validateEncryptionKeyFile(keyFile string) error {
 }
 
 // validateDiskSpace memeriksa space disk untuk direktori
-func validateDiskSpace(config *mariadb_utils.MariaDBConfigureConfig) error {
+func validateDiskSpace(config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Debug("Validating disk space")
 
@@ -205,7 +205,7 @@ func validateDiskSpace(config *mariadb_utils.MariaDBConfigureConfig) error {
 }
 
 // validateDirectoryPermissions memeriksa permission direktori untuk user mysql
-func validateDirectoryPermissions(config *mariadb_utils.MariaDBConfigureConfig) error {
+func validateDirectoryPermissions(config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Debug("Validating directory permissions")
 

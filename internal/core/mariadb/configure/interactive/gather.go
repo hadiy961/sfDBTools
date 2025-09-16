@@ -1,11 +1,11 @@
 package interactive
 
 import (
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 )
 
 // GatherServerID mengumpulkan server ID - Task 2: modular function
-func GatherServerID(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCollector) error {
+func GatherServerID(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
 	serverID, err := collector.CollectInt(
 		"Server ID for replication",
@@ -24,7 +24,7 @@ func GatherServerID(config *mariadb_utils.MariaDBConfigureConfig, collector *Inp
 }
 
 // GatherPort mengumpulkan port konfigurasi - Task 2: modular function
-func GatherPort(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCollector) error {
+func GatherPort(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
 	port, err := collector.CollectInt(
 		"MariaDB port",
@@ -42,7 +42,7 @@ func GatherPort(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCo
 }
 
 // GatherDataDirectory mengumpulkan data directory - Task 2: modular function
-func GatherDataDirectory(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCollector) error {
+func GatherDataDirectory(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
 	dataDir, err := collector.CollectString(
 		"Data directory path",
@@ -60,7 +60,7 @@ func GatherDataDirectory(config *mariadb_utils.MariaDBConfigureConfig, collector
 }
 
 // GatherLogDirectory mengumpulkan log directory - Task 2: modular function
-func GatherLogDirectory(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCollector) error {
+func GatherLogDirectory(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
 	logDir, err := collector.CollectDirectory(
 		"Log directory path",
@@ -77,7 +77,7 @@ func GatherLogDirectory(config *mariadb_utils.MariaDBConfigureConfig, collector 
 }
 
 // GatherBinlogDirectory mengumpulkan binlog directory - Task 2: modular function
-func GatherBinlogDirectory(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCollector) error {
+func GatherBinlogDirectory(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
 	binlogDir, err := collector.CollectDirectory(
 		"Binary log directory path",
@@ -94,7 +94,7 @@ func GatherBinlogDirectory(config *mariadb_utils.MariaDBConfigureConfig, collect
 }
 
 // GatherEncryptionSettings mengumpulkan pengaturan enkripsi - Task 2: modular function
-func GatherEncryptionSettings(config *mariadb_utils.MariaDBConfigureConfig, collector *InputCollector) error {
+func GatherEncryptionSettings(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
 	// Gather encryption enabled/disabled
 	defaultEncrypt := config.InnodbEncryptTables

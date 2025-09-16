@@ -6,14 +6,15 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/mariadb/discovery"
 	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
 
 // restartAndVerifyService melakukan restart service dan verifikasi
 // Sesuai dengan Step 20-23 dalam flow implementasi
-func restartAndVerifyService(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func restartAndVerifyService(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -22,7 +23,7 @@ func restartAndVerifyService(ctx context.Context, config *mariadb_utils.MariaDBC
 	lg.Info("Starting service restart and verification")
 
 	// Get current installation info
-	installation, err := mariadb_utils.DiscoverMariaDBInstallation()
+	installation, err := discovery.DiscoverMariaDBInstallation()
 	if err != nil {
 		return fmt.Errorf("failed to discover MariaDB installation: %w", err)
 	}
@@ -96,7 +97,7 @@ func verifyServiceRunning(sm system.ServiceManager, serviceName string) error {
 }
 
 // verifyDatabaseConnection memverifikasi koneksi ke database
-func verifyDatabaseConnection(config *mariadb_utils.MariaDBConfigureConfig) error {
+func verifyDatabaseConnection(config *mariadb_config.MariaDBConfigureConfig) error {
 	// Try connection multiple times
 	maxRetries := 5
 	retryDelay := 3 * time.Second
@@ -118,9 +119,9 @@ func verifyDatabaseConnection(config *mariadb_utils.MariaDBConfigureConfig) erro
 }
 
 // testDatabaseConnection melakukan test koneksi ke database
-func testDatabaseConnection(config *mariadb_utils.MariaDBConfigureConfig) error {
+func testDatabaseConnection(config *mariadb_config.MariaDBConfigureConfig) error {
 	// Create connection using discovery
-	installation, err := mariadb_utils.DiscoverMariaDBInstallation()
+	installation, err := discovery.DiscoverMariaDBInstallation()
 	if err != nil {
 		return fmt.Errorf("failed to discover installation: %w", err)
 	}
@@ -134,12 +135,12 @@ func testDatabaseConnection(config *mariadb_utils.MariaDBConfigureConfig) error 
 }
 
 // verifyConfigurationApplied memverifikasi bahwa konfigurasi telah diterapkan
-func verifyConfigurationApplied(config *mariadb_utils.MariaDBConfigureConfig) error {
+func verifyConfigurationApplied(config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Info("Verifying configuration applied")
 
 	// Simple verification - just check if service is running with new config
-	installation, err := mariadb_utils.DiscoverMariaDBInstallation()
+	installation, err := discovery.DiscoverMariaDBInstallation()
 	if err != nil {
 		return fmt.Errorf("failed to discover installation: %w", err)
 	}
@@ -160,7 +161,7 @@ func verifyConfigurationApplied(config *mariadb_utils.MariaDBConfigureConfig) er
 }
 
 // finalizeConfiguration melakukan finalisasi konfigurasi
-func finalizeConfiguration(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func finalizeConfiguration(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -184,7 +185,7 @@ func finalizeConfiguration(ctx context.Context, config *mariadb_utils.MariaDBCon
 }
 
 // updateApplicationConfig mengupdate file konfigurasi aplikasi sfDBTools
-func updateApplicationConfig(config *mariadb_utils.MariaDBConfigureConfig) error {
+func updateApplicationConfig(config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Info("Updating application configuration file")
 
@@ -195,7 +196,7 @@ func updateApplicationConfig(config *mariadb_utils.MariaDBConfigureConfig) error
 }
 
 // showSuccessSummary menampilkan ringkasan keberhasilan konfigurasi
-func showSuccessSummary(config *mariadb_utils.MariaDBConfigureConfig) {
+func showSuccessSummary(config *mariadb_config.MariaDBConfigureConfig) {
 	terminal.PrintSuccess("MariaDB Configuration Completed Successfully!")
 	fmt.Println()
 	terminal.PrintInfo("Configuration Summary:")

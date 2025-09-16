@@ -1,4 +1,4 @@
-package mariadb
+package discovery
 
 // MariaDBInstallation berisi informasi instalasi MariaDB
 type MariaDBInstallation struct {

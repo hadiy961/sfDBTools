@@ -8,12 +8,12 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
 // handleDataBackup melakukan backup data sebelum dihapus jika diminta
-func handleDataBackup(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func handleDataBackup(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	if !cfg.BackupData {
 		return nil
 	}
@@ -34,7 +34,7 @@ func handleDataBackup(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) erro
 }
 
 // backupDefaultDataDirectory backup direktori data default
-func backupDefaultDataDirectory(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func backupDefaultDataDirectory(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	dataDir := "/var/lib/mysql"
 
 	// Cek apakah data directory ada
@@ -63,7 +63,7 @@ func backupDefaultDataDirectory(cfg *mariadb.MariaDBRemoveConfig, deps *Dependen
 }
 
 // backupCustomDataDirectories backup semua direktori custom yang terdeteksi
-func backupCustomDataDirectories(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies, config *MariaDBConfig) error {
+func backupCustomDataDirectories(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies, config *MariaDBConfig) error {
 	lg, _ := logger.Get()
 
 	// Buat backup directory dengan timestamp
@@ -152,7 +152,7 @@ func copyFile(src, dst string) error {
 }
 
 // removeDataAndConfig menghapus data dan konfigurasi jika diminta
-func removeDataAndConfig(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func removeDataAndConfig(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
 
 	if cfg.RemoveData {

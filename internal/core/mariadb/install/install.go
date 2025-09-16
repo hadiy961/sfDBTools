@@ -5,13 +5,13 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/system"
 )
 
 // RunMariaDBInstall menjalankan proses instalasi MariaDB lengkap
-func RunMariaDBInstall(ctx context.Context, cfg *mariadb.MariaDBInstallConfig) error {
+func RunMariaDBInstall(ctx context.Context, cfg *mariadb_config.MariaDBInstallConfig) error {
 	lg, _ := logger.Get()
 	lg.Info("Memulai instalasi MariaDB",
 		logger.String("version", cfg.Version),

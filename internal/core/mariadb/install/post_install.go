@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
 	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
+	"sfDBTools/utils/mariadb/discovery"
 )
 
 // Post-installation setup seperti konfigurasi awal
-func postInstallationSetup(deps *defaultsetup.Dependencies, mariadbInstallation *mariadb.MariaDBInstallation) error {
+func postInstallationSetup(deps *defaultsetup.Dependencies, mariadbInstallation *discovery.MariaDBInstallation) error {
 	lg, _ := logger.Get()
 
 	lg.Info("Memulai post-installation setup")

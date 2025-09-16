@@ -5,13 +5,13 @@ import (
 	"os"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/system"
 	"sfDBTools/utils/terminal"
 )
 
 // removeMariaDBRepository menghapus repository MariaDB jika diminta
-func removeMariaDBRepository(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func removeMariaDBRepository(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	if !cfg.RemoveRepository {
 		return nil
 	}

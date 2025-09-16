@@ -10,10 +10,10 @@ import (
 	"sfDBTools/internal/core/mariadb/configure/template"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/disk"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 )
 
-func ApplyConfiguration(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig, tpl *template.MariaDBConfigTemplate) error {
+func ApplyConfiguration(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig, tpl *template.MariaDBConfigTemplate) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -43,7 +43,7 @@ func ApplyConfiguration(ctx context.Context, config *mariadb_utils.MariaDBConfig
 	return nil
 }
 
-func buildConfigValues(config *mariadb_utils.MariaDBConfigureConfig) map[string]string {
+func buildConfigValues(config *mariadb_config.MariaDBConfigureConfig) map[string]string {
 	values := make(map[string]string)
 
 	values["server_id"] = fmt.Sprintf("%d", config.ServerID)

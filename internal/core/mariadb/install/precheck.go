@@ -6,13 +6,14 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
+	"sfDBTools/utils/mariadb/discovery"
 	"sfDBTools/utils/system"
 )
 
 // preInstallationChecks melakukan pemeriksaan sebelum instalasi
-func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) (installation *mariadb.MariaDBInstallation, err error) {
+func preInstallationChecks(cfg *mariadb_config.MariaDBInstallConfig, deps *defaultsetup.Dependencies) (installation *discovery.MariaDBInstallation, err error) {
 	lg, _ := logger.Get()
 
 	// Internal diagnostic only; reduce noise on normal runs
@@ -24,7 +25,7 @@ func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup
 	}
 
 	// Cek apakah MariaDB/MySQL sudah terinstall — gunakan modul discovery untuk akurasi
-	if installation, err := mariadb.DiscoverMariaDBInstallation(); err == nil && installation != nil && installation.IsInstalled {
+	if installation, err := discovery.DiscoverMariaDBInstallation(); err == nil && installation != nil && installation.IsInstalled {
 		installedVersion := installation.Version
 		if installedVersion != "" {
 			// Use debug-level logs for internal state to avoid duplicate console output
@@ -56,7 +57,7 @@ func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup
 }
 
 // validateFinalConfig memvalidasi konfigurasi akhir sebelum instalasi
-func validateFinalConfig(cfg *mariadb.MariaDBInstallConfig) error {
+func validateFinalConfig(cfg *mariadb_config.MariaDBInstallConfig) error {
 	lg, _ := logger.Get()
 
 	// Versi harus sudah ditentukan pada tahap ini

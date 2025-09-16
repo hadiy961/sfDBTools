@@ -6,12 +6,13 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/disk"
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/mariadb/discovery"
 )
 
 // PerformDataMigrationWithInstallation performs migration using an already-discovered installation
 // This avoids re-running discovery when the caller already has the installation info.
-func PerformDataMigrationWithInstallation(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig, installation *mariadb_utils.MariaDBInstallation) error {
+func PerformDataMigrationWithInstallation(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig, installation *discovery.MariaDBInstallation) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)

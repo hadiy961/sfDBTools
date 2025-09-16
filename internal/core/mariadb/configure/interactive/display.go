@@ -3,12 +3,12 @@ package interactive
 import (
 	"fmt"
 
-	mariadb_utils "sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
 // ShowConfigurationSummary menampilkan ringkasan konfigurasi - Task 2: modular function
-func ShowConfigurationSummary(config *mariadb_utils.MariaDBConfigureConfig) {
+func ShowConfigurationSummary(config *mariadb_config.MariaDBConfigureConfig) {
 	fmt.Println()
 	terminal.PrintInfo("Configuration Summary:")
 	terminal.PrintInfo("====================================")

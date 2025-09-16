@@ -5,7 +5,7 @@ import (
 
 	"sfDBTools/internal/core/mariadb/install"
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
@@ -71,7 +71,7 @@ func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 	terminal.ClearScreen()
 
 	// Resolve konfigurasi dari flags dan environment
-	cfg, err := mariadb.ResolveMariaDBInstallConfig(cmd)
+	cfg, err := mariadb_config.ResolveMariaDBInstallConfig(cmd)
 	if err != nil {
 		// Don't duplicate error printing here; return so Cobra prints the error once.
 		return err
