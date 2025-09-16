@@ -25,9 +25,10 @@ func RunMariaDBInstall(ctx context.Context, cfg *mariadb.MariaDBInstallConfig) e
 	}
 
 	// Langkah 1: Pre-installation checks (termasuk OS dan hak akses)
-	// if err := preInstallationChecks(cfg, deps); err != nil {
-	// 	return fmt.Errorf("pre-installation checks gagal: %w", err)
-	// }
+	installation, err := preInstallationChecks(cfg, deps)
+	if err != nil {
+		return fmt.Errorf("pre-installation checks gagal: %w", err)
+	}
 
 	// // // Langkah 2: Validasi konfigurasi (tidak ada lagi interactive input)
 	// if err := validateFinalConfig(cfg); err != nil {
@@ -60,7 +61,7 @@ func RunMariaDBInstall(ctx context.Context, cfg *mariadb.MariaDBInstallConfig) e
 	// }
 
 	// Langkah 8: Post-installation
-	if err := postInstallationSetup(deps); err != nil {
+	if err := postInstallationSetup(deps, installation); err != nil {
 		return fmt.Errorf("post-installation setup gagal: %w", err)
 	}
 

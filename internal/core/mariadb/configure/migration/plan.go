@@ -14,7 +14,18 @@ func ShowMigrationPlan(migrations []DataMigration) {
 		if migration.Critical {
 			criticalText = " (CRITICAL)"
 		}
-		fmt.Printf("- %s%s: %s -> %s\n", migration.Type, criticalText, migration.Source, migration.Destination)
+		var label string
+		switch migration.Type {
+		case "data":
+			label = "Data Dir"
+		case "logs":
+			label = "Logs Dir"
+		case "binlogs":
+			label = "Binlog Dir"
+		default:
+			label = migration.Type
+		}
+		fmt.Printf("- %s%s: %s -> %s\n", label, criticalText, migration.Source, migration.Destination)
 	}
 
 	fmt.Println()

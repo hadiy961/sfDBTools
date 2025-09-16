@@ -49,8 +49,8 @@ open-files-limit                                = 393210
 
 # INNODB #
 default_storage_engine                          = InnoDB
-innodb_data_home_dir                            = {{INNODB_DATA_HOME_DIR}}
-innodb_log_group_home_dir                       = {{INNODB_LOG_GROUP_HOME_DIR}}
+innodb_data_home_dir                            = {{DATADIR}}
+innodb_log_group_home_dir                       = {{DATADIR}}
 innodb_file_per_table                           = 1
 innodb_log_file_size                            = 2G
 innodb_autoinc_lock_mode                        = 2

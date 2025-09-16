@@ -8,6 +8,7 @@ type MariaDBInstallation struct {
 	ConfigPaths []string `json:"config_paths"`
 	ServiceName string   `json:"service_name"`
 	DataDir     string   `json:"data_dir"`
+	LogDir      string   `json:"log_dir"`
 	BinlogDir   string   `json:"binlog_dir"`
 	IsRunning   bool     `json:"is_running"`
 	SocketPath  string   `json:"socket_path"`

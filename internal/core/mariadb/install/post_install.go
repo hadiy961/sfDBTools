@@ -4,12 +4,12 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/mariadb"
 	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
-	"sfDBTools/utils/system"
 )
 
 // Post-installation setup seperti konfigurasi awal
-func postInstallationSetup(deps *defaultsetup.Dependencies) error {
+func postInstallationSetup(deps *defaultsetup.Dependencies, mariadbInstallation *mariadb.MariaDBInstallation) error {
 	lg, _ := logger.Get()
 
 	lg.Info("Memulai post-installation setup")
@@ -29,27 +29,6 @@ func postInstallationSetup(deps *defaultsetup.Dependencies) error {
 		return fmt.Errorf("gagal membuat default database: %w", err)
 	}
 
-	// Langkah 4 : Ubah konfigurasi MariaDB sesuai standart perusahaan
-	if err := configureMariaDBConf(); err != nil {
-		return fmt.Errorf("gagal mengubah konfigurasi MariaDB: %w", err)
-	}
-
 	lg.Info("Post-installation setup selesai")
-	return nil
-}
-
-// mengubah konfigurasi MariaDB sesuai standart perusahaan
-func configureMariaDBConf() error {
-	lg, _ := logger.Get()
-
-	lg.Info("Mengubah konfigurasi MariaDB sesuai standart perusahaan")
-
-	// check privileges
-	lg.Info("Memeriksa hak akses root/sudo untuk mengubah konfigurasi MariaDB")
-	if err := system.CheckPrivileges(); err != nil {
-		return fmt.Errorf("privilege check failed: %w", err)
-	}
-	lg.Info("Privilege check passed")
-
 	return nil
 }

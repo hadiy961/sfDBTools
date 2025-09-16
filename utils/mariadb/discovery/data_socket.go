@@ -15,6 +15,7 @@ func detectDataDirAndSocket(installation *MariaDBInstallation) error {
 	installation.DataDir = "/var/lib/mysql"
 	installation.BinlogDir = "/var/lib/mysqlbinlogs"
 	installation.SocketPath = "/var/lib/mysql/mysql.sock"
+	installation.LogDir = installation.DataDir // default to data dir unless overridden by config
 	installation.Port = 3306
 	for _, configPath := range installation.ConfigPaths {
 		if err := parseConfigFile(configPath, installation); err != nil {
@@ -22,7 +23,18 @@ func detectDataDirAndSocket(installation *MariaDBInstallation) error {
 			continue
 		}
 	}
-	lg.Info("Data directory dan socket terdeteksi", logger.String("data_dir", installation.DataDir), logger.String("socket", installation.SocketPath), logger.Int("port", installation.Port))
+	// Log more details about the discovered installation to help debugging
+	lg.Info("Data directory dan socket terdeteksi",
+		logger.String("data_dir", installation.DataDir),
+		logger.String("socket", installation.SocketPath),
+		logger.Int("port", installation.Port),
+		logger.String("binlog_dir", installation.BinlogDir),
+		logger.String("log_dir", installation.LogDir),
+		logger.Strings("config_paths", installation.ConfigPaths),
+		logger.String("service_name", installation.ServiceName),
+		logger.Bool("is_running", installation.IsRunning),
+		logger.String("binary_path", installation.BinaryPath),
+	)
 	return nil
 }
 
@@ -56,6 +68,10 @@ func parseConfigFile(configPath string, installation *MariaDBInstallation) error
 			switch key {
 			case "datadir":
 				installation.DataDir = value
+				// If log dir wasn't set explicitly, keep LogDir default in sync with DataDir
+				if installation.LogDir == "" {
+					installation.LogDir = value
+				}
 			case "socket":
 				installation.SocketPath = value
 			case "log_bin":
@@ -63,6 +79,25 @@ func parseConfigFile(configPath string, installation *MariaDBInstallation) error
 					installation.BinlogDir = filepath.Dir(value)
 				} else {
 					installation.BinlogDir = filepath.Join(installation.DataDir, value)
+				}
+			case "log_error":
+				// log_error may be a filename or full path. If it contains '/', take dirname.
+				if strings.Contains(value, "/") {
+					installation.LogDir = filepath.Dir(value)
+				} else {
+					installation.LogDir = filepath.Join(installation.DataDir, value)
+				}
+			case "general_log_file":
+				if strings.Contains(value, "/") {
+					installation.LogDir = filepath.Dir(value)
+				} else {
+					installation.LogDir = filepath.Join(installation.DataDir, value)
+				}
+			case "slow_query_log_file":
+				if strings.Contains(value, "/") {
+					installation.LogDir = filepath.Dir(value)
+				} else {
+					installation.LogDir = filepath.Join(installation.DataDir, value)
 				}
 			case "port":
 				if port, err := parsePort(value); err == nil {

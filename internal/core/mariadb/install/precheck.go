@@ -12,7 +12,7 @@ import (
 )
 
 // preInstallationChecks melakukan pemeriksaan sebelum instalasi
-func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
+func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup.Dependencies) (installation *mariadb.MariaDBInstallation, err error) {
 	lg, _ := logger.Get()
 
 	// Internal diagnostic only; reduce noise on normal runs
@@ -20,7 +20,7 @@ func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup
 
 	// Cek OS yang didukung
 	if err := system.ValidateOperatingSystem(); err != nil {
-		return fmt.Errorf("sistem operasi tidak didukung: %w", err)
+		return nil, fmt.Errorf("sistem operasi tidak didukung: %w", err)
 	}
 
 	// Cek apakah MariaDB/MySQL sudah terinstall — gunakan modul discovery untuk akurasi
@@ -39,20 +39,20 @@ func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *defaultsetup
 				lg.Debug("Status: Versi berbeda terdeteksi")
 			}
 
-			return fmt.Errorf("MariaDB sudah terinstall (versi: %s). Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang", installedVersion)
+			return nil, fmt.Errorf("MariaDB sudah terinstall (versi: %s). Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang", installedVersion)
 		}
 
 		// Jika instalasi terdeteksi namun versi tidak diketahui, tolak instalasi juga
 		lg.Debug("MariaDB terdeteksi namun versi tidak ditemukan", logger.String("service", installation.ServiceName))
-		return fmt.Errorf("MariaDB sudah terinstall. Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang")
+		return nil, fmt.Errorf("MariaDB sudah terinstall. Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang")
 	}
 
 	// Cek hak akses root
 	if !isRunningAsRoot() {
-		return fmt.Errorf("instalasi MariaDB memerlukan hak akses root. Jalankan dengan sudo")
+		return nil, fmt.Errorf("instalasi MariaDB memerlukan hak akses root. Jalankan dengan sudo")
 	}
 
-	return nil
+	return installation, nil
 }
 
 // validateFinalConfig memvalidasi konfigurasi akhir sebelum instalasi

@@ -11,9 +11,9 @@ import (
 	"sfDBTools/utils/system"
 )
 
-// performAutoTuning melakukan auto-tuning berdasarkan hardware sistem
+// PerformAutoTuning melakukan auto-tuning berdasarkan hardware sistem
 // Sesuai dengan Step 12-14 dalam flow implementasi
-func performAutoTuning(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
+func PerformAutoTuning(ctx context.Context, config *mariadb_utils.MariaDBConfigureConfig) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -50,9 +50,9 @@ func performAutoTuning(ctx context.Context, config *mariadb_utils.MariaDBConfigu
 }
 
 // AutoTuneConfig is the exported entrypoint to perform hardware-based auto-tuning
-// It uses background context and delegates to internal performAutoTuning.
+// It uses background context and delegates to PerformAutoTuning.
 func AutoTuneConfig(config *mariadb_utils.MariaDBConfigureConfig) error {
-	return performAutoTuning(context.Background(), config)
+	return PerformAutoTuning(context.Background(), config)
 }
 
 // autoTuneBufferPool melakukan auto-tuning untuk InnoDB buffer pool
