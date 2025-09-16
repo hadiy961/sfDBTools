@@ -88,10 +88,8 @@ func (ic *InputCollector) CollectDirectory(question string, currentValue string,
 	if templateDir != "" {
 		hardcodedDefault = templateDir
 	}
+
 	// Tentukan default value dengan priority
-	if hardcodedDefault != "" {
-		hardcodedDefault = hardcodedDefault
-	}
 	if currentValue != "" {
 		hardcodedDefault = currentValue
 	}
