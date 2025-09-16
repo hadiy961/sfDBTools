@@ -139,12 +139,14 @@ type ConfigDirConfig struct {
 }
 
 type MariaDBConfig struct {
-	Version   string `mapstructure:"version"`
-	BaseDir   string `mapstructure:"base_dir"`
-	DataDir   string `mapstructure:"data_dir"`
-	LogDir    string `mapstructure:"log_dir"`
-	BinlogDir string `mapstructure:"binlog_dir"`
-	Port      int    `mapstructure:"port"`
-	Socket    string `mapstructure:"socket"`
-	ConfigDir string `mapstructure:"config_dir"`
+	Version             string `mapstructure:"version"`
+	DataDir             string `mapstructure:"data_dir"`
+	LogDir              string `mapstructure:"log_dir"`
+	BinlogDir           string `mapstructure:"binlog_dir"`
+	Port                int    `mapstructure:"port"`
+	SocketPath          string `mapstructure:"socket_path"`
+	InnodbEncryptTables bool   `mapstructure:"innodb_encrypt_tables"`
+	EncryptionKeyFile   string `mapstructure:"encryption_key_file"`
+	ConfigDir           string `mapstructure:"config_dir"`
+	ServerID            int    `mapstructure:"server_id"`
 }

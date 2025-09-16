@@ -16,6 +16,8 @@ type MariaDBConfigureConfig struct {
 	DataDir   string `json:"data_dir"`
 	LogDir    string `json:"log_dir"`
 	BinlogDir string `json:"binlog_dir"`
+	ConfigDir string `json:"config_dir"`
+	SocketDir string `json:"socket_dir"`
 
 	// Encryption configuration
 	InnodbEncryptTables bool   `json:"innodb_encrypt_tables"`
@@ -26,16 +28,13 @@ type MariaDBConfigureConfig struct {
 	InnodbBufferPoolInstances int    `json:"innodb_buffer_pool_instances"`
 
 	// Mode configuration
-	NonInteractive bool `json:"non_interactive"`
-	AutoTune       bool `json:"auto_tune"`
+	AutoTune bool `json:"auto_tune"`
 
 	// Backup and safety configuration
-	BackupCurrentConfig bool   `json:"backup_current_config"`
-	BackupDir           string `json:"backup_dir"`
+	BackupDir string `json:"backup_dir"`
 
 	// Migration configuration
-	MigrateData     bool `json:"migrate_data"`
-	VerifyMigration bool `json:"verify_migration"`
+	MigrateData bool `json:"migrate_data"`
 }
 
 // MariaDBRemoveConfig berisi konfigurasi untuk penghapusan MariaDB

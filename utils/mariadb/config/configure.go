@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/config"
-	"sfDBTools/utils/common"
 
 	"github.com/spf13/cobra"
 )
@@ -29,16 +28,13 @@ func AddMariaDBConfigureFlags(cmd *cobra.Command) {
 	cmd.Flags().Int("innodb-buffer-pool-instances", 0, "Jumlah instance InnoDB buffer pool")
 
 	// Mode configuration flags
-	cmd.Flags().Bool("non-interactive", false, "Mode non-interaktif (gunakan default atau nilai flag)")
-	cmd.Flags().Bool("auto-tune", true, "Aktifkan auto-tuning berdasarkan resource sistem")
+	cmd.Flags().Bool("auto-tune", false, "Aktifkan auto-tuning berdasarkan resource sistem")
 
 	// Backup and safety flags
-	cmd.Flags().Bool("backup-current-config", true, "Backup konfigurasi saat ini sebelum mengubah")
-	cmd.Flags().String("backup-dir", "config/backups", "Direktori untuk backup")
+	cmd.Flags().String("backup-dir", "", "Direktori untuk backup")
 
 	// Migration flags
-	cmd.Flags().Bool("migrate-data", true, "Migrasi data jika direktori berubah")
-	cmd.Flags().Bool("verify-migration", true, "Verifikasi integritas data setelah migrasi")
+	cmd.Flags().Bool("migrate-data", false, "Migrasi data jika direktori berubah")
 }
 
 // ResolveMariaDBConfigureConfig menggunakan pola priority: flags > env > config > defaults
@@ -46,56 +42,76 @@ func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig,
 	// Load config file untuk default values
 	appConfig, err := config.Get()
 	if err != nil {
-		// Jika gagal load config, lanjutkan dengan default hardcoded
-		defaultCfg := &MariaDBConfigureConfig{
-			DataDir:   "/var/lib/mysql",
-			LogDir:    "/var/lib/mysql",
-			BinlogDir: "/var/lib/mysqlbinlogs",
-			Port:      3306,
-		}
-		fmt.Println("Peringatan: Gagal memuat konfigurasi, menggunakan default hardcoded")
-		return defaultCfg, nil
+		return nil, fmt.Errorf("gagal memuat konfigurasi dari config.yaml: %w", err)
 	}
 
-	// Resolve dari flags -> env -> config.yaml -> defaults
-	serverID := common.GetIntFlagOrEnv(cmd, "server-id", "SFDBTOOLS_MARIADB_SERVER_ID", 1)
+	// Server ID: only from flag (no hardcoded default)
+	serverID := appConfig.MariaDB.ServerID
+	if val, err := cmd.Flags().GetInt("server-id"); err == nil && cmd.Flags().Changed("server-id") {
+		serverID = val
+	}
 
-	// Port: prioritas flags > env > config.yaml > default
+	// Port: from config.yaml or flag (no hardcoded default)
 	port := appConfig.MariaDB.Port
-	if port == 0 {
-		port = 3306 // default jika tidak ada di config
+	if val, err := cmd.Flags().GetInt("port"); err == nil && cmd.Flags().Changed("port") {
+		port = val
 	}
-	port = common.GetIntFlagOrEnv(cmd, "port", "SFDBTOOLS_MARIADB_PORT", port)
 
-	// Directory configuration - ambil dari config.yaml
-	dataDir := common.GetStringFlagOrEnv(cmd, "data-dir", "SFDBTOOLS_MARIADB_DATA_DIR", appConfig.MariaDB.DataDir)
-	logDir := common.GetStringFlagOrEnv(cmd, "log-dir", "SFDBTOOLS_MARIADB_LOG_DIR", appConfig.MariaDB.LogDir)
-	binlogDir := common.GetStringFlagOrEnv(cmd, "binlog-dir", "SFDBTOOLS_MARIADB_BINLOG_DIR", appConfig.MariaDB.BinlogDir)
+	// Directory configuration - ambil dari config.yaml atau flag
+	dataDir := appConfig.MariaDB.DataDir
+	if val, err := cmd.Flags().GetString("data-dir"); err == nil && cmd.Flags().Changed("data-dir") {
+		dataDir = val
+	}
+
+	logDir := appConfig.MariaDB.LogDir
+	if val, err := cmd.Flags().GetString("log-dir"); err == nil && cmd.Flags().Changed("log-dir") {
+		logDir = val
+	}
+
+	binlogDir := appConfig.MariaDB.BinlogDir
+	if val, err := cmd.Flags().GetString("binlog-dir"); err == nil && cmd.Flags().Changed("binlog-dir") {
+		binlogDir = val
+	}
 
 	// Encryption configuration
-	innodbEncryptTables := common.GetBoolFlagOrEnv(cmd, "innodb-encrypt-tables", "SFDBTOOLS_MARIADB_ENCRYPT_TABLES", false)
-	// Gunakan encryption key dari config.yaml sebagai default
-	defaultEncryptionKey := appConfig.ConfigDir.MariaDBKey
-	if defaultEncryptionKey == "" {
-		defaultEncryptionKey = "/var/lib/mysql/encryption/keyfile" // fallback jika tidak ada di config
+	innodbEncryptTables := appConfig.MariaDB.InnodbEncryptTables
+	if val, err := cmd.Flags().GetBool("innodb-encrypt-tables"); err == nil && cmd.Flags().Changed("innodb-encrypt-tables") {
+		innodbEncryptTables = val
 	}
-	encryptionKeyFile := common.GetStringFlagOrEnv(cmd, "encryption-key-file", "SFDBTOOLS_MARIADB_ENCRYPTION_KEY_FILE", defaultEncryptionKey)
+	// Gunakan encryption key dari config.yaml (no hardcoded fallback)
+	encryptionKeyFile := appConfig.ConfigDir.MariaDBKey
+	if val, err := cmd.Flags().GetString("encryption-key-file"); err == nil && cmd.Flags().Changed("encryption-key-file") {
+		encryptionKeyFile = val
+	}
 
-	// Performance configuration
-	innodbBufferPoolSize := common.GetStringFlagOrEnv(cmd, "innodb-buffer-pool-size", "SFDBTOOLS_MARIADB_BUFFER_POOL_SIZE", "128M")
-	innodbBufferPoolInstances := common.GetIntFlagOrEnv(cmd, "innodb-buffer-pool-instances", "SFDBTOOLS_MARIADB_BUFFER_POOL_INSTANCES", 8)
+	// Performance configuration (not present in appConfig model) — use flags only
+	innodbBufferPoolSize := ""
+	if val, err := cmd.Flags().GetString("innodb-buffer-pool-size"); err == nil && cmd.Flags().Changed("innodb-buffer-pool-size") {
+		innodbBufferPoolSize = val
+	}
 
-	// Mode configuration
-	nonInteractive := common.GetBoolFlagOrEnv(cmd, "non-interactive", "SFDBTOOLS_NON_INTERACTIVE", false)
-	autoTune := common.GetBoolFlagOrEnv(cmd, "auto-tune", "SFDBTOOLS_MARIADB_AUTO_TUNE", true)
+	innodbBufferPoolInstances := 0
+	if val, err := cmd.Flags().GetInt("innodb-buffer-pool-instances"); err == nil && cmd.Flags().Changed("innodb-buffer-pool-instances") {
+		innodbBufferPoolInstances = val
+	}
 
-	// Backup and safety configuration
-	backupCurrentConfig := common.GetBoolFlagOrEnv(cmd, "backup-current-config", "SFDBTOOLS_MARIADB_BACKUP_CONFIG", true)
-	backupDir := common.GetStringFlagOrEnv(cmd, "backup-dir", "SFDBTOOLS_MARIADB_BACKUP_DIR", "config/backups")
+	// Mode configuration (auto-tune) - only from flag
+	autoTune := true
+	if val, err := cmd.Flags().GetBool("auto-tune"); err == nil && cmd.Flags().Changed("auto-tune") {
+		autoTune = val
+	}
 
-	// Migration configuration
-	migrateData := common.GetBoolFlagOrEnv(cmd, "migrate-data", "SFDBTOOLS_MARIADB_MIGRATE_DATA", true)
-	verifyMigration := common.GetBoolFlagOrEnv(cmd, "verify-migration", "SFDBTOOLS_MARIADB_VERIFY_MIGRATION", true)
+	// Backup and safety configuration - only from flag
+	backupDir := appConfig.Backup.Storage.BaseDirectory
+	if val, err := cmd.Flags().GetString("backup-dir"); err == nil && cmd.Flags().Changed("backup-dir") {
+		backupDir = val
+	}
+
+	// Migration configuration - only from flag
+	migrateData := false
+	if val, err := cmd.Flags().GetBool("migrate-data"); err == nil && cmd.Flags().Changed("migrate-data") {
+		migrateData = val
+	}
 
 	mariadbCfg := &MariaDBConfigureConfig{
 		ServerID:                  serverID,
@@ -107,12 +123,9 @@ func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig,
 		EncryptionKeyFile:         encryptionKeyFile,
 		InnodbBufferPoolSize:      innodbBufferPoolSize,
 		InnodbBufferPoolInstances: innodbBufferPoolInstances,
-		NonInteractive:            nonInteractive,
 		AutoTune:                  autoTune,
-		BackupCurrentConfig:       backupCurrentConfig,
 		BackupDir:                 backupDir,
 		MigrateData:               migrateData,
-		VerifyMigration:           verifyMigration,
 	}
 
 	// Validasi input user (penting untuk konfigurasi sistem)

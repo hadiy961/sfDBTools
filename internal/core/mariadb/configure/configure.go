@@ -40,7 +40,6 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConf
 		logger.String("binlog_dir", config.BinlogDir),
 		logger.Int("port", config.Port),
 		logger.Int("server_id", config.ServerID),
-		logger.Bool("non_interactive", config.NonInteractive),
 	)
 
 	// Step 1: Installation Checks - simpan hasil discovery untuk digunakan kembali

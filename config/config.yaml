@@ -42,7 +42,7 @@ backup:
     checksum_verification: true
     integrity_check: true
   storage:
-    base_directory: "/data/BackupDB"
+    base_directory: "/data/sfDBTools_backups"
     structure:
       pattern: "{date}/{client}"
       create_subdirs: true
@@ -68,14 +68,15 @@ system_users:
 config_dir:
   database_config: "/etc/sfDBTools/config/db_config"
   database_list: "/etc/sfDBTools/config/db_list"
-  mariadb_key: "/etc/sfDBTools/key_maria_nbc.txt"
   mariadb_config_templates: "config/templates/server.cnf"
 mariadb:
   version: "10.6.23"
-  base_dir: "/var/lib/mysql"
   data_dir: "/var/lib/mysql"
   log_dir: "/var/lib/mysql"
   binlog_dir: "/var/lib/mysqlbinlogs"
-  socket: "/var/run/mysqld/mysqld.sock"
+  socket_path: "/var/run/mysqld/mysqld.sock"
   config_dir: "/etc/my.cnf.d/server.cnf"
+  innodb_encrypt_tables: true
+  encryption_key_file: "/etc/sfDBTools/key_maria_nbc.txt"
   port: 3306
+  server_id: 1
