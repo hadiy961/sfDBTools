@@ -30,6 +30,15 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.M
 		return fmt.Errorf("failed to get logger: %w", err)
 	}
 
+	// Respect context cancellation early
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+	}
+
 	lg.Info("Starting interactive configuration input")
 
 	// Task 1: Load application config sebagai fallback defaults
@@ -84,6 +93,15 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.M
 func RequestUserConfirmationForConfig(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Info("Requesting user confirmation for configuration")
+
+	// Respect context cancellation before prompting user
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+	}
 
 	if err := RequestUserConfirmation(); err != nil {
 		return err

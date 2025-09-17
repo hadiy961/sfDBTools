@@ -16,6 +16,15 @@ func LoadConfigurationTemplateWithInstallation(ctx context.Context, installation
 		return nil, fmt.Errorf("failed to get logger: %w", err)
 	}
 
+	// Respect context cancellation early
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+	}
+
 	template := &MariaDBConfigTemplate{
 		Placeholders:  make(map[string]string),
 		DefaultValues: make(map[string]string),

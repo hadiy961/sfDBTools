@@ -22,6 +22,15 @@ func validateSystemRequirements(ctx context.Context, config *mariadb_config.Mari
 		return fmt.Errorf("failed to get logger: %w", err)
 	}
 
+	// Respect context cancellation early
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		default:
+		}
+	}
+
 	lg.Info("Starting system requirements validation")
 
 	// Step 7: Validasi input user sudah dilakukan di ResolveMariaDBConfigureConfig

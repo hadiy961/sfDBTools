@@ -11,7 +11,6 @@ import (
 )
 
 // performPreChecks melakukan pemeriksaan prasyarat sebelum konfigurasi
-// Sesuai dengan Step 1 dalam flow implementasi
 // Mengembalikan MariaDBInstallation untuk digunakan kembali di tahap selanjutnya
 func performPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) (*discovery.MariaDBInstallation, error) {
 	lg, err := logger.Get()
@@ -20,6 +19,15 @@ func performPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigu
 	}
 
 	lg.Info("Starting pre-checks for MariaDB configuration")
+
+	// Early cancellation check: return promptly if caller cancelled
+	if ctx != nil {
+		select {
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		default:
+		}
+	}
 
 	// 1.1: Cek privilege sudo/root
 	if err := system.CheckPrivileges(); err != nil {
