@@ -1,6 +1,7 @@
 package interactive
 
 import (
+	"path/filepath"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 )
 
@@ -9,9 +10,8 @@ func GatherServerID(config *mariadb_config.MariaDBConfigureConfig, collector *In
 
 	serverID, err := collector.CollectInt(
 		"Server ID for replication",
-		config.ServerID,
+		collector.Defaults.GetIntDefault("server_id", 1),
 		"server_id",
-		1,
 		ValidateServerIDRange,
 	)
 
@@ -28,9 +28,8 @@ func GatherPort(config *mariadb_config.MariaDBConfigureConfig, collector *InputC
 
 	port, err := collector.CollectInt(
 		"MariaDB port",
-		config.Port,
+		collector.Defaults.GetIntDefault("port", 3306),
 		"port",
-		3306,
 		ValidatePortRange,
 	)
 	if err != nil {
@@ -46,7 +45,7 @@ func GatherDataDirectory(config *mariadb_config.MariaDBConfigureConfig, collecto
 
 	dataDir, err := collector.CollectString(
 		"Data directory path",
-		config.DataDir,
+		collector.Defaults.GetStringDefault("datadir", "/var/lib/mysql"),
 		"datadir",
 		"/var/lib/mysql",
 		ValidateAbsolutePath,
@@ -64,7 +63,7 @@ func GatherLogDirectory(config *mariadb_config.MariaDBConfigureConfig, collector
 
 	logDir, err := collector.CollectDirectory(
 		"Log directory path",
-		config.LogDir,
+		filepath.Dir(collector.Defaults.GetStringDefault("log_error", "/var/lib/mysql/")),
 		"log_error", // akan extract directory dari log_error path,
 		"/var/lib/mysql",
 	)
@@ -81,7 +80,7 @@ func GatherBinlogDirectory(config *mariadb_config.MariaDBConfigureConfig, collec
 
 	binlogDir, err := collector.CollectDirectory(
 		"Binary log directory path",
-		config.BinlogDir,
+		filepath.Dir(collector.Defaults.GetStringDefault("log_bin", "/var/lib/mysql/mysql-bin")),
 		"log_bin", // akan extract directory dari log_bin path
 		"/var/lib/mysqlbinlogs",
 	)
@@ -96,21 +95,28 @@ func GatherBinlogDirectory(config *mariadb_config.MariaDBConfigureConfig, collec
 // GatherEncryptionSettings mengumpulkan pengaturan enkripsi - Task 2: modular function
 func GatherEncryptionSettings(config *mariadb_config.MariaDBConfigureConfig, collector *InputCollector) error {
 
-	// Gather encryption enabled/disabled
-	defaultEncrypt := config.InnodbEncryptTables
-	if !defaultEncrypt && collector.Defaults.Template != nil && collector.Defaults.Template.DefaultValues["innodb-encrypt-tables"] == "ON" {
-		defaultEncrypt = true
+	// Gather encryption enabled/disabled using prioritized defaults
+	defaultEncrypt := collector.Defaults.GetBoolDefault("innodb_encrypt_tables", config.InnodbEncryptTables)
+	// If current config already set, prefer that
+	if config.InnodbEncryptTables {
+		defaultEncrypt = config.InnodbEncryptTables
 	}
 
 	config.InnodbEncryptTables = collector.CollectBool("Enable table encryption?", defaultEncrypt)
 
-	// If encryption enabled, gather key file
+	// If encryption enabled, gather key file using prioritized defaults
 	if config.InnodbEncryptTables {
+		keyFileDefault := collector.Defaults.GetStringDefault("file_key_management_filename", "/var/lib/mysql/encryption/keyfile")
+		// If the config already has a value prefer it
+		if config.EncryptionKeyFile != "" {
+			keyFileDefault = config.EncryptionKeyFile
+		}
+
 		keyFile, err := collector.CollectString(
 			"Encryption key file path",
-			config.EncryptionKeyFile,
+			"",
 			"file_key_management_filename",
-			"/var/lib/mysql/encryption/keyfile",
+			keyFileDefault,
 			ValidateAbsolutePath,
 		)
 		if err != nil {

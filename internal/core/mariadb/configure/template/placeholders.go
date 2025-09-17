@@ -33,7 +33,7 @@ func SetDefaultValues(template *MariaDBConfigTemplate) {
 		"server_id": "1",
 		"file_key_management_encryption_algorithm": "AES_CTR",
 		"file_key_management_filename":             "/var/lib/mysql/encryption/keyfile",
-		"innodb-encrypt-tables":                    "ON",
+		"innodb_encrypt_tables":                    "ON",
 		"log_bin":                                  "/var/lib/mysqlbinlogs/mysql-bin",
 		"datadir":                                  "/var/lib/mysql",
 		"socket":                                   "/var/lib/mysql/mysql.sock",

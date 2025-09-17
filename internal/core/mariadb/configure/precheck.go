@@ -25,38 +25,27 @@ func performPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigu
 	if err := system.CheckPrivileges(); err != nil {
 		return nil, fmt.Errorf("privilege check failed: %w", err)
 	}
-	lg.Info("Privilege check passed")
+	lg.Debug("Privilege check passed")
 
 	// 1.2: Cek apakah MariaDB sudah terinstall
-	installation, err := checkMariaDBInstallation()
+	installation, err := discovery.DiscoverMariaDBInstallation()
 	if err != nil {
 		return nil, fmt.Errorf("installation check failed: %w", err)
 	}
 	if !installation.IsInstalled {
 		return nil, fmt.Errorf("MariaDB is not installed. Please install MariaDB first using 'mariadb install' command")
 	}
-	lg.Info("MariaDB installation check passed")
+	lg.Debug("MariaDB installation check passed")
 
 	// 1.5: Cek koneksi ke database
 	if err := checkDatabaseConnection(installation); err != nil {
 		lg.Warn("Database connection check failed, but continuing", logger.Error(err))
 		// Warning saja, tidak fatal karena mungkin konfigurasi yang salah
 	} else {
-		lg.Info("Database connection check passed")
+		lg.Debug("Database connection check passed")
 	}
 
 	lg.Info("All pre-checks completed successfully")
-	return installation, nil
-}
-
-// checkMariaDBInstallation memeriksa apakah MariaDB sudah terinstall
-func checkMariaDBInstallation() (*discovery.MariaDBInstallation, error) {
-	// Gunakan discovery function yang sudah ada
-	installation, err := discovery.DiscoverMariaDBInstallation()
-	if err != nil {
-		return nil, fmt.Errorf("failed to discover MariaDB installation: %w", err)
-	}
-
 	return installation, nil
 }
 

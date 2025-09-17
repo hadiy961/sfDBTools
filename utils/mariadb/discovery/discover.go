@@ -29,10 +29,5 @@ func DiscoverMariaDBInstallation() (*MariaDBInstallation, error) {
 		lg.Debug("Gagal mendeteksi data directory dan socket", logger.Error(err))
 	}
 
-	lg.Info("Discovery MariaDB selesai",
-		logger.Bool("is_installed", installation.IsInstalled),
-		logger.String("version", installation.Version),
-		logger.Bool("is_running", installation.IsRunning))
-
 	return installation, nil
 }

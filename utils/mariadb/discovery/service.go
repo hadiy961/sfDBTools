@@ -21,7 +21,7 @@ func detectMariaDBService(installation *MariaDBInstallation) error {
 		if sm.IsActive(serviceName) {
 			installation.ServiceName = serviceName
 			installation.IsRunning = true
-			lg.Info("Ditemukan service", logger.String("service", serviceName), logger.Bool("is_running", installation.IsRunning))
+			lg.Debug("Ditemukan service", logger.String("service", serviceName), logger.Bool("is_running", installation.IsRunning))
 			return nil
 		}
 	}
@@ -32,7 +32,7 @@ func detectMariaDBService(installation *MariaDBInstallation) error {
 		if out, err := pm.ExecuteWithOutput("pgrep", []string{"-x", name}); err == nil && strings.TrimSpace(out) != "" {
 			installation.ServiceName = name
 			installation.IsRunning = true
-			lg.Info("Ditemukan process service (pgrep)", logger.String("service", name))
+			lg.Debug("Ditemukan process service (pgrep)", logger.String("service", name))
 			return nil
 		}
 	}

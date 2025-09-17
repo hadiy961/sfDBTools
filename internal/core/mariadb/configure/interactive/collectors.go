@@ -1,8 +1,6 @@
 package interactive
 
 import (
-	"fmt"
-	"strconv"
 	"strings"
 
 	"sfDBTools/utils/terminal"
@@ -45,26 +43,14 @@ func (ic *InputCollector) CollectString(question string, currentValue string, te
 }
 
 // CollectInt mengumpulkan input integer dengan validasi
-func (ic *InputCollector) CollectInt(question string, currentValue int, templateKey string, hardcodedDefault int, validator func(int) error) (int, error) {
-	defaultValue := ic.Defaults.GetIntDefault(templateKey, hardcodedDefault)
+func (ic *InputCollector) CollectInt(question string, currentValue int, templateKey string, validator func(int) error) (int, error) {
+	defaultValue := ic.Defaults.GetIntDefault(templateKey, 0)
 	if currentValue > 0 {
 		defaultValue = currentValue
 	}
 
-	defaultStr := strconv.Itoa(defaultValue)
-	input := terminal.AskString(question, defaultStr)
-
-	var result int
-	var err error
-
-	if strings.TrimSpace(input) == "" {
-		result = defaultValue
-	} else {
-		result, err = strconv.Atoi(strings.TrimSpace(input))
-		if err != nil {
-			return 0, fmt.Errorf("invalid integer value: %w", err)
-		}
-	}
+	// Use AskInt helper which handles prompting and validation loop
+	result := terminal.AskInt(question, defaultValue)
 
 	if validator != nil {
 		if err := validator(result); err != nil {

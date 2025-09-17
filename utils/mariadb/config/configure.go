@@ -20,7 +20,7 @@ func AddMariaDBConfigureFlags(cmd *cobra.Command) {
 	cmd.Flags().String("binlog-dir", "", "Path direktori binary log MariaDB (absolute path)")
 
 	// Encryption configuration flags
-	cmd.Flags().Bool("innodb-encrypt-tables", false, "Aktifkan enkripsi tabel InnoDB")
+	cmd.Flags().Bool("innodb_encrypt_tables", false, "Aktifkan enkripsi tabel InnoDB")
 	cmd.Flags().String("encryption-key-file", "", "Path file kunci enkripsi (absolute path)")
 
 	// Performance tuning flags
@@ -63,7 +63,7 @@ func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig,
 		dataDir = val
 	}
 
-	logDir := appConfig.MariaDB.LogDir
+	logDir := appConfig.MariaDB.DataDir
 	if val, err := cmd.Flags().GetString("log-dir"); err == nil && cmd.Flags().Changed("log-dir") {
 		logDir = val
 	}
@@ -75,11 +75,11 @@ func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig,
 
 	// Encryption configuration
 	innodbEncryptTables := appConfig.MariaDB.InnodbEncryptTables
-	if val, err := cmd.Flags().GetBool("innodb-encrypt-tables"); err == nil && cmd.Flags().Changed("innodb-encrypt-tables") {
+	if val, err := cmd.Flags().GetBool("innodb_encrypt_tables"); err == nil && cmd.Flags().Changed("innodb_encrypt_tables") {
 		innodbEncryptTables = val
 	}
 	// Gunakan encryption key dari config.yaml (no hardcoded fallback)
-	encryptionKeyFile := appConfig.ConfigDir.MariaDBKey
+	encryptionKeyFile := appConfig.MariaDB.EncryptionKeyFile
 	if val, err := cmd.Flags().GetString("encryption-key-file"); err == nil && cmd.Flags().Changed("encryption-key-file") {
 		encryptionKeyFile = val
 	}

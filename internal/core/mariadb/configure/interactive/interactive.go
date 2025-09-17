@@ -6,6 +6,7 @@ import (
 
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/mariadb/discovery"
 	"sfDBTools/utils/terminal"
 )
 
@@ -23,7 +24,7 @@ type MariaDBConfigTemplate struct {
 // GatherInteractiveInput mengumpulkan input konfigurasi secara interaktif
 // Task 1: Menggunakan config.yaml sebagai fallback defaults
 // Task 2: Refactored menjadi modular dengan helper functions
-func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.MariaDBConfigureConfig, template *MariaDBConfigTemplate) error {
+func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.MariaDBConfigureConfig, template *MariaDBConfigTemplate, mariadbInstallation *discovery.MariaDBInstallation) error {
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
@@ -34,14 +35,16 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.M
 	// Task 1: Load application config sebagai fallback defaults
 
 	// Show welcome message
-	terminal.PrintInfo("MariaDB Configuration Setup")
-	terminal.PrintInfo("Please provide the following configuration values.")
+	terminal.PrintHeader("MariaDB Configuration Setup")
+	terminal.PrintSubHeader("Please provide the following configuration values.")
 	terminal.PrintInfo("Press Enter to use default values shown in brackets.")
 	fmt.Println()
 
-	// Create config defaults helper dengan prioritas: template -> appConfig -> hardcoded
+	// Create config defaults helper dengan prioritas: template -> currentConfig -> Appconfig
 	defaults := &ConfigDefaults{
-		Template: template,
+		Template:     template,
+		Installation: mariadbInstallation,
+		AppConfig:    mariadbConfig, // Optional, jika ingin gunakan config.yaml
 	}
 
 	// Create input collector untuk simplify input gathering (Task 2: modular)
@@ -71,9 +74,6 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.M
 	if err := GatherEncryptionSettings(mariadbConfig, collector); err != nil {
 		return fmt.Errorf("failed to gather encryption settings: %w", err)
 	}
-
-	// Show summary (Task 2: modular function)
-	ShowConfigurationSummary(mariadbConfig)
 
 	lg.Info("Interactive configuration input completed")
 	return nil

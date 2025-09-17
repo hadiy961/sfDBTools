@@ -16,8 +16,6 @@ func LoadConfigurationTemplateWithInstallation(ctx context.Context, installation
 		return nil, fmt.Errorf("failed to get logger: %w", err)
 	}
 
-	lg.Info("Loading MariaDB configuration template")
-
 	template := &MariaDBConfigTemplate{
 		Placeholders:  make(map[string]string),
 		DefaultValues: make(map[string]string),
@@ -41,7 +39,6 @@ func LoadConfigurationTemplateWithInstallation(ctx context.Context, installation
 		template.CurrentPath = "/etc/my.cnf.d/50-server.cnf"
 	} else {
 		template.CurrentPath = currentConfigPath
-		lg.Info("Found current config file", logger.String("path", currentConfigPath))
 	}
 
 	if err := LoadCurrentConfig(template); err != nil {

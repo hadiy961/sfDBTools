@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	sfdbconfig "sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/mariadb/discovery"
@@ -29,25 +30,81 @@ func restartAndVerifyService(ctx context.Context, config *mariadb_config.MariaDB
 	}
 
 	sm := system.NewServiceManager()
-
 	// Step 20: Restart MariaDB service
-	lg.Info("Restarting MariaDB service", logger.String("service", installation.ServiceName))
+	// Determine service name (fallback to common names if discovery failed)
+	svcName := installation.ServiceName
+	if svcName == "" {
+		// try common names
+		candidates := []string{"mariadb", "mysql", "mysqld"}
+		found := ""
+		for _, c := range candidates {
+			if sm.IsActive(c) || sm.IsEnabled(c) {
+				found = c
+				break
+			}
+		}
+		if found == "" {
+			lg.Warn("Service name not discovered; attempting common service names", logger.Strings("candidates", []string{"mariadb", "mysql", "mysqld"}))
+			svcName = "mariadb" // best-effort default
+		} else {
+			svcName = found
+		}
+	}
+
+	lg.Info("Restarting MariaDB service", logger.String("service", svcName))
 	terminal.PrintInfo("Restarting MariaDB service...")
 
-	// Stop then start (restart alternative)
-	if err := sm.Stop(installation.ServiceName); err != nil {
-		return fmt.Errorf("failed to stop MariaDB service: %w", err)
+	// Try stopping using candidate names until one succeeds
+	stopErr := fmt.Errorf("no stop attempted")
+	tried := map[string]struct{}{}
+	candidates := []string{svcName, "mariadb", "mysql", "mysqld"}
+	for _, name := range candidates {
+		if name == "" {
+			continue
+		}
+		if _, ok := tried[name]; ok {
+			continue
+		}
+		tried[name] = struct{}{}
+		if err := sm.Stop(name); err == nil {
+			stopErr = nil
+			svcName = name
+			break
+		} else {
+			stopErr = err
+			lg.Debug("Stop attempt failed for candidate service", logger.String("candidate", name), logger.Error(err))
+		}
+	}
+	if stopErr != nil {
+		return fmt.Errorf("failed to stop MariaDB service: %w", stopErr)
 	}
 
 	time.Sleep(2 * time.Second) // Wait a bit
 
-	if err := sm.Start(installation.ServiceName); err != nil {
-		return fmt.Errorf("failed to start MariaDB service: %w", err)
+	// Try starting the discovered/service name
+	if err := sm.Start(svcName); err != nil {
+		// try other candidates
+		startErr := err
+		for _, name := range []string{"mariadb", "mysql", "mysqld"} {
+			if name == svcName {
+				continue
+			}
+			if err2 := sm.Start(name); err2 == nil {
+				startErr = nil
+				svcName = name
+				break
+			} else {
+				lg.Debug("Start attempt failed for candidate service", logger.String("candidate", name), logger.Error(err2))
+			}
+		}
+		if startErr != nil {
+			return fmt.Errorf("failed to start MariaDB service: %w", startErr)
+		}
 	}
 
 	// Step 21: Verify service is running
 	lg.Info("Verifying service status")
-	if err := verifyServiceRunning(sm, installation.ServiceName); err != nil {
+	if err := verifyServiceRunning(sm, svcName); err != nil {
 		return fmt.Errorf("service verification failed: %w", err)
 	}
 
@@ -169,9 +226,6 @@ func finalizeConfiguration(ctx context.Context, config *mariadb_config.MariaDBCo
 
 	lg.Info("Finalizing configuration")
 
-	// Step 24: Cleanup temporary files (implementasi sederhana)
-	// TODO: Track dan cleanup file temporary yang dibuat selama proses
-
 	// Step 25: Update application config file
 	if err := updateApplicationConfig(config); err != nil {
 		return fmt.Errorf("failed to update application config: %w", err)
@@ -189,9 +243,47 @@ func updateApplicationConfig(config *mariadb_config.MariaDBConfigureConfig) erro
 	lg, _ := logger.Get()
 	lg.Info("Updating application configuration file")
 
-	// For now, just log completion - actual implementation would update the config file
-	// TODO: Implement actual config file update using internal/config package
-	lg.Info("Application configuration update completed")
+	// Create config updater
+	updater, err := sfdbconfig.NewConfigUpdater()
+	if err != nil {
+		return fmt.Errorf("failed to create config updater: %w", err)
+	}
+
+	// Prepare updates map with MariaDB configuration values
+	updates := make(map[string]interface{})
+
+	// Map MariaDBConfigureConfig fields to config.yaml mariadb section
+	if config.ServerID != 0 {
+		updates["server_id"] = config.ServerID
+	}
+	if config.Port != 0 {
+		updates["port"] = config.Port
+	}
+	if config.DataDir != "" {
+		updates["data_dir"] = config.DataDir
+	}
+	if config.LogDir != "" {
+		updates["log_dir"] = config.LogDir
+	}
+	if config.BinlogDir != "" {
+		updates["binlog_dir"] = config.BinlogDir
+	}
+	if config.ConfigDir != "" {
+		updates["config_dir"] = config.ConfigDir
+	}
+	if config.EncryptionKeyFile != "" {
+		updates["encryption_key_file"] = config.EncryptionKeyFile
+	}
+	// InnodbEncryptTables is a boolean, so we need to check it differently
+	updates["innodb_encrypt_tables"] = config.InnodbEncryptTables
+
+	// Update the config file
+	if err := updater.UpdateMariaDBConfig(updates); err != nil {
+		return fmt.Errorf("failed to update config file: %w", err)
+	}
+
+	lg.Info("Application configuration update completed",
+		logger.String("config_file", updater.GetConfigFilePath()))
 	return nil
 }
 

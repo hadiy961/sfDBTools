@@ -42,7 +42,7 @@ backup:
     checksum_verification: true
     integrity_check: true
   storage:
-    base_directory: "/data/sfDBTools_backups"
+    base_directory: "backup"
     structure:
       pattern: "{date}/{client}"
       create_subdirs: true
@@ -72,7 +72,7 @@ config_dir:
 mariadb:
   version: "10.6.23"
   data_dir: "/var/lib/mysql"
-  log_dir: "/var/lib/mysql"
+  log_dir: "/var/lib/mysql/logs"
   binlog_dir: "/var/lib/mysqlbinlogs"
   socket_path: "/var/run/mysqld/mysqld.sock"
   config_dir: "/etc/my.cnf.d/server.cnf"

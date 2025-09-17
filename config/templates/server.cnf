@@ -17,15 +17,12 @@ rpl_semi_sync_slave_enabled                     = ON
 rpl_semi_sync_master_wait_point                 = AFTER_SYNC
 slave-skip-errors                               = 1062,1032
 
-[client]
-socket                                          = {{SOCKET}}
-
 [mysqld]
 thread_handling                                 = pool-of-threads
 plugin-load-add                                 = file_key_management
 file_key_management_encryption_algorithm        = {{ENCRYPTION_ALGORITHM}}
 file_key_management_filename                    = {{ENCRYPTION_KEY_FILE}}
-innodb-encrypt-tables                           = {{INNODB_ENCRYPT_TABLES}}
+innodb_encrypt_tables                           = {{INNODB_ENCRYPT_TABLES}}
 log_bin                                         = {{LOG_BIN}}
 datadir                                         = {{DATADIR}}
 lower_case_table_names                          = 1
@@ -67,7 +64,6 @@ log_slow_verbosity                              = query_plan,explain
 
 port                                            = {{PORT}}
 bind-address                                    = 0.0.0.0
-socket                                          = {{SOCKET}}
 
 performance_schema                              = ON
 

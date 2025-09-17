@@ -62,7 +62,6 @@ func validateDirectories(config *mariadb_config.MariaDBConfigureConfig) error {
 
 	directories := map[string]string{
 		"data-dir":   config.DataDir,
-		"log-dir":    config.LogDir,
 		"binlog-dir": config.BinlogDir,
 	}
 
@@ -88,9 +87,6 @@ func validateDirectories(config *mariadb_config.MariaDBConfigureConfig) error {
 	// Pastikan direktori tidak sama
 	if config.DataDir == config.BinlogDir {
 		return fmt.Errorf("data-dir and binlog-dir cannot be the same: %s", config.DataDir)
-	}
-	if config.LogDir == config.BinlogDir {
-		return fmt.Errorf("log-dir and binlog-dir cannot be the same: %s", config.LogDir)
 	}
 
 	return nil
@@ -179,7 +175,7 @@ func validateDiskSpace(config *mariadb_config.MariaDBConfigureConfig) error {
 	lg, _ := logger.Get()
 	lg.Debug("Validating disk space")
 
-	directories := []string{config.DataDir, config.LogDir, config.BinlogDir}
+	directories := []string{config.DataDir, config.BinlogDir}
 
 	for _, dir := range directories {
 		// Gunakan utils/disk untuk cek space (jika tersedia)
@@ -209,7 +205,7 @@ func validateDirectoryPermissions(config *mariadb_config.MariaDBConfigureConfig)
 	lg, _ := logger.Get()
 	lg.Debug("Validating directory permissions")
 
-	directories := []string{config.DataDir, config.LogDir, config.BinlogDir}
+	directories := []string{config.DataDir, config.BinlogDir}
 
 	for _, dir := range directories {
 		// Cek apakah user mysql bisa akses direktori

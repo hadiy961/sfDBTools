@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 	"strings"
 
 	"sfDBTools/internal/logger"
@@ -12,29 +13,13 @@ import (
 // detectDataDirAndSocket mendeteksi data directory dan socket path
 func detectDataDirAndSocket(installation *MariaDBInstallation) error {
 	lg, _ := logger.Get()
-	installation.DataDir = "/var/lib/mysql"
-	installation.BinlogDir = "/var/lib/mysqlbinlogs"
-	installation.SocketPath = "/var/lib/mysql/mysql.sock"
-	installation.LogDir = installation.DataDir // default to data dir unless overridden by config
-	installation.Port = 3306
 	for _, configPath := range installation.ConfigPaths {
 		if err := parseConfigFile(configPath, installation); err != nil {
 			lg.Debug("Gagal parsing config file", logger.String("path", configPath), logger.Error(err))
 			continue
 		}
 	}
-	// Log more details about the discovered installation to help debugging
-	lg.Info("Data directory dan socket terdeteksi",
-		logger.String("data_dir", installation.DataDir),
-		logger.String("socket", installation.SocketPath),
-		logger.Int("port", installation.Port),
-		logger.String("binlog_dir", installation.BinlogDir),
-		logger.String("log_dir", installation.LogDir),
-		logger.Strings("config_paths", installation.ConfigPaths),
-		logger.String("service_name", installation.ServiceName),
-		logger.Bool("is_running", installation.IsRunning),
-		logger.String("binary_path", installation.BinaryPath),
-	)
+
 	return nil
 }
 
@@ -46,13 +31,16 @@ func parseConfigFile(configPath string, installation *MariaDBInstallation) error
 	}
 	lines := strings.Split(string(content), "\n")
 	inMysqldSection := false
+	inServerSection := false
 	for _, line := range lines {
 		line = strings.TrimSpace(line)
 		if strings.HasPrefix(line, "[") {
+			// track both [mysqld]/[mariadb] and [server] sections
 			inMysqldSection = (line == "[mysqld]" || line == "[mariadb]")
+			inServerSection = (line == "[server]")
 			continue
 		}
-		if !inMysqldSection {
+		if !(inMysqldSection || inServerSection) {
 			continue
 		}
 		if strings.HasPrefix(line, "#") || strings.HasPrefix(line, ";") {
@@ -66,12 +54,22 @@ func parseConfigFile(configPath string, installation *MariaDBInstallation) error
 			key := strings.TrimSpace(parts[0])
 			value := strings.TrimSpace(parts[1])
 			switch key {
+			case "server_id":
+				if v, err := strconv.Atoi(value); err == nil {
+					installation.ServerID = v
+				}
+			case "innodb_encrypt_tables":
+				installation.InnodbEncryptTables = (strings.ToUpper(value) == "ON")
+			case "file_key_management_filename":
+				installation.EncryptionKeyFile = value
+			case "innodb_buffer_pool_size":
+				installation.InnodbBufferPoolSize = value
+			case "innodb_buffer_pool_instances":
+				if v, err := strconv.Atoi(value); err == nil {
+					installation.InnodbBufferPoolInstances = v
+				}
 			case "datadir":
 				installation.DataDir = value
-				// If log dir wasn't set explicitly, keep LogDir default in sync with DataDir
-				if installation.LogDir == "" {
-					installation.LogDir = value
-				}
 			case "socket":
 				installation.SocketPath = value
 			case "log_bin":
