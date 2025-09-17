@@ -3,8 +3,6 @@ package configure
 import (
 	"context"
 	"fmt"
-	"strconv"
-	"strings"
 
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
@@ -17,6 +15,10 @@ func PerformAutoTuning(ctx context.Context, config *mariadb_config.MariaDBConfig
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
+	}
+
+	if config == nil {
+		return fmt.Errorf("nil config passed to PerformAutoTuning")
 	}
 
 	lg.Info("Starting hardware-based auto-tuning")
@@ -65,39 +67,12 @@ func autoTuneBufferPool(config *mariadb_config.MariaDBConfigureConfig, hw *syste
 		return nil
 	}
 
-	// Hitung buffer pool size: 70-80% dari total RAM
-	// Untuk sistem dengan RAM < 4GB, gunakan 60%
-	// Untuk sistem dengan RAM >= 4GB, gunakan 75%
-	var percentage float64
-	if hw.TotalRAMGB < 4 {
-		percentage = 0.60 // 60% untuk sistem RAM kecil
-	} else {
-		percentage = 0.75 // 75% untuk sistem RAM normal
-	}
-
-	bufferPoolMB := int(float64(hw.TotalRAMMB) * percentage)
-
-	// Minimum 128MB, maksimum leave 1GB untuk OS
-	minBufferMB := 128
-	maxBufferMB := hw.TotalRAMMB - 1024 // Leave 1GB for OS
-
-	if bufferPoolMB < minBufferMB {
-		bufferPoolMB = minBufferMB
-	}
-	if bufferPoolMB > maxBufferMB && maxBufferMB > minBufferMB {
-		bufferPoolMB = maxBufferMB
-	}
-
-	// Set buffer pool size
-	if bufferPoolMB >= 1024 {
-		config.InnodbBufferPoolSize = fmt.Sprintf("%dG", bufferPoolMB/1024)
-	} else {
-		config.InnodbBufferPoolSize = fmt.Sprintf("%dM", bufferPoolMB)
-	}
+	// Use system package helper to compute optimal buffer pool size
+	optimal := hw.CalculateOptimalInnoDBBufferPool()
+	config.InnodbBufferPoolSize = optimal
 
 	lg.Info("Auto-tuned buffer pool size",
 		logger.Int("total_ram_mb", hw.TotalRAMMB),
-		logger.Float64("percentage_used", percentage),
 		logger.String("buffer_pool_size", config.InnodbBufferPoolSize))
 
 	return nil
@@ -113,38 +88,12 @@ func autoTuneBufferPoolInstances(config *mariadb_config.MariaDBConfigureConfig, 
 		return nil
 	}
 
-	// Parse buffer pool size untuk mendapatkan ukuran dalam MB
-	bufferPoolMB, err := parseMemorySizeToMB(config.InnodbBufferPoolSize)
-	if err != nil {
-		lg.Warn("Could not parse buffer pool size for instances calculation", logger.Error(err))
-		return nil
-	}
-
-	// Rumus: min(CPU cores, buffer_pool_size_GB)
-	// Minimum 1, maksimum 64 (limit MariaDB)
-	bufferPoolGB := bufferPoolMB / 1024
-	if bufferPoolGB < 1 {
-		bufferPoolGB = 1
-	}
-
-	instances := hw.CPUCores
-	if bufferPoolGB < instances {
-		instances = bufferPoolGB
-	}
-
-	// Minimum 1, maksimum 64
-	if instances < 1 {
-		instances = 1
-	}
-	if instances > 64 {
-		instances = 64
-	}
-
+	// Use system package helper to compute optimal instances
+	instances := hw.CalculateOptimalInnoDBBufferPoolInstances()
 	config.InnodbBufferPoolInstances = instances
 
 	lg.Info("Auto-tuned buffer pool instances",
 		logger.Int("cpu_cores", hw.CPUCores),
-		logger.Int("buffer_pool_gb", bufferPoolGB),
 		logger.Int("instances", instances))
 
 	return nil
@@ -172,41 +121,3 @@ func autoTunePerformanceSettings(config *mariadb_config.MariaDBConfigureConfig, 
 }
 
 // Helper functions
-
-// parseMemorySizeToMB mengkonversi string memory size ke MB
-func parseMemorySizeToMB(size string) (int, error) {
-	if size == "" {
-		return 0, fmt.Errorf("empty memory size")
-	}
-
-	size = strings.ToUpper(strings.TrimSpace(size))
-
-	// Extract numeric part and suffix
-	var numStr string
-	var suffix string
-
-	if len(size) < 2 {
-		return 0, fmt.Errorf("invalid memory size format: %s", size)
-	}
-
-	suffix = size[len(size)-1:]
-	numStr = size[:len(size)-1]
-
-	// Parse numeric part
-	num, err := strconv.Atoi(numStr)
-	if err != nil {
-		return 0, fmt.Errorf("invalid numeric part in memory size: %s", numStr)
-	}
-
-	// Convert to MB based on suffix
-	switch suffix {
-	case "K":
-		return num / 1024, nil
-	case "M":
-		return num, nil
-	case "G":
-		return num * 1024, nil
-	default:
-		return 0, fmt.Errorf("unsupported memory size suffix: %s", suffix)
-	}
-}
