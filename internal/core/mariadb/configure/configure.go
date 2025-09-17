@@ -59,8 +59,8 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConf
 		{"innodb_buffer_pool_instances", fmt.Sprintf("%d", mariadbInstallation.InnodbBufferPoolInstances)},
 	}
 	terminal.FormatTable(headers1, rows1)
+
 	// Step 2-4: Template dan konfigurasi discovery - gunakan hasil discovery yang sudah ada
-	// lg.Info("Loading MariaDB configuration template")
 	template, err := template.LoadConfigurationTemplateWithInstallation(ctx, mariadbInstallation)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration template: %w", err)

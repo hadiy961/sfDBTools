@@ -29,6 +29,17 @@ func performPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigu
 		}
 	}
 
+	// Ensure config is provided and log a small snapshot for debugging
+	if config == nil {
+		return nil, fmt.Errorf("nil config passed to performPreChecks")
+	}
+
+	lg.Debug("Pre-check using provided configuration",
+		logger.String("data_dir", config.DataDir),
+		logger.String("log_dir", config.LogDir),
+		logger.String("binlog_dir", config.BinlogDir),
+		logger.Int("port", config.Port))
+
 	// 1.1: Cek privilege sudo/root
 	if err := system.CheckPrivileges(); err != nil {
 		return nil, fmt.Errorf("privilege check failed: %w", err)
