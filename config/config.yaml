@@ -1,82 +1,82 @@
-general:
-  client_code: "dataon"
-  app_name: "sfDBTools"
-  version: "1.0.0"
-  author: "Hadiyatna Muflihun"
-  locale:
-    timezone: "Asia/Jakarta"
-    date_format: "2006-01-02"
-    time_format: "15:04:05"
-log:
-  level: "debug"
-  format: "text"
-  timezone: "Asia/Jakarta"
-  output:
-      console: 
-        enabled: false
-      file:
-        enabled: true
-        dir: "/var/log/sfDBTools"
-        filename_pattern: "sfDBTools_{date}.log"
-        rotation:
-          daily: true
-          max_size: "100MB"
-          retention_days: 7
-          compress_old: true
-      syslog:
-        enabled: false
-        facility: "local0"
-        tag: "sfDBTools"
 backup:
-  mysqldump_args: "-CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt"
-  retention:
-    days: 1
-    cleanup_enabled: true
-    cleanup_schedule: "daily"
-  compression:
-    required: true
-    algorithm: "gzip"
-    level: "best"    
-  security:
-    encryption_required: true
-    checksum_verification: true
-    integrity_check: true
-  storage:
-    base_directory: "backup"
-    structure:
-      pattern: "{date}/{client}"
-      create_subdirs: true
-    naming:
-      pattern: "{database}_{timestamp}_{type}"
-      include_hostname: false
-      include_client_code: true
-    temp_directory: "/tmp/sfDBTools_backup"
-    cleanup_temp: true
-  verification:
-    disk_space_check: true
-    minimum_free_space: "10GB"
-    verify_after_write: true
-    compare_checksums: true
-system_users:
-  users:
-    - "sst_user"
-    - "papp"
-    - "sysadmin"
-    - "backup_user"
-    - "dbaDO"
-    - "maxscale"
+    compression:
+        algorithm: gzip
+        level: best
+        required: true
+    mysqldump_args: -CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt
+    retention:
+        cleanup_enabled: true
+        cleanup_schedule: daily
+        days: 1
+    security:
+        checksum_verification: true
+        encryption_required: true
+        integrity_check: true
+    storage:
+        base_directory: backup
+        cleanup_temp: true
+        naming:
+            include_client_code: true
+            include_hostname: false
+            pattern: '{database}_{timestamp}_{type}'
+        structure:
+            create_subdirs: true
+            pattern: '{date}/{client}'
+        temp_directory: /tmp/sfDBTools_backup
+    verification:
+        compare_checksums: true
+        disk_space_check: true
+        minimum_free_space: 10GB
+        verify_after_write: true
 config_dir:
-  database_config: "/etc/sfDBTools/config/db_config"
-  database_list: "/etc/sfDBTools/config/db_list"
-  mariadb_config_templates: "config/templates/server.cnf"
+    database_config: /etc/sfDBTools/config/db_config
+    database_list: /etc/sfDBTools/config/db_list
+    mariadb_config_templates: config/templates/server.cnf
+general:
+    app_name: sfDBTools
+    author: Hadiyatna Muflihun
+    client_code: dataon
+    locale:
+        date_format: "2006-01-02"
+        time_format: "15:04:05"
+        timezone: Asia/Jakarta
+    version: 1.0.0
+log:
+    format: text
+    level: debug
+    output:
+        console:
+            enabled: false
+        file:
+            dir: /var/log/sfDBTools
+            enabled: true
+            filename_pattern: sfDBTools_{date}.log
+            rotation:
+                compress_old: true
+                daily: true
+                max_size: 100MB
+                retention_days: 7
+        syslog:
+            enabled: false
+            facility: local0
+            tag: sfDBTools
+    timezone: Asia/Jakarta
 mariadb:
-  version: "10.6.23"
-  data_dir: "/var/lib/mysql"
-  log_dir: "/var/lib/mysql/logs"
-  binlog_dir: "/var/lib/mysqlbinlogs"
-  socket_path: "/var/run/mysqld/mysqld.sock"
-  config_dir: "/etc/my.cnf.d/server.cnf"
-  innodb_encrypt_tables: true
-  encryption_key_file: "/etc/sfDBTools/key_maria_nbc.txt"
-  port: 3306
-  server_id: 1
+    binlog_dir: /mnt/nfs/mariadb/binlog
+    config_dir: /etc/my.cnf.d/server.cnf
+    data_dir: /mnt/nfs/mariadb/data
+    encryption_key_file: /etc/sfDBTools/key_maria_nbc.txt
+    innodb_encrypt_tables: false
+    log_dir: /mnt/nfs/mariadb/log
+    port: 3306
+    server_id: 1
+    socket_path: /var/run/mysqld/mysqld.sock
+    version: 10.6.23
+system_users:
+    users:
+        - sst_user
+        - papp
+        - sysadmin
+        - backup_user
+        - dbaDO
+        - maxscale
