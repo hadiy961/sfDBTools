@@ -7,6 +7,7 @@ import (
 	"sfDBTools/internal/core/mariadb/configure/interactive"
 	"sfDBTools/internal/core/mariadb/configure/migration"
 	"sfDBTools/internal/core/mariadb/configure/template"
+	validation "sfDBTools/internal/core/mariadb/configure/validation"
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
@@ -83,7 +84,7 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConf
 
 	// Step 7-11: Validasi input dan sistem
 	lg.Info("Validating configuration and system requirements")
-	if err := validateSystemRequirements(ctx, config); err != nil {
+	if err := validation.ValidateSystemRequirements(ctx, config); err != nil {
 		return fmt.Errorf("system validation failed: %w", err)
 	}
 
