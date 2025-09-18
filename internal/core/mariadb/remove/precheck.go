@@ -22,9 +22,9 @@ func preRemovalChecks(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencie
 	}
 
 	// Cek apakah MariaDB terinstall
-	if !isMariaDBInstalled(deps) {
-		return fmt.Errorf("MariaDB tidak terdeteksi di sistem. Tidak ada yang perlu dihapus")
-	}
+	// if !isMariaDBInstalled(deps) {
+	// 	return fmt.Errorf("MariaDB tidak terdeteksi di sistem. Tidak ada yang perlu dihapus")
+	// }
 
 	// Deteksi versi yang terinstall untuk informasi
 	installedVersion := getInstalledMariaDBVersion(deps)
