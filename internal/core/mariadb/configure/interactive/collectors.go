@@ -1,84 +1,43 @@
 package interactive
 
 import (
-	"strings"
-
-	"sfDBTools/utils/terminal"
+	"sfDBTools/utils/interaction"
 )
 
-// InputCollector menyediakan abstraksi untuk mengumpulkan input dengan validasi
-// Task 2: Menghilangkan duplikasi code dalam input collection
+// InputCollector is a thin wrapper around the reusable interaction.InputCollector
+// so we can keep existing function signatures in this package while using the
+// shared implementation in `utils/interaction`.
 type InputCollector struct {
+	impl     *interaction.InputCollector
 	Defaults *ConfigDefaults
 }
 
-// NewInputCollector membuat instance baru InputCollector
+// NewInputCollector creates a new interactive InputCollector backed by
+// the shared `utils/interaction` implementation. `defaults` must implement
+// the DefaultsResolver methods required by the shared collector.
 func NewInputCollector(defaults *ConfigDefaults) *InputCollector {
-	return &InputCollector{
-		Defaults: defaults,
-	}
+	impl := interaction.NewInputCollector(defaults)
+	return &InputCollector{impl: impl, Defaults: defaults}
 }
 
-// CollectString mengumpulkan input string dengan validasi
+// CollectString forwards to the shared implementation.
 func (ic *InputCollector) CollectString(question string, currentValue string, templateKey string, hardcodedDefault string, validator func(string) error) (string, error) {
-	defaultValue := ic.Defaults.GetStringDefault(templateKey, hardcodedDefault)
-	if currentValue != "" {
-		defaultValue = currentValue
-	}
-
-	input := terminal.AskString(question, defaultValue)
-	result := strings.TrimSpace(input)
-
-	if result == "" {
-		result = defaultValue
-	}
-
-	if validator != nil {
-		if err := validator(result); err != nil {
-			return "", err
-		}
-	}
-
-	return result, nil
+	return ic.impl.CollectString(question, currentValue, templateKey, hardcodedDefault, validator)
 }
 
-// CollectInt mengumpulkan input integer dengan validasi
+// CollectInt forwards to the shared implementation.
 func (ic *InputCollector) CollectInt(question string, currentValue int, templateKey string, validator func(int) error) (int, error) {
-	defaultValue := ic.Defaults.GetIntDefault(templateKey, 0)
-	if currentValue > 0 {
-		defaultValue = currentValue
-	}
-
-	// Use AskInt helper which handles prompting and validation loop
-	result := terminal.AskInt(question, defaultValue)
-
-	if validator != nil {
-		if err := validator(result); err != nil {
-			return 0, err
-		}
-	}
-
-	return result, nil
+	return ic.impl.CollectInt(question, currentValue, templateKey, validator)
 }
 
-// CollectBool mengumpulkan input boolean (yes/no)
+// CollectBool forwards to the shared implementation.
 func (ic *InputCollector) CollectBool(question string, defaultValue bool) bool {
-	return terminal.AskYesNo(question, defaultValue)
+	return ic.impl.CollectBool(question, defaultValue)
 }
 
-// CollectDirectory khusus untuk directory dengan path extraction dari template
+// CollectDirectory forwards to the shared implementation. Note: the shared
+// implementation accepts a validator; we pass the package's ValidateAbsolutePath
+// where callers previously relied on it.
 func (ic *InputCollector) CollectDirectory(question string, currentValue string, templateKey string, hardcodedDefault string) (string, error) {
-	// Coba extract directory dari template value jika ada
-	templateDir := ic.Defaults.GetDirectoryFromTemplate(templateKey)
-
-	if templateDir != "" {
-		hardcodedDefault = templateDir
-	}
-
-	// Tentukan default value dengan priority
-	if currentValue != "" {
-		hardcodedDefault = currentValue
-	}
-
-	return ic.CollectString(question, "", "", hardcodedDefault, ValidateAbsolutePath)
+	return ic.impl.CollectDirectory(question, currentValue, templateKey, hardcodedDefault, ValidateAbsolutePath)
 }

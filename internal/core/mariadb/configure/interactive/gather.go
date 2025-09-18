@@ -3,6 +3,7 @@ package interactive
 import (
 	"path/filepath"
 	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/system"
 )
 
 // GatherServerID mengumpulkan server ID - Task 2: modular function
@@ -30,7 +31,7 @@ func GatherPort(config *mariadb_config.MariaDBConfigureConfig, collector *InputC
 		"MariaDB port",
 		collector.Defaults.GetIntDefault("port", 3306),
 		"port",
-		ValidatePortRange,
+		system.ValidatePortRange,
 	)
 	if err != nil {
 		return err
