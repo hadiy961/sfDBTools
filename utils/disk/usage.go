@@ -29,7 +29,7 @@ type UsageStatistics struct {
 // This function provides more detailed information than the basic fs.DiskUsage.
 func GetUsageStatistics(path string) (*UsageStatistics, error) {
 	lg, _ := logger.Get()
-	
+
 	// Use fs package for path resolution and basic usage
 	fsManager := fs.NewManager()
 	fsUsage, err := fsManager.Dir().GetDiskUsage(path)
@@ -102,7 +102,7 @@ func GetUsedPercent(path string) (float64, error) {
 // This is similar to the `df -h` command output.
 func GetAllPartitions() ([]*UsageStatistics, error) {
 	lg, _ := logger.Get()
-	
+
 	partitions, err := gopsutildisk.Partitions(false)
 	if err != nil {
 		lg.Error("Failed to list partitions", logger.Error(err))
@@ -143,7 +143,7 @@ func GetAllPartitions() ([]*UsageStatistics, error) {
 // This is useful for selecting optimal locations for backups or temporary files.
 func FindBestStorageLocation(candidates []string) (*UsageStatistics, error) {
 	lg, _ := logger.Get()
-	
+
 	if len(candidates) == 0 {
 		return nil, fmt.Errorf("no candidate paths provided")
 	}

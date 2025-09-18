@@ -18,7 +18,7 @@ import (
 // minFreeSpace is assumed to be in megabytes.
 func CheckDiskSpace(path string, minFreeSpace int64) error {
 	lg, _ := logger.Get()
-	
+
 	// Use fs package for consistent path handling and disk usage
 	fsManager := fs.NewManager()
 	usage, err := fsManager.Dir().GetDiskUsage(path)
@@ -39,8 +39,8 @@ func CheckDiskSpace(path string, minFreeSpace int64) error {
 			logger.String("checked_path", usage.Path),
 			logger.String("percent_free", common.FormatPercent(percentFree, 1)))
 		return fmt.Errorf("insufficient disk space: available %s, required %s (free %s)",
-			common.FormatSizeWithPrecision(usage.Free, 2), 
-			common.FormatSizeWithPrecision(required, 2), 
+			common.FormatSizeWithPrecision(usage.Free, 2),
+			common.FormatSizeWithPrecision(required, 2),
 			common.FormatPercent(percentFree, 1))
 	}
 
@@ -54,7 +54,7 @@ func CheckDiskSpace(path string, minFreeSpace int64) error {
 // CheckDiskSpaceBytes checks free bytes threshold instead of MB.
 func CheckDiskSpaceBytes(path string, minFreeBytes int64) error {
 	lg, _ := logger.Get()
-	
+
 	fsManager := fs.NewManager()
 	usage, err := fsManager.Dir().GetDiskUsage(path)
 	if err != nil {
@@ -70,7 +70,7 @@ func CheckDiskSpaceBytes(path string, minFreeBytes int64) error {
 			logger.String("required", common.FormatSizeWithPrecision(minFreeBytes, 2)),
 			logger.String("path", usage.Path))
 		return fmt.Errorf("insufficient disk space: available %s, required %s",
-			common.FormatSizeWithPrecision(usage.Free, 2), 
+			common.FormatSizeWithPrecision(usage.Free, 2),
 			common.FormatSizeWithPrecision(minFreeBytes, 2))
 	}
 
