@@ -156,25 +156,7 @@ func (f *fileOperations) CopyWithInfo(src, dst string, info os.FileInfo) error {
 	return nil
 }
 
-// humanizeBytes mengubah ukuran byte menjadi string yang lebih mudah dibaca
-func humanizeBytes(n uint64) string {
-	const unit = 1024
-	if n < unit {
-		return fmt.Sprintf("%d B", n)
-	}
-	div, exp := uint64(unit), 0
-	for n/div >= unit {
-		div *= unit
-		exp++
-	}
-	value := float64(n) / float64(div)
-	prefixes := []string{"KiB", "MiB", "GiB", "TiB", "PiB"}
-	if exp >= len(prefixes) {
-		return fmt.Sprintf("%.2f EiB", value*float64(unit))
-	}
-	return fmt.Sprintf("%.2f %s", value, prefixes[exp])
-}
-
+// FormatSize mengubah ukuran byte menjadi string yang lebih mudah dibaca
 // Move memindahkan file dari src ke dst
 func (f *fileOperations) Move(src, dst string) error {
 	if err := f.Copy(src, dst); err != nil {
