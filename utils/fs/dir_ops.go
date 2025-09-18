@@ -65,11 +65,14 @@ func (d *directoryOperations) CreateWithPerms(path string, mode os.FileMode, own
 		return fmt.Errorf("gagal buat dir dengan permission khusus %s: %w", normalizedPath, err)
 	}
 
-	// Set ownership untuk Unix-like systems
+	// Set ownership for Unix-like systems via PermissionManager to avoid
+	// duplicating ownership resolution logic.
 	if runtime.GOOS != "windows" && (owner != "" || group != "") {
-		if err := d.setUnixOwnership(normalizedPath, owner, group); err != nil {
+		if err := newPermissionManager(d.fs, d.logger).SetDirPerms(normalizedPath, mode, owner, group); err != nil {
 			d.logger.Warn("Gagal set ownership",
 				logger.String("path", normalizedPath),
+				logger.String("owner", owner),
+				logger.String("group", group),
 				logger.Error(err))
 		}
 	}
@@ -185,9 +188,6 @@ func (d *directoryOperations) validateDirectory(path string) error {
 }
 
 func (d *directoryOperations) getDefaultDirMode() os.FileMode {
-	if runtime.GOOS == "windows" {
-		return 0755
-	}
 	return 0755
 }
 
@@ -213,15 +213,4 @@ func (d *directoryOperations) findExistingPath(path string) string {
 		}
 		checkPath = parent
 	}
-}
-
-// setUnixOwnership untuk Unix-like systems (implementasi sederhana)
-func (d *directoryOperations) setUnixOwnership(path, owner, group string) error {
-	// Implementasi sederhana - bisa diperluas sesuai kebutuhan
-	// Untuk sekarang hanya log warning karena kompleksitas implementasi
-	d.logger.Warn("Unix ownership setting belum diimplementasi secara lengkap",
-		logger.String("path", path),
-		logger.String("owner", owner),
-		logger.String("group", group))
-	return nil
 }

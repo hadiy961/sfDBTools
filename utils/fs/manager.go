@@ -34,13 +34,7 @@ func NewManager() *Manager {
 	}
 
 	// Initialize sub-managers
-	m.fileOps = newFileOperations(fs, lg)
-	m.dirOps = newDirectoryOperations(fs, lg)
-	m.permMgr = newPermissionManager(fs, lg)
-	m.checksumOps = newChecksumOperations(lg)
-	m.verifyOps = newFileVerificationOperations(lg)
-	m.dirValidOps = newDirectoryValidationOperations(lg)
-	m.patternOps = newPatternMatchingOperations(lg)
+	m.initSubManagers()
 
 	return m
 }
@@ -55,15 +49,22 @@ func NewManagerWithFs(fs afero.Fs) *Manager {
 	}
 
 	// Initialize sub-managers
-	m.fileOps = newFileOperations(fs, lg)
-	m.dirOps = newDirectoryOperations(fs, lg)
-	m.permMgr = newPermissionManager(fs, lg)
-	m.checksumOps = newChecksumOperations(lg)
-	m.verifyOps = newFileVerificationOperations(lg)
-	m.dirValidOps = newDirectoryValidationOperations(lg)
-	m.patternOps = newPatternMatchingOperations(lg)
+	m.initSubManagers()
 
 	return m
+}
+
+// initSubManagers initializes the sub-managers for Manager. This is
+// extracted to avoid duplication between constructors.
+func (m *Manager) initSubManagers() {
+	// Use the manager's fs and logger to create sub components
+	m.fileOps = newFileOperations(m.fs, m.logger)
+	m.dirOps = newDirectoryOperations(m.fs, m.logger)
+	m.permMgr = newPermissionManager(m.fs, m.logger)
+	m.checksumOps = newChecksumOperations(m.logger)
+	m.verifyOps = newFileVerificationOperations(m.logger)
+	m.dirValidOps = newDirectoryValidationOperations(m.logger)
+	m.patternOps = newPatternMatchingOperations(m.logger)
 }
 
 // File returns file operations interface

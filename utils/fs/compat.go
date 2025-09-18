@@ -10,7 +10,8 @@ import (
 // Global manager instance untuk backward compatibility
 var globalManager = NewManager()
 
-// Deprecated: Use Manager.File().Copy() instead
+// Deprecated: Use `Manager.File().CopyWithInfo()` instead. This wrapper
+// preserves the original signature which accepts an `os.FileInfo`.
 func CopyFile(src, dst string, info os.FileInfo) error {
 	return globalManager.File().CopyWithInfo(src, dst, info)
 }
@@ -40,18 +41,26 @@ func SetFilePermissions(filePath string, mode os.FileMode, owner, group string) 
 	return globalManager.Perm().SetFilePerms(filePath, mode, owner, group)
 }
 
-// Deprecated: Use Manager.Perm().PreserveOwnership() instead
+// Deprecated: Use `Manager.Perm().PreserveOwnership()` instead.
+// Note: this compatibility wrapper intentionally ignores the returned
+// error to preserve the original legacy behavior where callers did not
+// handle an error value.
 func PreserveOwnership(path string, info os.FileInfo) {
 	_ = globalManager.Perm().PreserveOwnership(path, info)
 }
 
-// Deprecated: Use Manager.Perm().PreserveOwnership() with lchown for symlinks
+// Deprecated: Use `Manager.Perm().PreserveOwnership()` (or a dedicated
+// lchown-capable function) for symlink ownership preservation.
+// This wrapper provides a simplified fallback for legacy callers and
+// ignores the returned error.
 func PreserveSymlinkOwnership(path string, info os.FileInfo) {
 	// Simplified implementation for backward compatibility
 	_ = globalManager.Perm().PreserveOwnership(path, info)
 }
 
-// Deprecated: Use Manager.Perm().SetFilePerms() and PreserveOwnership() instead
+// Deprecated: Use `Manager.Perm().SetFilePerms()` followed by
+// `Manager.Perm().PreserveOwnership()` instead. This wrapper applies both
+// operations and ignores returned errors to remain backward compatible.
 func SetPermissionsAndOwnership(path string, mode os.FileMode, info os.FileInfo) {
 	_ = globalManager.Perm().SetFilePerms(path, mode, "", "")
 	_ = globalManager.Perm().PreserveOwnership(path, info)
