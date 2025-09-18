@@ -11,6 +11,7 @@ Package ini telah direfactor untuk menjadi lebih modular dan mengikuti best prac
 - **Testability**: Menggunakan `afero` untuk abstraksi filesystem
 - **Backward Compatibility**: Mempertahankan fungsi-fungsi lama untuk compatibility
 - **Cross-Platform**: Mendukung Unix dan Windows
+- **Advanced Operations**: Checksum, verification, pattern matching, dan directory validation
 
 ## Architecture
 
@@ -21,6 +22,10 @@ fs/
 ├── file_ops.go        # File operations implementation
 ├── dir_ops.go         # Directory operations implementation  
 ├── perm_ops.go        # Permission management implementation
+├── checksum.go        # File checksum operations
+├── verification.go    # File verification utilities
+├── dir_validation.go  # Directory validation operations
+├── patterns.go        # Pattern matching utilities
 ├── scanner.go         # Directory scanning utilities
 ├── cleaner.go         # Cleanup utilities
 ├── utils.go           # Helper utilities
@@ -48,6 +53,71 @@ err := manager.File().WriteJSON("config.json", data)
 
 // Permission operations
 err := manager.Perm().SetFilePerms("/path/file", 0644, "user", "group")
+```
+
+### Advanced Operations
+
+#### Checksum Operations
+```go
+// Calculate checksums
+md5Sum, err := manager.Checksum().CalculateMD5("file.txt")
+sha256Sum, err := manager.Checksum().CalculateSHA256("file.txt")
+
+// Compare files by checksum
+equal, err := manager.Checksum().CompareFiles("file1.txt", "file2.txt")
+
+// Verify file against expected checksum
+valid, err := manager.Checksum().VerifyChecksum("file.txt", "expected_hash", "md5")
+```
+
+#### File Verification
+```go
+// Check file existence
+exists := manager.Verify().FileExists("/path/to/file")
+
+// Compare file sizes
+equal, err := manager.Verify().CompareSizes("file1.txt", "file2.txt")
+
+// Comprehensive file verification
+result, err := manager.Verify().VerifyFileIntegrity("source.txt", "dest.txt", 100*1024*1024)
+
+// Batch verification
+results := manager.Verify().VerifyFiles("/source/dir", "/dest/dir", []string{"file1", "file2"})
+```
+
+#### Directory Validation
+```go
+// Validate directory structure
+err := manager.DirValid().ValidateDirectoryStructure("/source", "/dest")
+
+// Verify essential directories exist
+err := manager.DirValid().VerifyEssentialDirectories("/data", []string{"mysql", "logs"})
+
+// Check if directory is empty
+empty, err := manager.DirValid().IsDirectoryEmpty("/path/to/dir")
+
+// Ensure directory structure exists
+err := manager.DirValid().EnsureDirectoryStructure("/base", []string{"dir1", "dir2"})
+```
+
+#### Pattern Matching
+```go
+// File type detection
+isLog := manager.Pattern().IsLogFile("/var/log/mysql.log")
+isConfig := manager.Pattern().IsConfigFile("/etc/my.cnf")
+isDB := manager.Pattern().IsDatabaseFile("/data/table.ibd")
+
+// Directory type detection
+isData := manager.Pattern().IsDataDirectory("/var/lib/mysql/db1", "/var/lib/mysql")
+isSystem := manager.Pattern().IsSystemDirectory("/usr/lib")
+
+// Custom pattern matching
+matches := manager.Pattern().MatchesExtension("file.log", []string{".log", ".err"})
+filtered := manager.Pattern().FilterFilesByPattern(files, "*.log")
+
+// Group files by type
+groups := manager.Pattern().GroupFilesByType([]string{"file.log", "config.cnf", "data.ibd"})
+// Returns: map[string][]string{"log": ["file.log"], "config": ["config.cnf"], "database": ["data.ibd"]}
 ```
 
 ### Backward Compatibility

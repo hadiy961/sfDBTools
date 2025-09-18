@@ -8,6 +8,7 @@ import (
 
 	"sfDBTools/internal/core/mariadb/configure/template"
 	"sfDBTools/internal/logger"
+	fsutil "sfDBTools/utils/fs"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 )
 
@@ -67,9 +68,13 @@ func buildConfigValues(config *mariadb_config.MariaDBConfigureConfig) map[string
 
 // writeConfiguration writes the provided content to the given path
 func writeConfiguration(configPath, content string) error {
-	if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
+	fsMgr := fsutil.NewManager()
+
+	if err := fsMgr.File().EnsureDir(filepath.Dir(configPath)); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
+
+	// Write config file using os operations for now since fs manager doesn't expose plain text writing
 	if err := os.WriteFile(configPath, []byte(content), 0644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}

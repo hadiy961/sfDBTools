@@ -12,11 +12,15 @@ import (
 
 // Manager menyediakan implementasi terpusat untuk semua operasi filesystem
 type Manager struct {
-	fs      afero.Fs
-	logger  *logger.Logger
-	fileOps FileOperations
-	dirOps  DirectoryOperations
-	permMgr PermissionManager
+	fs          afero.Fs
+	logger      *logger.Logger
+	fileOps     FileOperations
+	dirOps      DirectoryOperations
+	permMgr     PermissionManager
+	checksumOps ChecksumOperations
+	verifyOps   FileVerificationOperations
+	dirValidOps DirectoryValidationOperations
+	patternOps  PatternMatchingOperations
 }
 
 // NewManager membuat manager filesystem baru dengan real OS filesystem
@@ -33,6 +37,10 @@ func NewManager() *Manager {
 	m.fileOps = newFileOperations(fs, lg)
 	m.dirOps = newDirectoryOperations(fs, lg)
 	m.permMgr = newPermissionManager(fs, lg)
+	m.checksumOps = newChecksumOperations(lg)
+	m.verifyOps = newFileVerificationOperations(lg)
+	m.dirValidOps = newDirectoryValidationOperations(lg)
+	m.patternOps = newPatternMatchingOperations(lg)
 
 	return m
 }
@@ -50,6 +58,10 @@ func NewManagerWithFs(fs afero.Fs) *Manager {
 	m.fileOps = newFileOperations(fs, lg)
 	m.dirOps = newDirectoryOperations(fs, lg)
 	m.permMgr = newPermissionManager(fs, lg)
+	m.checksumOps = newChecksumOperations(lg)
+	m.verifyOps = newFileVerificationOperations(lg)
+	m.dirValidOps = newDirectoryValidationOperations(lg)
+	m.patternOps = newPatternMatchingOperations(lg)
 
 	return m
 }
@@ -67,6 +79,26 @@ func (m *Manager) Dir() DirectoryOperations {
 // Perm returns permission manager interface
 func (m *Manager) Perm() PermissionManager {
 	return m.permMgr
+}
+
+// Checksum returns checksum operations interface
+func (m *Manager) Checksum() ChecksumOperations {
+	return m.checksumOps
+}
+
+// Verify returns file verification operations interface
+func (m *Manager) Verify() FileVerificationOperations {
+	return m.verifyOps
+}
+
+// DirValid returns directory validation operations interface
+func (m *Manager) DirValid() DirectoryValidationOperations {
+	return m.dirValidOps
+}
+
+// Pattern returns pattern matching operations interface
+func (m *Manager) Pattern() PatternMatchingOperations {
+	return m.patternOps
 }
 
 // Convenience methods untuk backward compatibility
