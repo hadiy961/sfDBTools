@@ -10,7 +10,7 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
-	dir "sfDBTools/utils/fs/dir"
+	"sfDBTools/utils/fs"
 )
 
 // BackupAllDatabases performs a backup of all databases into a single file
@@ -27,10 +27,16 @@ func BackupAllDatabases(options backup_utils.AllDatabasesBackupOptions, availabl
 	}
 
 	// Validate output directory
-	errDir := dir.Validate(options.OutputDir)
-	if errDir != nil {
-		lg.Error(errDir.Error())
-		return nil, errDir
+	manager := fs.NewManager()
+	if !manager.Dir().Exists(options.OutputDir) {
+		if err := manager.Dir().Create(options.OutputDir); err != nil {
+			lg.Error("Failed to create output directory", logger.Error(err))
+			return nil, fmt.Errorf("failed to create output directory: %w", err)
+		}
+	}
+	if err := manager.Dir().IsWritable(options.OutputDir); err != nil {
+		lg.Error("Output directory not writable", logger.Error(err))
+		return nil, err
 	}
 
 	// Clean up old backups based on retention policy

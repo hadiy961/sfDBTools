@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	dir "sfDBTools/utils/fs/dir"
+	"sfDBTools/utils/fs"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 )
 
@@ -18,12 +18,13 @@ func validateDirectoryPermissions(config *mariadb_config.MariaDBConfigureConfig)
 
 	for _, d := range directories {
 		// Ensure directory exists
-		if err := dir.Ensure(d); err != nil {
+		manager := fs.NewManager()
+		if err := manager.Dir().Create(d); err != nil {
 			return fmt.Errorf("failed to ensure directory %s: %w", d, err)
 		}
 
 		// Ensure permissions/ownership (attempt to set mysql:mysql, mode 0750)
-		if err := dir.EnsureWithPermissions(d, 0750, "mysql", "mysql"); err != nil {
+		if err := manager.Dir().CreateWithPerms(d, 0750, "mysql", "mysql"); err != nil {
 			lg.Warn("Failed to ensure permissions via fs helpers", logger.String("dir", d), logger.Error(err))
 			return fmt.Errorf("failed to fix permissions for %s: %w", d, err)
 		}

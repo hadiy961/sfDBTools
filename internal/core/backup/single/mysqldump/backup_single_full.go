@@ -10,7 +10,7 @@ import (
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database"
 	"sfDBTools/utils/database/info"
-	dir "sfDBTools/utils/fs/dir"
+	"sfDBTools/utils/fs"
 )
 
 // BackupSingle performs a backup of a single database
@@ -44,10 +44,16 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 	// 	lg.Error("Database validation failed", logger.Error(err))
 	// }
 
-	errDir := dir.Validate(options.OutputDir)
-	if errDir != nil {
-		lg.Error(errDir.Error())
-		fmt.Printf("Error: %v\n", errDir)
+	manager := fs.NewManager()
+	if !manager.Dir().Exists(options.OutputDir) {
+		if err := manager.Dir().Create(options.OutputDir); err != nil {
+			lg.Error("Failed to create output directory", logger.Error(err))
+			return nil, fmt.Errorf("failed to create output directory: %w", err)
+		}
+	}
+	if err := manager.Dir().IsWritable(options.OutputDir); err != nil {
+		lg.Error("Output directory validation failed", logger.Error(err))
+		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 

@@ -7,7 +7,7 @@ import (
 	"os"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
-	dir "sfDBTools/utils/fs/dir"
+	"sfDBTools/utils/fs"
 	"time"
 )
 
@@ -39,7 +39,7 @@ func InitializeBackupResult(options BackupOptions) *BackupResult {
 // setupBackupPaths generates output file paths and creates directories
 func SetupBackupPaths(options BackupOptions) (string, string, error) {
 	// Create output directory
-	if err := dir.Create(options.OutputDir); err != nil {
+	if err := fs.CreateDir(options.OutputDir); err != nil {
 		return "", "", err
 	}
 

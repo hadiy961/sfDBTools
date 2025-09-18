@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"sfDBTools/internal/logger"
-	fileutils "sfDBTools/utils/fs/file"
+	"sfDBTools/utils/fs"
 )
 
 func validateEncryptionKeyFile(keyFile string) error {
@@ -22,14 +22,15 @@ func validateEncryptionKeyFile(keyFile string) error {
 	}
 
 	// Ensure parent directory exists using file helper (delegates to MkdirAll)
-	if err := fileutils.EnsureParentDir(keyFile); err != nil {
+	manager := fs.NewManager()
+	if err := manager.EnsureParentDir(keyFile); err != nil {
 		return fmt.Errorf("failed to ensure encryption key directory exists: %w", err)
 	}
 
 	if _, err := os.Stat(keyFile); os.IsNotExist(err) {
 		lg.Info("Encryption key file does not exist, will be created during configuration")
 		testFile := keyFile + ".test"
-		if err := fileutils.TestWrite(testFile, 0600); err != nil {
+		if err := fs.TestWrite(testFile, 0600); err != nil {
 			return fmt.Errorf("cannot create encryption key file at %s: %w", keyFile, err)
 		}
 	} else if err != nil {

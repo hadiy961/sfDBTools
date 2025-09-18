@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	fsfile "sfDBTools/utils/fs/file"
+	fsutil "sfDBTools/utils/fs"
 )
 
 func PerformSingleMigration(migration DataMigration) error {
@@ -85,7 +85,7 @@ func copyDirectory(source, destination string) error {
 
 		// Handle regular files
 		return func() error {
-			if err := fsfile.CopyFile(path, destPath, info); err != nil {
+			if err := fsutil.CopyFile(path, destPath, info); err != nil {
 				return fmt.Errorf("failed to copy file %s to %s: %w", path, destPath, err)
 			}
 			return nil
@@ -125,9 +125,9 @@ func copySymlink(srcPath, destPath string, info os.FileInfo) error {
 }
 
 func copyFile(srcPath, destPath string, info os.FileInfo, lg *logger.Logger) error {
-	// now delegated to utils/fs/file.CopyFile which handles parent creation,
+	// now delegated to utils/fs.CopyFile which handles parent creation,
 	// copying, and preserving permissions/ownership.
-	if err := fsfile.CopyFile(srcPath, destPath, info); err != nil {
+	if err := fsutil.CopyFile(srcPath, destPath, info); err != nil {
 		return fmt.Errorf("failed to copy file %s to %s: %w", srcPath, destPath, err)
 	}
 	return nil
@@ -135,17 +135,17 @@ func copyFile(srcPath, destPath string, info os.FileInfo, lg *logger.Logger) err
 
 func preserveOwnership(path string, info os.FileInfo) {
 	// delegate to fs helper
-	fsfile.PreserveOwnership(path, info)
+	fsutil.PreserveOwnership(path, info)
 }
 
 func preserveSymlinkOwnership(path string, info os.FileInfo) {
 	// delegate to fs helper
-	fsfile.PreserveSymlinkOwnership(path, info)
+	fsutil.PreserveSymlinkOwnership(path, info)
 }
 
 func preserveFilePermissions(path string, info os.FileInfo, lg *logger.Logger) {
 	// delegate to fs helper (uses logger internally)
-	fsfile.SetPermissionsAndOwnership(path, info.Mode(), info)
+	fsutil.SetPermissionsAndOwnership(path, info.Mode(), info)
 }
 
 // copyLogFilesOnly copies only log-related files from source to destination
