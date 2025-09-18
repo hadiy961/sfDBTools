@@ -3,6 +3,7 @@ package migration
 import (
 	"context"
 	"fmt"
+	"path/filepath"
 
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
@@ -24,21 +25,25 @@ func PerformDataMigrationWithInstallation(ctx context.Context, config *mariadb_c
 	needsMigration := false
 	migrations := []DataMigration{}
 
-	currentDataDir := installation.DataDir
-	if currentDataDir != config.DataDir {
-		migrations = append(migrations, DataMigration{Type: "data", Source: currentDataDir, Destination: config.DataDir, Critical: true})
+	// Clean paths to avoid false positives due to trailing slashes or relative segments
+	currentDataDir := filepath.Clean(installation.DataDir)
+	targetDataDir := filepath.Clean(config.DataDir)
+	if currentDataDir != targetDataDir {
+		migrations = append(migrations, DataMigration{Type: "data", Source: currentDataDir, Destination: targetDataDir, Critical: true})
 		needsMigration = true
 	}
 
-	currentLogDir := installation.LogDir
-	if currentLogDir != config.LogDir {
-		migrations = append(migrations, DataMigration{Type: "logs", Source: currentLogDir, Destination: config.LogDir, Critical: false})
+	currentLogDir := filepath.Clean(installation.LogDir)
+	targetLogDir := filepath.Clean(config.LogDir)
+	if currentLogDir != targetLogDir {
+		migrations = append(migrations, DataMigration{Type: "logs", Source: currentLogDir, Destination: targetLogDir, Critical: false})
 		needsMigration = true
 	}
 
-	currentBinlogDir := installation.BinlogDir
-	if currentBinlogDir != config.BinlogDir {
-		migrations = append(migrations, DataMigration{Type: "binlogs", Source: currentBinlogDir, Destination: config.BinlogDir, Critical: false})
+	currentBinlogDir := filepath.Clean(installation.BinlogDir)
+	targetBinlogDir := filepath.Clean(config.BinlogDir)
+	if currentBinlogDir != targetBinlogDir {
+		migrations = append(migrations, DataMigration{Type: "binlogs", Source: currentBinlogDir, Destination: targetBinlogDir, Critical: false})
 		needsMigration = true
 	}
 
@@ -47,12 +52,30 @@ func PerformDataMigrationWithInstallation(ctx context.Context, config *mariadb_c
 		return nil
 	}
 
-	// ShowMigrationPlan(migrations)
+	// Log the planned migrations for visibility
+	for _, m := range migrations {
+		lg.Info(fmt.Sprintf("Planned migration: type=%s, source=%s, destination=%s, critical=%v", m.Type, m.Source, m.Destination, m.Critical))
+	}
 
 	lg.Info("Stopping MariaDB service for data migration")
 	sm := system.NewServiceManager()
-	if err := sm.Stop(installation.ServiceName); err != nil {
-		return fmt.Errorf("failed to stop MariaDB service: %w", err)
+
+	// If service name is empty, continue but warn
+	if installation.ServiceName == "" {
+		lg.Warn("installation.ServiceName is empty; skipping service stop/start")
+	} else {
+		if err := sm.Stop(installation.ServiceName); err != nil {
+			return fmt.Errorf("failed to stop MariaDB service: %w", err)
+		}
+
+		// Ensure we attempt to start the service again when this function returns.
+		defer func() {
+			if err := sm.Start(installation.ServiceName); err != nil {
+				lg.Warn(fmt.Sprintf("failed to start MariaDB service after migration: %v", err))
+			} else {
+				lg.Info("MariaDB service started after migration")
+			}
+		}()
 	}
 
 	for _, m := range migrations {
@@ -60,7 +83,7 @@ func PerformDataMigrationWithInstallation(ctx context.Context, config *mariadb_c
 			if m.Critical {
 				return fmt.Errorf("critical migration failed: %w", err)
 			}
-			lg.Warn("Non-critical migration failed")
+			lg.Warn(fmt.Sprintf("Non-critical migration failed for %s -> %s: %v", m.Source, m.Destination, err))
 		}
 	}
 

@@ -2,14 +2,13 @@ package migration
 
 import (
 	"fmt"
-	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
 	"strings"
-	"syscall"
 
 	"sfDBTools/internal/logger"
+	fsfile "sfDBTools/utils/fs/file"
 )
 
 func PerformSingleMigration(migration DataMigration) error {
@@ -85,7 +84,12 @@ func copyDirectory(source, destination string) error {
 		}
 
 		// Handle regular files
-		return copyFile(path, destPath, info, lg)
+		return func() error {
+			if err := fsfile.CopyFile(path, destPath, info); err != nil {
+				return fmt.Errorf("failed to copy file %s to %s: %w", path, destPath, err)
+			}
+			return nil
+		}()
 	})
 }
 
@@ -121,51 +125,27 @@ func copySymlink(srcPath, destPath string, info os.FileInfo) error {
 }
 
 func copyFile(srcPath, destPath string, info os.FileInfo, lg *logger.Logger) error {
-	if err := os.MkdirAll(filepath.Dir(destPath), 0755); err != nil {
-		return fmt.Errorf("failed to create parent directory for file %s: %w", destPath, err)
-	}
-
-	srcFile, err := os.Open(srcPath)
-	if err != nil {
-		return fmt.Errorf("failed to open source file %s: %w", srcPath, err)
-	}
-	defer srcFile.Close()
-
-	dstFile, err := os.OpenFile(destPath, os.O_CREATE|os.O_TRUNC|os.O_WRONLY, info.Mode().Perm())
-	if err != nil {
-		return fmt.Errorf("failed to create destination file %s: %w", destPath, err)
-	}
-	defer func() {
-		if cerr := dstFile.Close(); cerr != nil {
-			lg.Warn("Failed to close destination file", logger.String("file", destPath))
-		}
-	}()
-
-	if _, err := io.Copy(dstFile, srcFile); err != nil {
+	// now delegated to utils/fs/file.CopyFile which handles parent creation,
+	// copying, and preserving permissions/ownership.
+	if err := fsfile.CopyFile(srcPath, destPath, info); err != nil {
 		return fmt.Errorf("failed to copy file %s to %s: %w", srcPath, destPath, err)
 	}
-
-	preserveFilePermissions(destPath, info, lg)
 	return nil
 }
 
 func preserveOwnership(path string, info os.FileInfo) {
-	if statT, ok := info.Sys().(*syscall.Stat_t); ok {
-		_ = os.Chown(path, int(statT.Uid), int(statT.Gid))
-	}
+	// delegate to fs helper
+	fsfile.PreserveOwnership(path, info)
 }
 
 func preserveSymlinkOwnership(path string, info os.FileInfo) {
-	if statT, ok := info.Sys().(*syscall.Stat_t); ok {
-		_ = os.Lchown(path, int(statT.Uid), int(statT.Gid))
-	}
+	// delegate to fs helper
+	fsfile.PreserveSymlinkOwnership(path, info)
 }
 
 func preserveFilePermissions(path string, info os.FileInfo, lg *logger.Logger) {
-	if err := os.Chmod(path, info.Mode().Perm()); err != nil {
-		lg.Warn("Failed to set permissions on destination file", logger.String("file", path))
-	}
-	preserveOwnership(path, info)
+	// delegate to fs helper (uses logger internally)
+	fsfile.SetPermissionsAndOwnership(path, info.Mode(), info)
 }
 
 // copyLogFilesOnly copies only log-related files from source to destination
