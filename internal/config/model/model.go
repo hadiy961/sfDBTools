@@ -132,22 +132,21 @@ type SystemUsers struct {
 }
 
 type ConfigDirConfig struct {
-	DatabaseConfig string `mapstructure:"database_config"`
-	MariaDBConfig  string `mapstructure:"mariadb_config"`
-	MariaDBKey     string `mapstructure:"mariadb_key"`
-	DatabaseList   string `mapstructure:"database_list"`
+	DatabaseConfig        string `mapstructure:"database_config"`
+	MariaDBConfigTemplate string `mapstructure:"mariadb_config_templates"`
+	MariaDBKey            string `mapstructure:"mariadb_key"`
+	DatabaseList          string `mapstructure:"database_list"`
 }
 
-// type MariaDBConfig struct {
-// 	DefaultVersion string                    `mapstructure:"default_version"`
-// 	Installation   MariaDBInstallationConfig `mapstructure:"installation"`
-// }
-
 type MariaDBConfig struct {
-	Version   string `mapstructure:"version"`
-	BaseDir   string `mapstructure:"base_dir"`
-	DataDir   string `mapstructure:"data_dir"`
-	LogDir    string `mapstructure:"log_dir"`
-	BinlogDir string `mapstructure:"binlog_dir"`
-	Port      int    `mapstructure:"port"`
+	Version             string `mapstructure:"version"`
+	DataDir             string `mapstructure:"data_dir"`
+	LogDir              string `mapstructure:"log_dir"`
+	BinlogDir           string `mapstructure:"binlog_dir"`
+	Port                int    `mapstructure:"port"`
+	SocketPath          string `mapstructure:"socket_path"`
+	InnodbEncryptTables bool   `mapstructure:"innodb_encrypt_tables"`
+	EncryptionKeyFile   string `mapstructure:"encryption_key_file"`
+	ConfigDir           string `mapstructure:"config_dir"`
+	ServerID            int    `mapstructure:"server_id"`
 }

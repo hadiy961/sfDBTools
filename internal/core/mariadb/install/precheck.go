@@ -6,53 +6,58 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
+	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
+	"sfDBTools/utils/mariadb/discovery"
 	"sfDBTools/utils/system"
-	"sfDBTools/utils/terminal"
 )
 
 // preInstallationChecks melakukan pemeriksaan sebelum instalasi
-func preInstallationChecks(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
+func preInstallationChecks(cfg *mariadb_config.MariaDBInstallConfig, deps *defaultsetup.Dependencies) (installation *discovery.MariaDBInstallation, err error) {
 	lg, _ := logger.Get()
 
-	terminal.SafePrintln("🔍 Melakukan pemeriksaan sistem...")
+	// Internal diagnostic only; reduce noise on normal runs
+	lg.Debug("Melakukan pemeriksaan sistem...")
 
 	// Cek OS yang didukung
 	if err := system.ValidateOperatingSystem(); err != nil {
-		return fmt.Errorf("sistem operasi tidak didukung: %w", err)
+		return nil, fmt.Errorf("sistem operasi tidak didukung: %w", err)
 	}
 
-	// Cek apakah MariaDB/MySQL sudah terinstall
-	if isMariaDBInstalled(deps) {
-		installedVersion := getInstalledMariaDBVersion(deps)
+	// Cek apakah MariaDB/MySQL sudah terinstall — gunakan modul discovery untuk akurasi
+	if installation, err := discovery.DiscoverMariaDBInstallation(); err == nil && installation != nil && installation.IsInstalled {
+		installedVersion := installation.Version
 		if installedVersion != "" {
-			terminal.SafePrintln("⚠️  MariaDB sudah terinstall di sistem")
-			terminal.SafePrintln("   Versi terinstall: " + installedVersion)
-			terminal.SafePrintln("   Versi yang diminta: " + cfg.Version)
+			// Use debug-level logs for internal state to avoid duplicate console output
+			lg.Debug("MariaDB sudah terinstall di sistem",
+				logger.String("installed_version", installedVersion),
+				logger.String("requested_version", cfg.Version))
 
-			// Jika versi sama, beri pesan khusus
+			// Jika versi sama, beri pesan khusus (debug)
 			if installedVersion == cfg.Version {
-				terminal.SafePrintln("   Status: Versi yang diminta sudah terinstall")
+				lg.Debug("Status: Versi yang diminta sudah terinstall")
 			} else {
-				terminal.SafePrintln("   Status: Versi berbeda terdeteksi")
+				lg.Debug("Status: Versi berbeda terdeteksi")
 			}
 
-			lg.Info("MariaDB sudah terinstall", logger.String("installed_version", installedVersion))
-			return fmt.Errorf("MariaDB sudah terinstall (versi: %s). Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang", installedVersion)
+			return nil, fmt.Errorf("MariaDB sudah terinstall (versi: %s). Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang", installedVersion)
 		}
+
+		// Jika instalasi terdeteksi namun versi tidak diketahui, tolak instalasi juga
+		lg.Debug("MariaDB terdeteksi namun versi tidak ditemukan", logger.String("service", installation.ServiceName))
+		return nil, fmt.Errorf("MariaDB sudah terinstall. Hapus instalasi existing terlebih dahulu jika ingin menginstall ulang")
 	}
 
 	// Cek hak akses root
 	if !isRunningAsRoot() {
-		return fmt.Errorf("instalasi MariaDB memerlukan hak akses root. Jalankan dengan sudo")
+		return nil, fmt.Errorf("instalasi MariaDB memerlukan hak akses root. Jalankan dengan sudo")
 	}
 
-	lg.Info("Pre-installation checks berhasil")
-	return nil
+	return installation, nil
 }
 
 // validateFinalConfig memvalidasi konfigurasi akhir sebelum instalasi
-func validateFinalConfig(cfg *mariadb.MariaDBInstallConfig) error {
+func validateFinalConfig(cfg *mariadb_config.MariaDBInstallConfig) error {
 	lg, _ := logger.Get()
 
 	// Versi harus sudah ditentukan pada tahap ini
@@ -60,16 +65,16 @@ func validateFinalConfig(cfg *mariadb.MariaDBInstallConfig) error {
 		return fmt.Errorf("versi MariaDB tidak ditentukan")
 	}
 
-	// Tampilkan informasi versi yang akan diinstall
-	terminal.SafePrintln(fmt.Sprintf("📋 Versi MariaDB yang akan diinstall: %s", cfg.Version))
+	// Internal info only
+	lg.Debug(fmt.Sprintf("Versi MariaDB yang akan diinstall: %s", cfg.Version))
 
-	lg.Info("Konfigurasi instalasi valid", logger.String("version", cfg.Version))
+	lg.Debug("Konfigurasi instalasi valid", logger.String("version", cfg.Version))
 	return nil
 }
 
 // Helper functions untuk pre-check
 
-func isMariaDBInstalled(deps *Dependencies) bool {
+func isMariaDBInstalled(deps *defaultsetup.Dependencies) bool {
 	// Cek berbagai kemungkinan nama paket MariaDB
 	packages := []string{
 		"mariadb-server", "MariaDB-server", // MariaDB packages
@@ -85,7 +90,7 @@ func isMariaDBInstalled(deps *Dependencies) bool {
 	return false
 }
 
-func getInstalledMariaDBVersion(deps *Dependencies) string {
+func getInstalledMariaDBVersion(deps *defaultsetup.Dependencies) string {
 	// Coba jalankan mysql --version untuk mendapatkan versi
 	output, err := deps.ProcessManager.ExecuteWithOutput("mysql", []string{"--version"})
 	if err != nil {

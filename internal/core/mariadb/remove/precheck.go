@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
 // preRemovalChecks melakukan pemeriksaan sebelum penghapusan
-func preRemovalChecks(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func preRemovalChecks(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
 
 	terminal.SafePrintln("🔍 Melakukan pemeriksaan sistem untuk penghapusan...")
@@ -22,9 +22,9 @@ func preRemovalChecks(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) erro
 	}
 
 	// Cek apakah MariaDB terinstall
-	if !isMariaDBInstalled(deps) {
-		return fmt.Errorf("MariaDB tidak terdeteksi di sistem. Tidak ada yang perlu dihapus")
-	}
+	// if !isMariaDBInstalled(deps) {
+	// 	return fmt.Errorf("MariaDB tidak terdeteksi di sistem. Tidak ada yang perlu dihapus")
+	// }
 
 	// Deteksi versi yang terinstall untuk informasi
 	installedVersion := getInstalledMariaDBVersion(deps)
@@ -51,7 +51,7 @@ func preRemovalChecks(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) erro
 }
 
 // confirmRemoval meminta konfirmasi user untuk penghapusan
-func confirmRemoval(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func confirmRemoval(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	// Skip konfirmasi jika force mode atau non-interactive
 	if cfg.Force || cfg.NonInteractive {
 		return nil

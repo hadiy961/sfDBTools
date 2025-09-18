@@ -44,6 +44,7 @@ func detectCustomDirectories() (*MariaDBConfig, error) {
 	configFiles := []string{
 		"/etc/mysql/my.cnf",
 		"/etc/my.cnf",
+		"/etc/my.cnf.d/server.cnf",
 		"/etc/mysql/mysql.conf.d/mysqld.cnf",
 		"/etc/mysql/mariadb.conf.d/50-server.cnf",
 		"/etc/mariadb/my.cnf",

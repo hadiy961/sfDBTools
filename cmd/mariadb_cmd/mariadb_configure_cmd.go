@@ -1,16 +1,42 @@
 package mariadb_cmd
 
 import (
-	"fmt"
+	"context"
+
+	"sfDBTools/internal/core/mariadb/configure"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 
 	"github.com/spf13/cobra"
 )
 
-// ConfigureMariadbCMD is a placeholder that prints coming soon
+// ConfigureMariadbCMD configures MariaDB server with custom settings and data migration
 var ConfigureMariadbCMD = &cobra.Command{
 	Use:   "configure",
-	Short: "Coming soon",
-	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("Coming soon: configure")
-	},
+	Short: "Configure MariaDB server with custom settings and data migration",
+	Long: `Configure MariaDB server with custom settings including:
+- Data directory location (with automatic data migration)
+- Log directory location  
+- Binary log directory location
+- InnoDB settings and encryption
+- Auto-tuning based on system resources
+- Port and network configuration
+
+This command will safely migrate existing data if directories are changed.`,
+	RunE: executeMariaDBConfigure,
+}
+
+func executeMariaDBConfigure(cmd *cobra.Command, args []string) error {
+	// 1. Resolve config dari flags/env/file
+	config, err := mariadb_config.ResolveMariaDBConfigureConfig(cmd)
+	if err != nil {
+		return err
+	}
+
+	// 2. Panggil core business logic
+	return configure.RunMariaDBConfigure(context.Background(), config)
+}
+
+func init() {
+	// Add flags untuk MariaDB configure
+	mariadb_config.AddMariaDBConfigureFlags(ConfigureMariadbCMD)
 }

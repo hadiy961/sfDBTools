@@ -5,8 +5,7 @@ import (
 
 	"sfDBTools/internal/core/mariadb/install"
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
@@ -49,7 +48,11 @@ Contoh penggunaan:
 func init() {
 	// Tambah flags untuk konfigurasi instalasi
 	InstallCmd.Flags().StringP("version", "v", "", "Versi MariaDB yang akan diinstall (default dari config atau 10.6.23)")
-	InstallCmd.Flags().Bool("non-interactive", false, "Mode non-interactive, tidak menampilkan output interaktif")
+
+	// Do not print usage automatically on error (we already show an error message / spinner)
+	// InstallCmd.SilenceUsage = true
+	// Do not let Cobra print the error again; spinner already displayed a user-facing error
+	// InstallCmd.SilenceErrors = true
 
 	// Tambah common flags jika tersedia
 	// common.AddCommonFlags(InstallCmd) // Uncomment jika ada helper ini
@@ -59,22 +62,18 @@ func init() {
 func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 	lg, err := logger.Get()
 	if err != nil {
-		terminal.SafePrintln("❌ Gagal inisialisasi logger: " + err.Error())
+		// If logger failed, still print minimal output directly
+		terminal.SafePrintln("Gagal inisialisasi logger: " + err.Error())
 		return err
 	}
 
 	// Clear screen untuk UX yang lebih baik
-	if !common.GetBoolFlagOrEnv(cmd, "non-interactive", "SFDBTOOLS_NON_INTERACTIVE", false) {
-		terminal.ClearScreen()
-	}
+	terminal.ClearScreen()
 
-	terminal.SafePrintln("🚀 Memulai instalasi MariaDB...")
-
-	// Resolve konfigurasi dari flags dan environment (tanpa interactive)
-	cfg, err := mariadb.ResolveMariaDBInstallConfig(cmd)
+	// Resolve konfigurasi dari flags dan environment
+	cfg, err := mariadb_config.ResolveMariaDBInstallConfig(cmd)
 	if err != nil {
-		lg.Error("Gagal resolve konfigurasi", logger.Error(err))
-		terminal.SafePrintln("❌ Konfigurasi tidak valid: " + err.Error())
+		// Don't duplicate error printing here; return so Cobra prints the error once.
 		return err
 	}
 
@@ -85,8 +84,7 @@ func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 	// Jalankan instalasi - semua logic di core
 	ctx := context.Background()
 	if err := install.RunMariaDBInstall(ctx, cfg); err != nil {
-		lg.Error("Instalasi MariaDB gagal", logger.Error(err))
-		terminal.SafePrintln("❌ Instalasi gagal: " + err.Error())
+		// Spinner already displayed a user-facing error; return the error to Cobra.
 		return err
 	}
 

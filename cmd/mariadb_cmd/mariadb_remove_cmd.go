@@ -6,7 +6,8 @@ import (
 	"sfDBTools/internal/core/mariadb/remove"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
+
 	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
@@ -81,7 +82,7 @@ func executeMariaDBRemove(cmd *cobra.Command, args []string) error {
 	terminal.SafePrintln("🗑️  Memulai penghapusan MariaDB...")
 
 	// Resolve konfigurasi dari flags dan environment
-	cfg, err := mariadb.ResolveMariaDBRemoveConfig(cmd)
+	cfg, err := mariadb_config.ResolveMariaDBRemoveConfig(cmd)
 	if err != nil {
 		lg.Error("Gagal resolve konfigurasi", logger.Error(err))
 		terminal.SafePrintln("❌ Konfigurasi tidak valid: " + err.Error())

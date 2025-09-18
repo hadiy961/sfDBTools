@@ -3,6 +3,7 @@ package system
 import (
 	"fmt"
 	"strings"
+	"sync"
 
 	"sfDBTools/internal/logger"
 
@@ -19,29 +20,42 @@ type OSInfo struct {
 
 // DetectOS detects the current operating system and returns basic info
 func DetectOS() (*OSInfo, error) {
-	lg, _ := logger.Get()
+	return detectOSOnce()
+}
 
-	info, err := host.Info()
-	if err != nil {
-		lg.Error("Failed to get host information", logger.Error(err))
-		return nil, fmt.Errorf("unable to detect operating system: %w", err)
-	}
+var (
+	cachedOSInfo *OSInfo
+	detectOnce   sync.Once
+	detectErr    error
+)
 
-	osID := normalizeOSID(info.Platform)
-	osInfo := &OSInfo{
-		ID:          osID,
-		Name:        info.Platform,
-		Version:     info.PlatformVersion,
-		PackageType: getPackageType(osID),
-	}
+func detectOSOnce() (*OSInfo, error) {
+	detectOnce.Do(func() {
+		lg, _ := logger.Get()
 
-	lg.Info("OS detected",
-		logger.String("id", osInfo.ID),
-		logger.String("name", osInfo.Name),
-		logger.String("version", osInfo.Version),
-		logger.String("package_type", osInfo.PackageType))
+		info, err := host.Info()
+		if err != nil {
+			lg.Error("Failed to get host information", logger.Error(err))
+			detectErr = fmt.Errorf("unable to detect operating system: %w", err)
+			return
+		}
 
-	return osInfo, nil
+		osID := normalizeOSID(info.Platform)
+		cachedOSInfo = &OSInfo{
+			ID:          osID,
+			Name:        info.Platform,
+			Version:     info.PlatformVersion,
+			PackageType: getPackageType(osID),
+		}
+
+		lg.Info("OS detected",
+			logger.String("id", cachedOSInfo.ID),
+			logger.String("name", cachedOSInfo.Name),
+			logger.String("version", cachedOSInfo.Version),
+			logger.String("package_type", cachedOSInfo.PackageType))
+	})
+
+	return cachedOSInfo, detectErr
 }
 
 // normalizeOSID normalizes OS ID to standard values

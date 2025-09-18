@@ -4,15 +4,14 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
+	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
 	"sfDBTools/utils/terminal"
 )
 
 // startMariaDBService memulai dan mengaktifkan service MariaDB
-func startMariaDBService(deps *Dependencies) error {
+func startMariaDBService(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
-
-	terminal.SafePrintln("🚀 Memulai service MariaDB...")
 
 	serviceName := "mariadb"
 
@@ -31,10 +30,8 @@ func startMariaDBService(deps *Dependencies) error {
 }
 
 // verifyInstallation memverifikasi bahwa instalasi berhasil
-func verifyInstallation(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) error {
+func verifyInstallation(cfg *mariadb_config.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
-
-	terminal.SafePrintln("✅ Memverifikasi instalasi...")
 
 	// Cek apakah service berjalan
 	if !deps.ServiceManager.IsActive("mariadb") {
@@ -55,7 +52,7 @@ func verifyInstallation(cfg *mariadb.MariaDBInstallConfig, deps *Dependencies) e
 }
 
 // displaySuccessMessage menampilkan pesan sukses dan instruksi
-func displaySuccessMessage(cfg *mariadb.MariaDBInstallConfig) {
+func displaySuccessMessage(cfg *mariadb_config.MariaDBInstallConfig) {
 	terminal.SafePrintln("\n🎉 Instalasi MariaDB berhasil!")
 	terminal.SafePrintln(fmt.Sprintf("   Versi: %s", cfg.Version))
 	terminal.SafePrintln("\n📝 Langkah selanjutnya:")

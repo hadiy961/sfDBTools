@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/viper"
 )
@@ -14,11 +15,33 @@ func fileExists(path string) bool {
 }
 
 func loadViper() (*viper.Viper, error) {
-	// First, check if config file exists at the required path
-	requiredPath := "/etc/sfDBTools/config/config.yaml"
+	// Determine possible config locations (order of preference):
+	// 1) ./config/config.yaml (when running from project root via `go run`)
+	// 2) <appDir>/config/config.yaml (preferred when running installed binary)
+	// 3) /etc/sfDBTools/config/config.yaml (system-wide fallback)
+	exePath, err := os.Executable()
+	if err != nil {
+		return nil, fmt.Errorf("gagal menentukan path executable: %w", err)
+	}
+	appDir := filepath.Dir(exePath)
+	appConfigDir := filepath.Join(appDir, "config")
+	systemConfigDir := "/etc/sfDBTools/config"
 
-	if !fileExists(requiredPath) {
-		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s", requiredPath)
+	// Also consider relative ./config in case we're running with `go run` from project root
+	// or during tests. Use working directory's ./config as highest priority when present.
+	cwd, _ := os.Getwd()
+	cwdConfigDir := filepath.Join(cwd, "config")
+
+	// Check for the presence of config.yaml in app path first, then system path
+	var chosenConfigDir string
+	if fileExists(filepath.Join(cwdConfigDir, "config.yaml")) {
+		chosenConfigDir = cwdConfigDir
+	} else if fileExists(filepath.Join(appConfigDir, "config.yaml")) {
+		chosenConfigDir = appConfigDir
+	} else if fileExists(filepath.Join(systemConfigDir, "config.yaml")) {
+		chosenConfigDir = systemConfigDir
+	} else {
+		return nil, fmt.Errorf("file konfigurasi tidak ditemukan di %s, %s atau %s", cwdConfigDir, appConfigDir, systemConfigDir)
 	}
 
 	v := viper.New()
@@ -26,8 +49,8 @@ func loadViper() (*viper.Viper, error) {
 	v.SetConfigName("config")
 	v.SetConfigType("yaml")
 
-	// Add only the system-wide config path
-	v.AddConfigPath("/etc/sfDBTools/config") // system-wide config (for root)
+	// Add chosen config path (app-local preferred)
+	v.AddConfigPath(chosenConfigDir)
 
 	// Default values (opsional)
 	v.SetDefault("log.level", "info")

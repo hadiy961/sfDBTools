@@ -7,7 +7,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 var MariaDBCmd = &cobra.Command{
 	Use:   "mariadb",
 	Short: "Database configuration management commands",

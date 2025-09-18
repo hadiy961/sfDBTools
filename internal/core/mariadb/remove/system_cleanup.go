@@ -5,12 +5,12 @@ import (
 	"os"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/mariadb"
+	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/terminal"
 )
 
 // cleanupSystem melakukan cleanup sistem dan user jika diminta
-func cleanupSystem(cfg *mariadb.MariaDBRemoveConfig, deps *Dependencies) error {
+func cleanupSystem(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
 
 	if cfg.RemoveUser {
@@ -169,7 +169,7 @@ func verifyRemoval(deps *Dependencies) error {
 }
 
 // displayRemovalSuccess menampilkan pesan sukses penghapusan
-func displayRemovalSuccess(cfg *mariadb.MariaDBRemoveConfig) {
+func displayRemovalSuccess(cfg *mariadb_config.MariaDBRemoveConfig) {
 	terminal.SafePrintln("\n🎉 Penghapusan MariaDB berhasil!")
 	terminal.SafePrintln("=====================================")
 

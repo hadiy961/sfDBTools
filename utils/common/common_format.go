@@ -172,3 +172,71 @@ func pluralize(word string, count int) string {
 	}
 	return word + "s"
 }
+
+// parseMemorySizeToMB mengkonversi string memory size ke MB.
+// Mendukung format seperti: "128M", "1536MB", "1.5G", "2GB", "1024K", "1T", "512".
+func ParseMemorySizeToMB(size string) (int, error) {
+	if strings.TrimSpace(size) == "" {
+		return 0, fmt.Errorf("empty memory size")
+	}
+
+	s := strings.ToUpper(strings.TrimSpace(size))
+	// remove trailing B if present (e.g., MB, GB)
+	if strings.HasSuffix(s, "B") && len(s) > 1 {
+		s = strings.TrimSuffix(s, "B")
+	}
+
+	// find suffix (last alpha run)
+	lastAlpha := -1
+	for i := len(s) - 1; i >= 0; i-- {
+		c := s[i]
+		if c >= 'A' && c <= 'Z' {
+			lastAlpha = i
+		} else {
+			break
+		}
+	}
+
+	var numStr string
+	var suffix string
+	if lastAlpha == -1 {
+		// no suffix; treat as MB if reasonable (or bytes? choose MB for safety)
+		numStr = s
+		suffix = "M"
+	} else {
+		numStr = strings.TrimSpace(s[:lastAlpha])
+		suffix = strings.TrimSpace(s[lastAlpha:])
+	}
+
+	if numStr == "" {
+		return 0, fmt.Errorf("invalid memory size: missing numeric part in %q", size)
+	}
+
+	// parse float to accept "1.5"
+	num, err := strconv.ParseFloat(numStr, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid numeric part in memory size %q: %w", numStr, err)
+	}
+
+	// convert to MB
+	var mb float64
+	switch suffix {
+	case "K", "KB":
+		mb = num / 1024.0
+	case "M", "MB":
+		mb = num
+	case "G", "GB":
+		mb = num * 1024.0
+	case "T", "TB":
+		mb = num * 1024.0 * 1024.0
+	default:
+		return 0, fmt.Errorf("unsupported memory size suffix: %s", suffix)
+	}
+
+	// round to nearest integer MB
+	result := int(math.Round(mb))
+	if result < 0 {
+		return 0, fmt.Errorf("computed negative memory size from %q", size)
+	}
+	return result, nil
+}
