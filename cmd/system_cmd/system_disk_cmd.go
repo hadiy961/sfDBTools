@@ -10,6 +10,7 @@ import (
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/disk"
+	"sfDBTools/utils/fs"
 
 	"github.com/spf13/cobra"
 )
@@ -38,12 +39,12 @@ var SystemDiskCmd = &cobra.Command{
 		}
 
 		if showDetails {
-			u, _ := disk.GetUsage(path)
+			stats, _ := disk.GetUsageStatistics(path)
 			fmt.Printf("Path: %s\nMount: %s (%s)\nFree: %s\nTotal: %s\nUsed: %s (%.1f%%)\n",
-				u.Path, u.Mountpoint, u.Fstype,
-				common.FormatSizeWithPrecision(u.Free, 2),
-				common.FormatSizeWithPrecision(u.Total, 2),
-				common.FormatSizeWithPrecision(u.Used, 2), u.UsedPercent)
+				stats.Path, stats.Mountpoint, stats.Fstype,
+				common.FormatSizeWithPrecision(stats.Free, 2),
+				common.FormatSizeWithPrecision(stats.Total, 2),
+				common.FormatSizeWithPrecision(stats.Used, 2), stats.UsedPercent)
 		} else {
 			fmt.Printf("Disk check passed for %s (required %d MB)\n", path, minMB)
 		}
@@ -70,7 +71,7 @@ var SystemDiskMonitorCmd = &cobra.Command{
 			path = string(os.PathSeparator)
 		}
 
-		stop := disk.MonitorDisk(path, time.Duration(intervalSec)*time.Second, threshold, func(u disk.DiskUsage) {
+		stop := disk.MonitorDisk(path, time.Duration(intervalSec)*time.Second, threshold, func(u *fs.DiskUsage) {
 			fmt.Printf("[WARN] disk %s used %.1f%% (free %s)\n", u.Path, u.UsedPercent, common.FormatSizeWithPrecision(u.Free, 2))
 		})
 
