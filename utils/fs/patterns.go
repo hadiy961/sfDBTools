@@ -3,7 +3,6 @@ package fs
 import (
 	"os"
 	"path/filepath"
-	"strings"
 
 	"sfDBTools/internal/logger"
 )
@@ -46,34 +45,25 @@ func newPatternMatchingOperations(logger *logger.Logger) PatternMatchingOperatio
 
 // IsLogFile determines if a file is a log-related file
 func (p *patternMatchingOperations) IsLogFile(path string) bool {
-	fileName := filepath.Base(path)
-
-	// Common log file patterns
-	logExtensions := []string{".log", ".err", ".pid", ".out"}
-	logPrefixes := []string{"mysql-bin.", "mysql-relay-bin.", "slow", "error", "general", "access", "audit"}
-	logNames := []string{
-		"mysql.log", "mysqld.log", "error.log", "slow.log",
-		"general.log", "relay.log", "mysqld.pid", "access.log",
-		"audit.log", "binary.log", "update.log",
-	}
+	fileName := baseName(path)
 
 	// Check extensions
-	for _, ext := range logExtensions {
-		if strings.HasSuffix(strings.ToLower(fileName), ext) {
+	for _, ext := range LogExtensions {
+		if hasSuffixCI(fileName, ext) {
 			return true
 		}
 	}
 
 	// Check prefixes
-	for _, prefix := range logPrefixes {
-		if strings.HasPrefix(strings.ToLower(fileName), prefix) {
+	for _, prefix := range LogPrefixes {
+		if hasPrefixCI(fileName, prefix) {
 			return true
 		}
 	}
 
 	// Check exact names
-	for _, name := range logNames {
-		if strings.ToLower(fileName) == strings.ToLower(name) {
+	for _, name := range LogNames {
+		if equalsCI(fileName, name) {
 			return true
 		}
 	}
@@ -83,32 +73,25 @@ func (p *patternMatchingOperations) IsLogFile(path string) bool {
 
 // IsConfigFile determines if a file is a configuration file
 func (p *patternMatchingOperations) IsConfigFile(path string) bool {
-	fileName := filepath.Base(path)
-
-	configExtensions := []string{".cnf", ".conf", ".cfg", ".ini", ".config", ".yaml", ".yml", ".json", ".toml"}
-	configPrefixes := []string{"my.", "mysql.", "mariadb.", "config.", "settings."}
-	configNames := []string{
-		"my.cnf", "mysql.cnf", "mariadb.cnf", "server.cnf",
-		"client.cnf", "mysqld.cnf", "mysql.conf", "config",
-	}
+	fileName := baseName(path)
 
 	// Check extensions
-	for _, ext := range configExtensions {
-		if strings.HasSuffix(strings.ToLower(fileName), ext) {
+	for _, ext := range ConfigExtensions {
+		if hasSuffixCI(fileName, ext) {
 			return true
 		}
 	}
 
 	// Check prefixes
-	for _, prefix := range configPrefixes {
-		if strings.HasPrefix(strings.ToLower(fileName), prefix) {
+	for _, prefix := range ConfigPrefixes {
+		if hasPrefixCI(fileName, prefix) {
 			return true
 		}
 	}
 
 	// Check exact names
-	for _, name := range configNames {
-		if strings.ToLower(fileName) == strings.ToLower(name) {
+	for _, name := range ConfigNames {
+		if equalsCI(fileName, name) {
 			return true
 		}
 	}
@@ -118,23 +101,17 @@ func (p *patternMatchingOperations) IsConfigFile(path string) bool {
 
 // IsDatabaseFile determines if a file is a database data file
 func (p *patternMatchingOperations) IsDatabaseFile(path string) bool {
-	fileName := filepath.Base(path)
+	fileName := baseName(path)
 
-	dbExtensions := []string{
-		".frm", ".ibd", ".MYD", ".MYI", ".opt", ".ARZ", ".ARM",
-		".CSM", ".CSV", ".db", ".sqlite", ".sqlite3",
-	}
-
-	for _, ext := range dbExtensions {
-		if strings.HasSuffix(strings.ToLower(fileName), ext) {
+	for _, ext := range DBExtensions {
+		if hasSuffixCI(fileName, ext) {
 			return true
 		}
 	}
 
 	// Special database files
-	dbFiles := []string{"ibdata1", "ib_logfile0", "ib_logfile1", "auto.cnf"}
-	for _, dbFile := range dbFiles {
-		if strings.ToLower(fileName) == strings.ToLower(dbFile) {
+	for _, dbFile := range DBFiles {
+		if equalsCI(fileName, dbFile) {
 			return true
 		}
 	}
@@ -144,30 +121,27 @@ func (p *patternMatchingOperations) IsDatabaseFile(path string) bool {
 
 // IsBackupFile determines if a file is a backup file
 func (p *patternMatchingOperations) IsBackupFile(path string) bool {
-	fileName := filepath.Base(path)
-
-	backupExtensions := []string{".bak", ".backup", ".dump", ".sql", ".gz", ".tar", ".zip", ".7z"}
-	backupPrefixes := []string{"backup", "dump", "export", "mysqldump"}
-	backupSuffixes := []string{"backup", "dump", "export", "old", "orig"}
+	fileName := baseName(path)
 
 	// Check extensions
-	for _, ext := range backupExtensions {
-		if strings.HasSuffix(strings.ToLower(fileName), ext) {
+	for _, ext := range BackupExtensions {
+		if hasSuffixCI(fileName, ext) {
 			return true
 		}
 	}
 
 	// Check prefixes
-	for _, prefix := range backupPrefixes {
-		if strings.HasPrefix(strings.ToLower(fileName), prefix) {
+	for _, prefix := range BackupPrefixes {
+		if hasPrefixCI(fileName, prefix) {
 			return true
 		}
 	}
 
 	// Check suffixes (before extension)
-	nameWithoutExt := strings.TrimSuffix(fileName, filepath.Ext(fileName))
-	for _, suffix := range backupSuffixes {
-		if strings.HasSuffix(strings.ToLower(nameWithoutExt), suffix) {
+	nameWithoutExt := filepath.Base(fileName)
+	nameWithoutExt = nameWithoutExt[:len(nameWithoutExt)-len(filepath.Ext(nameWithoutExt))]
+	for _, suffix := range BackupSuffixes {
+		if hasSuffixCI(nameWithoutExt, suffix) {
 			return true
 		}
 	}
@@ -177,29 +151,25 @@ func (p *patternMatchingOperations) IsBackupFile(path string) bool {
 
 // IsTemporaryFile determines if a file is a temporary file
 func (p *patternMatchingOperations) IsTemporaryFile(path string) bool {
-	fileName := filepath.Base(path)
-
-	tempExtensions := []string{".tmp", ".temp", ".swp", ".~", ".bak"}
-	tempPrefixes := []string{"tmp", "temp", ".", "#"}
-	tempSuffixes := []string{"~", ".tmp", ".temp"}
+	fileName := baseName(path)
 
 	// Check extensions
-	for _, ext := range tempExtensions {
-		if strings.HasSuffix(strings.ToLower(fileName), ext) {
+	for _, ext := range TempExtensions {
+		if hasSuffixCI(fileName, ext) {
 			return true
 		}
 	}
 
 	// Check prefixes
-	for _, prefix := range tempPrefixes {
-		if strings.HasPrefix(fileName, prefix) {
+	for _, prefix := range TempPrefixes {
+		if hasPrefixCI(fileName, prefix) {
 			return true
 		}
 	}
 
 	// Check suffixes
-	for _, suffix := range tempSuffixes {
-		if strings.HasSuffix(strings.ToLower(fileName), suffix) {
+	for _, suffix := range TempSuffixes {
+		if hasSuffixCI(fileName, suffix) {
 			return true
 		}
 	}
@@ -215,11 +185,9 @@ func (p *patternMatchingOperations) IsDataDirectory(path, sourceRoot string) boo
 	}
 
 	// Skip database directories and system schemas
-	dirName := filepath.Base(path)
-	skipDirs := []string{"mysql", "performance_schema", "information_schema", "sys", "test"}
-
-	for _, skipDir := range skipDirs {
-		if strings.ToLower(dirName) == strings.ToLower(skipDir) {
+	dirName := baseName(path)
+	for _, skipDir := range SkipDirs {
+		if equalsCI(dirName, skipDir) {
 			return true
 		}
 	}
@@ -247,35 +215,23 @@ func (p *patternMatchingOperations) IsDataDirectory(path, sourceRoot string) boo
 
 // IsSystemDirectory determines if a directory is a system directory
 func (p *patternMatchingOperations) IsSystemDirectory(path string) bool {
-	dirName := strings.ToLower(filepath.Base(path))
-
-	systemDirs := []string{
-		"mysql", "performance_schema", "information_schema", "sys",
-		"proc", "dev", "tmp", "var", "etc", "bin", "sbin", "usr",
-		"lib", "lib64", "boot", "root", "home",
-	}
-
-	for _, sysDir := range systemDirs {
-		if dirName == sysDir {
+	dirName := baseName(path)
+	for _, sysDir := range SystemDirs {
+		if equalsCI(dirName, sysDir) {
 			return true
 		}
 	}
-
 	return false
 }
 
 // IsLogDirectory determines if a directory is used for logs
 func (p *patternMatchingOperations) IsLogDirectory(path string) bool {
-	dirName := strings.ToLower(filepath.Base(path))
-
-	logDirs := []string{"logs", "log", "var", "tmp", "spool"}
-
-	for _, logDir := range logDirs {
-		if dirName == logDir {
+	dirName := baseName(path)
+	for _, logDir := range LogDirs {
+		if equalsCI(dirName, logDir) {
 			return true
 		}
 	}
-
 	return false
 }
 
@@ -297,9 +253,8 @@ func (p *patternMatchingOperations) MatchesExtension(filename string, extensions
 
 // MatchesPrefix checks if a filename starts with any of the given prefixes
 func (p *patternMatchingOperations) MatchesPrefix(filename string, prefixes []string) bool {
-	lowerName := strings.ToLower(filename)
 	for _, prefix := range prefixes {
-		if strings.HasPrefix(lowerName, strings.ToLower(prefix)) {
+		if hasPrefixCI(filename, prefix) {
 			return true
 		}
 	}
@@ -308,9 +263,8 @@ func (p *patternMatchingOperations) MatchesPrefix(filename string, prefixes []st
 
 // MatchesSuffix checks if a filename ends with any of the given suffixes
 func (p *patternMatchingOperations) MatchesSuffix(filename string, suffixes []string) bool {
-	lowerName := strings.ToLower(filename)
 	for _, suffix := range suffixes {
-		if strings.HasSuffix(lowerName, strings.ToLower(suffix)) {
+		if hasSuffixCI(filename, suffix) {
 			return true
 		}
 	}
