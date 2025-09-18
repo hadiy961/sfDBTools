@@ -47,6 +47,16 @@ func PerformSingleMigration(migration DataMigration) error {
 
 	// Cleanup source directory after successful migration
 	lg.Info("Cleaning up source directory", logger.String("source", migration.Source))
+	// If this migration is for binlogs, remove index/state files from source first
+	if migration.Type == "binlog" {
+		lg.Info("Removing binlog index/state files from source", logger.String("source", migration.Source))
+		if err := mgr.FileSystem().Remove(migration.Source + "/mysql-bin.index"); err != nil {
+			lg.Warn("Failed to remove mysql-bin.index", logger.String("file", migration.Source+"/mysql-bin.index"), logger.Error(err))
+		}
+		if err := mgr.FileSystem().Remove(migration.Source + "/mysql-bin.state"); err != nil {
+			lg.Warn("Failed to remove mysql-bin.state", logger.String("file", migration.Source+"/mysql-bin.state"), logger.Error(err))
+		}
+	}
 	if err := mgr.FileSystem().Dir().Remove(migration.Source); err != nil {
 		return fmt.Errorf("failed to remove source directory: %w", err)
 	}

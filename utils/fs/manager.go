@@ -2,6 +2,7 @@
 package fs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -120,4 +121,12 @@ func (m *Manager) DirExists(path string) bool {
 
 func (m *Manager) SetFilePermissions(filePath string, mode os.FileMode, owner, group string) error {
 	return m.permMgr.SetFilePerms(filePath, mode, owner, group)
+}
+
+// Remove removes a single file at the given path using the underlying filesystem
+func (m *Manager) Remove(path string) error {
+	if path == "" {
+		return fmt.Errorf("path cannot be empty")
+	}
+	return m.fs.Remove(path)
 }
