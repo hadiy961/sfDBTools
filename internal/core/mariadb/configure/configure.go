@@ -6,6 +6,7 @@ import (
 
 	"sfDBTools/internal/core/mariadb/configure/interactive"
 	"sfDBTools/internal/core/mariadb/configure/migration"
+	"sfDBTools/internal/core/mariadb/configure/service"
 	"sfDBTools/internal/core/mariadb/configure/template"
 	validation "sfDBTools/internal/core/mariadb/configure/validation"
 	"sfDBTools/internal/logger"
@@ -134,13 +135,13 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConf
 
 	// Step 20-23: Service restart dan verifikasi
 	lg.Info("Restarting MariaDB service and verifying configuration")
-	if err := restartAndVerifyService(ctx, config); err != nil {
+	if err := service.RestartAndVerifyService(ctx, config); err != nil {
 		return fmt.Errorf("service restart/verification failed: %w", err)
 	}
 
 	// Step 24-25: Cleanup dan update konfigurasi aplikasi
 	lg.Info("Finalizing configuration and updating application settings")
-	if err := finalizeConfiguration(ctx, config); err != nil {
+	if err := service.FinalizeConfiguration(config); err != nil {
 		return fmt.Errorf("failed to finalize configuration: %w", err)
 	}
 
