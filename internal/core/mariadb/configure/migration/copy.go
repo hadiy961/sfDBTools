@@ -45,6 +45,12 @@ func PerformSingleMigration(migration DataMigration) error {
 		}
 	}
 
+	// Cleanup source directory after successful migration
+	lg.Info("Cleaning up source directory", logger.String("source", migration.Source))
+	if err := mgr.FileSystem().Dir().Remove(migration.Source); err != nil {
+		return fmt.Errorf("failed to remove source directory: %w", err)
+	}
+
 	lg.Info("Migration completed successfully")
 	return nil
 }

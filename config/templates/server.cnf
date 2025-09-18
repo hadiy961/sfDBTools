@@ -17,7 +17,11 @@ rpl_semi_sync_slave_enabled                     = ON
 rpl_semi_sync_master_wait_point                 = AFTER_SYNC
 slave-skip-errors                               = 1062,1032
 
+[client]
+socket                                          = /tmp/mysql.sock
+
 [mysqld]
+socket                                          = /tmp/mysql.sock
 thread_handling                                 = pool-of-threads
 plugin-load-add                                 = file_key_management
 file_key_management_encryption_algorithm        = {{ENCRYPTION_ALGORITHM}}

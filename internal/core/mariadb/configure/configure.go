@@ -135,7 +135,7 @@ func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConf
 
 	// Step 20-23: Service restart dan verifikasi
 	lg.Info("Restarting MariaDB service and verifying configuration")
-	if err := service.RestartAndVerifyService(ctx, config); err != nil {
+	if err := service.RestartAndVerifyService(ctx, config, mariadbInstallation); err != nil {
 		return fmt.Errorf("service restart/verification failed: %w", err)
 	}
 

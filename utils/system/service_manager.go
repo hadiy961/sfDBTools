@@ -10,6 +10,8 @@ import (
 type ServiceManager interface {
 	Stop(name string) error
 	Start(name string) error
+	Restart(name string) error
+	Reload(name string) error
 	Disable(name string) error
 	Enable(name string) error
 	IsActive(name string) bool
@@ -49,6 +51,26 @@ func (sm *serviceManager) Start(name string) error {
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to start service %s: %w\nOutput: %s", name, err, string(output))
+	}
+	return nil
+}
+
+// Restart service
+func (sm *serviceManager) Restart(name string) error {
+	cmd := exec.Command("systemctl", "restart", name)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to restart service %s: %w\nOutput: %s", name, err, string(output))
+	}
+	return nil
+}
+
+// Reload reloads a service
+func (sm *serviceManager) Reload(name string) error {
+	cmd := exec.Command("systemctl", "reload", name)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return fmt.Errorf("failed to reload service %s: %w\nOutput: %s", name, err, string(output))
 	}
 	return nil
 }

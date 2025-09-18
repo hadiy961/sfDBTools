@@ -67,7 +67,7 @@ mariadb:
     data_dir: /mnt/nfs/mariadb/data
     encryption_key_file: /etc/sfDBTools/key_maria_nbc.txt
     innodb_encrypt_tables: false
-    log_dir: /mnt/nfs/mariadb/data
+    log_dir: /mnt/nfs/mariadb/log
     port: 3306
     server_id: 1
     socket_path: /var/run/mysqld/mysqld.sock

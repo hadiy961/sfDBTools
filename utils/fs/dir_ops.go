@@ -53,6 +53,29 @@ func (d *directoryOperations) Create(path string) error {
 	return d.validateDirectory(normalizedPath)
 }
 
+// Remove menghapus direktori beserta isinya
+func (d *directoryOperations) Remove(path string) error {
+	if path == "" {
+		return fmt.Errorf("path tidak boleh kosong")
+	}
+
+	normalizedPath := filepath.Clean(path)
+
+	exists, err := afero.Exists(d.fs, normalizedPath)
+	if err != nil {
+		return fmt.Errorf("gagal cek eksistensi dir %s: %w", normalizedPath, err)
+	}
+
+	if exists {
+		if err := d.fs.RemoveAll(normalizedPath); err != nil {
+			return fmt.Errorf("gagal hapus dir %s: %w", normalizedPath, err)
+		}
+		d.logger.Debug("Direktori berhasil dihapus", logger.String("path", normalizedPath))
+	}
+
+	return nil
+}
+
 // CreateWithPerms membuat direktori dengan permission dan ownership khusus
 func (d *directoryOperations) CreateWithPerms(path string, mode os.FileMode, owner, group string) error {
 	if path == "" {

@@ -42,6 +42,7 @@ type DirectoryOperations interface {
 	IsWritable(path string) error
 	GetSize(path string) (int64, error)
 	GetDiskUsage(path string) (*DiskUsage, error)
+	Remove(path string) error
 }
 
 // PermissionManager mengelola permission dan ownership

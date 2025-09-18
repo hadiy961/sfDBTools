@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
@@ -13,7 +12,7 @@ import (
 )
 
 // RestartAndVerifyService performs restart and verification steps (steps 20-23)
-func RestartAndVerifyService(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
+func RestartAndVerifyService(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig, installation *discovery.MariaDBInstallation) error {
 	_ = ctx
 	lg, err := logger.Get()
 	if err != nil {
@@ -22,80 +21,16 @@ func RestartAndVerifyService(ctx context.Context, config *mariadb_config.MariaDB
 
 	lg.Info("Starting service restart and verification")
 
-	// Get current installation info
-	installation, err := discovery.DiscoverMariaDBInstallation()
-	if err != nil {
-		return fmt.Errorf("failed to discover MariaDB installation: %w", err)
-	}
-
 	sm := system.NewServiceManager()
 	// Determine service name (fallback to common names if discovery failed)
 	svcName := installation.ServiceName
-	if svcName == "" {
-		candidates := []string{"mariadb", "mysql", "mysqld"}
-		found := ""
-		for _, c := range candidates {
-			if sm.IsActive(c) || sm.IsEnabled(c) {
-				found = c
-				break
-			}
-		}
-		if found == "" {
-			lg.Warn("Service name not discovered; attempting common service names", logger.Strings("candidates", []string{"mariadb", "mysql", "mysqld"}))
-			svcName = "mariadb"
-		} else {
-			svcName = found
-		}
-	}
 
 	lg.Info("Restarting MariaDB service", logger.String("service", svcName))
 	terminal.PrintInfo("Restarting MariaDB service...")
 
-	// Try stopping using candidate names until one succeeds
-	stopErr := fmt.Errorf("no stop attempted")
-	tried := map[string]struct{}{}
-	candidates := []string{svcName, "mariadb", "mysql", "mysqld"}
-	for _, name := range candidates {
-		if name == "" {
-			continue
-		}
-		if _, ok := tried[name]; ok {
-			continue
-		}
-		tried[name] = struct{}{}
-		if err := sm.Stop(name); err == nil {
-			stopErr = nil
-			svcName = name
-			break
-		} else {
-			stopErr = err
-			lg.Debug("Stop attempt failed for candidate service", logger.String("candidate", name), logger.Error(err))
-		}
-	}
-	if stopErr != nil {
-		return fmt.Errorf("failed to stop MariaDB service: %w", stopErr)
-	}
-
-	time.Sleep(2 * time.Second)
-
-	// Try starting the discovered/service name
-	if err := sm.Start(svcName); err != nil {
-		startErr := err
-		for _, name := range []string{"mariadb", "mysql", "mysqld"} {
-			if name == svcName {
-				continue
-			}
-			if err2 := sm.Start(name); err2 == nil {
-				startErr = nil
-				svcName = name
-				break
-			} else {
-				lg.Debug("Start attempt failed for candidate service", logger.String("candidate", name), logger.Error(err2))
-			}
-		}
-		if startErr != nil {
-			return fmt.Errorf("failed to start MariaDB service: %w", startErr)
-		}
+	//Restart Mariadb service
+	if err := sm.Restart(svcName); err != nil {
+		return fmt.Errorf("failed to restart service %s: %w", svcName, err)
 	}
 
 	// Verify service running
