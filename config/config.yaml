@@ -43,7 +43,7 @@ general:
     version: 1.0.0
 log:
     format: text
-    level: debug
+    level: info
     output:
         console:
             enabled: false
@@ -62,12 +62,12 @@ log:
             tag: sfDBTools
     timezone: Asia/Jakarta
 mariadb:
-    binlog_dir: /mnt/nfs/mariadb/binlog
+    binlog_dir: /mnt/nfs/mysql/binlogs
     config_dir: /etc/my.cnf.d/server.cnf
-    data_dir: /mnt/nfs/mariadb/data
+    data_dir: /mnt/nfs/mysql/data
     encryption_key_file: /etc/sfDBTools/key_maria_nbc.txt
     innodb_encrypt_tables: false
-    log_dir: /mnt/nfs/mariadb/data
+    log_dir: /mnt/nfs/mysql/logs
     port: 3306
     server_id: 1
     socket_path: /var/run/mysqld/mysqld.sock

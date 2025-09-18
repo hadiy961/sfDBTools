@@ -25,6 +25,10 @@ import (
 var (
 	logger *logrus.Logger
 	once   sync.Once
+	// showCaller controls whether we scan the call stack for the external
+	// caller and attach file:line info. It should only be true for debug
+	// level logging to avoid adding caller overhead in normal runs.
+	showCaller bool
 )
 
 // Logger wraps logrus.Logger untuk konsistensi interface
@@ -304,6 +308,10 @@ func hasField(fields []Field, key string) bool {
 // findCallerField walks the stack to find the first caller outside this package
 // and returns a Field with key "file" and value "filename:line".
 func findCallerField() (Field, bool) {
+	// If caller info is disabled, return immediately.
+	if !showCaller {
+		return Field{}, false
+	}
 	// start at 3 to skip runtime.Callers -> our helper -> logger wrapper
 	for i := 3; i < 16; i++ {
 		pc, file, line, ok := runtime.Caller(i)
@@ -323,6 +331,10 @@ func findCallerField() (Field, bool) {
 // getExternalCaller scans the call stack to find the first frame outside the
 // logger package and returns a "filename:line" string.
 func getExternalCaller() (string, bool) {
+	// If caller info is disabled, don't scan the stack.
+	if !showCaller {
+		return "", false
+	}
 	// skip a few frames from runtime.Callers -> our helper -> logger wrappers
 	pcs := make([]uintptr, 32)
 	n := runtime.Callers(3, pcs)
@@ -390,6 +402,10 @@ func buildLogger(cfg *model.Config) (*logrus.Logger, error) {
 	}
 	log.SetLevel(level)
 
+	// Only enable caller info scanning when in debug level to avoid the
+	// overhead of walking the stack in normal runs.
+	showCaller = (level == logrus.DebugLevel)
+
 	// Set formatter for console/syslog based on format config. File output will
 	// be forced to JSON via a hook so file logs are always JSON.
 	var consoleFormatter logrus.Formatter
@@ -445,9 +461,13 @@ func buildLogger(cfg *model.Config) (*logrus.Logger, error) {
 		}
 	}
 
-	// If debug level, enable caller reporting so entries include file:line
-	if log.Level == logrus.DebugLevel {
+	// Enable logrus's ReportCaller when debug to include richer caller info
+	// (file:line) in entries. We still guard our own stack scanning helpers
+	// with showCaller so non-debug runs avoid the extra work.
+	if level == logrus.DebugLevel {
 		log.SetReportCaller(true)
+	} else {
+		log.SetReportCaller(false)
 	}
 
 	// Attach file writer as a hook with a JSON formatter so file output is
