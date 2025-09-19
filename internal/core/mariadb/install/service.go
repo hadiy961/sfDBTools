@@ -6,7 +6,6 @@ import (
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 	defaultsetup "sfDBTools/utils/mariadb/defaultSetup"
-	"sfDBTools/utils/terminal"
 )
 
 // startMariaDBService memulai dan mengaktifkan service MariaDB
@@ -49,18 +48,4 @@ func verifyInstallation(cfg *mariadb_config.MariaDBInstallConfig, deps *defaults
 		logger.String("requested_version", cfg.Version))
 
 	return nil
-}
-
-// displaySuccessMessage menampilkan pesan sukses dan instruksi
-func displaySuccessMessage(cfg *mariadb_config.MariaDBInstallConfig) {
-	terminal.SafePrintln("\n🎉 Instalasi MariaDB berhasil!")
-	terminal.SafePrintln(fmt.Sprintf("   Versi: %s", cfg.Version))
-	terminal.SafePrintln("\n📝 Langkah selanjutnya:")
-	terminal.SafePrintln("   1. Jalankan secure installation (opsional):")
-	terminal.SafePrintln("      sudo mysql_secure_installation")
-	terminal.SafePrintln("   2. Login ke MariaDB:")
-	terminal.SafePrintln("      sudo mysql -u root")
-	terminal.SafePrintln("   3. Cek status service:")
-	terminal.SafePrintln("      systemctl status mariadb")
-	terminal.SafePrintln("")
 }

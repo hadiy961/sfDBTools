@@ -11,56 +11,25 @@ import (
 	"sfDBTools/internal/core/mariadb/configure/validation"
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/mariadb/discovery"
 	"sfDBTools/utils/terminal"
 )
 
 // membuat konfigurasi standart perusahaan
-func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
+func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig, installation *discovery.MariaDBInstallation) error {
 	terminal.PrintHeader("MariaDB Configuration Process")
-	terminal.PrintSubHeader("Reading Existing Configurations from Application Config")
 	fmt.Println()
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
 	}
+	lg.Info("Reading Existing Configurations from Application Config")
 
-	headers := []string{"Dir", "Value"}
-	rows := [][]string{
-		{"data_dir", config.DataDir},
-		{"log_dir", config.LogDir},
-		{"binlog_dir", config.BinlogDir},
-		{"port", fmt.Sprintf("%d", config.Port)},
-		{"server_id", fmt.Sprintf("%d", config.ServerID)},
-		{"innodb_encrypt_tables", fmt.Sprintf("%t", config.InnodbEncryptTables)},
-		{"encryption_key_file", config.EncryptionKeyFile},
-		{"backup_dir", config.BackupDir},
-	}
-	terminal.FormatTable(headers, rows)
-
-	lg.Info("Performing installation and privilege checks")
-	mariadbInstallation, err := configure.PerformPreChecks(ctx, config)
-	if err != nil {
-		return fmt.Errorf("pre-checks failed: %w", err)
-	}
-	terminal.PrintSubHeader("Reading Existing Configurations from MariaDB Installation (" + mariadbInstallation.ConfigPaths[0] + ")")
-
-	headers1 := []string{"Dir", "Value"}
-	rows1 := [][]string{
-		{"binary", mariadbInstallation.BinaryPath},
-		{"data_dir", mariadbInstallation.DataDir},
-		{"log_dir", mariadbInstallation.LogDir},
-		{"binlog_dir", mariadbInstallation.BinlogDir},
-		{"port", fmt.Sprintf("%d", mariadbInstallation.Port)},
-		{"server_id", fmt.Sprintf("%d", mariadbInstallation.ServerID)},
-		{"innodb_encrypt_tables", fmt.Sprintf("%t", mariadbInstallation.InnodbEncryptTables)},
-		{"encryption_key_file", mariadbInstallation.EncryptionKeyFile},
-		{"innodb_buffer_pool_size", mariadbInstallation.InnodbBufferPoolSize},
-		{"innodb_buffer_pool_instances", fmt.Sprintf("%d", mariadbInstallation.InnodbBufferPoolInstances)},
-	}
-	terminal.FormatTable(headers1, rows1)
+	lg.Info("Reading Existing Configurations from MariaDB Installation (" + installation.ConfigPaths[0] + ")")
 
 	// Step 2-4: Template dan konfigurasi discovery - gunakan hasil discovery yang sudah ada
-	template, err := template.LoadConfigurationTemplateWithInstallation(ctx, mariadbInstallation)
+	lg.Info("Loading configuration template and current settings")
+	template, err := template.LoadConfigurationTemplateWithInstallation(ctx, installation)
 	if err != nil {
 		return fmt.Errorf("failed to load configuration template: %w", err)
 	}
@@ -80,15 +49,15 @@ func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaD
 
 	headersNew := []string{"Dir", "Existing", "New Value"}
 	rowsNew := [][]string{
-		{"data_dir", mariadbInstallation.DataDir, config.DataDir},
-		{"log_dir", mariadbInstallation.LogDir, config.LogDir},
-		{"binlog_dir", mariadbInstallation.BinlogDir, config.BinlogDir},
-		{"port", fmt.Sprintf("%d", mariadbInstallation.Port), fmt.Sprintf("%d", config.Port)},
-		{"server_id", fmt.Sprintf("%d", mariadbInstallation.ServerID), fmt.Sprintf("%d", config.ServerID)},
-		{"innodb_encrypt_tables", fmt.Sprintf("%t", mariadbInstallation.InnodbEncryptTables), fmt.Sprintf("%t", config.InnodbEncryptTables)},
-		{"encryption_key_file", mariadbInstallation.EncryptionKeyFile, config.EncryptionKeyFile},
-		{"innodb_buffer_pool_size", mariadbInstallation.InnodbBufferPoolSize, config.InnodbBufferPoolSize},
-		{"innodb_buffer_pool_instances", fmt.Sprintf("%d", mariadbInstallation.InnodbBufferPoolInstances), fmt.Sprintf("%d", config.InnodbBufferPoolInstances)},
+		{"data_dir", installation.DataDir, config.DataDir},
+		{"log_dir", installation.LogDir, config.LogDir},
+		{"binlog_dir", installation.BinlogDir, config.BinlogDir},
+		{"port", fmt.Sprintf("%d", installation.Port), fmt.Sprintf("%d", config.Port)},
+		{"server_id", fmt.Sprintf("%d", installation.ServerID), fmt.Sprintf("%d", config.ServerID)},
+		{"innodb_encrypt_tables", fmt.Sprintf("%t", installation.InnodbEncryptTables), fmt.Sprintf("%t", config.InnodbEncryptTables)},
+		{"encryption_key_file", installation.EncryptionKeyFile, config.EncryptionKeyFile},
+		{"innodb_buffer_pool_size", installation.InnodbBufferPoolSize, config.InnodbBufferPoolSize},
+		{"innodb_buffer_pool_instances", fmt.Sprintf("%d", installation.InnodbBufferPoolInstances), fmt.Sprintf("%d", config.InnodbBufferPoolInstances)},
 	}
 	terminal.FormatTable(headersNew, rowsNew)
 
@@ -104,7 +73,7 @@ func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaD
 
 	// Langkah 5 : Restart mariadb service
 	lg.Info("Restarting MariaDB service and verifying configuration")
-	if err := service.RestartAndVerifyService(ctx, config, mariadbInstallation); err != nil {
+	if err := service.RestartAndVerifyService(ctx, config, installation); err != nil {
 		return fmt.Errorf("service restart/verification failed: %w", err)
 	}
 
