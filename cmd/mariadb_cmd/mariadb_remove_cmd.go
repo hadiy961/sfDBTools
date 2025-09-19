@@ -79,8 +79,6 @@ func executeMariaDBRemove(cmd *cobra.Command, args []string) error {
 		terminal.ClearScreen()
 	}
 
-	terminal.SafePrintln("🗑️  Memulai penghapusan MariaDB...")
-
 	// Resolve konfigurasi dari flags dan environment
 	cfg, err := mariadb_config.ResolveMariaDBRemoveConfig(cmd)
 	if err != nil {

@@ -7,6 +7,7 @@ import (
 	"sfDBTools/internal/logger"
 	mariadb_config "sfDBTools/utils/mariadb/config"
 	"sfDBTools/utils/system"
+	"sfDBTools/utils/terminal"
 )
 
 // Dependencies berisi semua dependency yang dibutuhkan untuk penghapusan
@@ -19,6 +20,9 @@ type Dependencies struct {
 // RunMariaDBRemove menjalankan proses penghapusan MariaDB secara menyeluruh
 func RunMariaDBRemove(ctx context.Context, cfg *mariadb_config.MariaDBRemoveConfig) error {
 	lg, _ := logger.Get()
+	terminal.ClearScreen()
+	terminal.PrintHeader("MariaDB Removal Process")
+	fmt.Println()
 	lg.Info("Memulai penghapusan MariaDB",
 		logger.Bool("remove_data", cfg.RemoveData),
 		logger.Bool("remove_config", cfg.RemoveConfig),

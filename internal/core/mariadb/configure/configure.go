@@ -19,49 +19,21 @@ import (
 func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	terminal.ClearScreen()
 	terminal.PrintHeader("MariaDB Configuration Process")
-	terminal.PrintSubHeader("Reading Existing Configurations from Application Config")
-	fmt.Println()
 	lg, err := logger.Get()
 	if err != nil {
 		return fmt.Errorf("failed to get logger: %w", err)
 	}
 
-	headers := []string{"Dir", "Value"}
-	rows := [][]string{
-		{"data_dir", config.DataDir},
-		{"log_dir", config.LogDir},
-		{"binlog_dir", config.BinlogDir},
-		{"port", fmt.Sprintf("%d", config.Port)},
-		{"server_id", fmt.Sprintf("%d", config.ServerID)},
-		{"innodb_encrypt_tables", fmt.Sprintf("%t", config.InnodbEncryptTables)},
-		{"encryption_key_file", config.EncryptionKeyFile},
-		{"backup_dir", config.BackupDir},
-	}
-	terminal.FormatTable(headers, rows)
-
 	// Step 1: Installation Checks - simpan hasil discovery untuk digunakan kembali
 	lg.Info("Performing installation and privilege checks")
+	lg.Info("Gathering existing MariaDB Configuration from application config")
+	lg.Info("Gathering existing MariaDB installation details")
 	mariadbInstallation, err := PerformPreChecks(ctx, config)
 	if err != nil {
 		return fmt.Errorf("pre-checks failed: %w", err)
 	}
-	terminal.PrintSubHeader("Reading Existing Configurations from MariaDB Installation (" + mariadbInstallation.ConfigPaths[0] + ")")
 
-	headers1 := []string{"Dir", "Value"}
-	rows1 := [][]string{
-		{"binary", mariadbInstallation.BinaryPath},
-		{"data_dir", mariadbInstallation.DataDir},
-		{"log_dir", mariadbInstallation.LogDir},
-		{"binlog_dir", mariadbInstallation.BinlogDir},
-		{"port", fmt.Sprintf("%d", mariadbInstallation.Port)},
-		{"server_id", fmt.Sprintf("%d", mariadbInstallation.ServerID)},
-		{"innodb_encrypt_tables", fmt.Sprintf("%t", mariadbInstallation.InnodbEncryptTables)},
-		{"encryption_key_file", mariadbInstallation.EncryptionKeyFile},
-		{"innodb_buffer_pool_size", mariadbInstallation.InnodbBufferPoolSize},
-		{"innodb_buffer_pool_instances", fmt.Sprintf("%d", mariadbInstallation.InnodbBufferPoolInstances)},
-	}
-	terminal.FormatTable(headers1, rows1)
-
+	lg.Info("Loading configuration template and current settings")
 	// Step 2-4: Template dan konfigurasi discovery - gunakan hasil discovery yang sudah ada
 	template, err := template.LoadConfigurationTemplateWithInstallation(ctx, mariadbInstallation)
 	if err != nil {

@@ -39,7 +39,7 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.M
 		}
 	}
 
-	lg.Info("Starting interactive configuration input")
+	lg.Debug("Starting interactive configuration input")
 
 	// Task 1: Load application config sebagai fallback defaults
 
