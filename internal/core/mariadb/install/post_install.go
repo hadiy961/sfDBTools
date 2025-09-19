@@ -22,6 +22,12 @@ func postInstallationSetup(deps *defaultsetup.Dependencies, mariadb_config *mari
 	// 	return fmt.Errorf("gagal menjalankan secure installation: %w", err)
 	// }
 
+	// Langkah 4 : Konfigurasi standart perusahaan
+	ctx := context.Background()
+	if err := defaultsetup.RunStandardConfiguration(ctx, mariadb_config, installation); err != nil {
+		return fmt.Errorf("gagal menjalankan konfigurasi standart perusahaan: %w", err)
+	}
+
 	// Langkah 3 : Buat database default (hardcoded)
 	terminal.PrintHeader("Creating Default Database")
 	if err := defaultsetup.CreateDefaultDatabase(); err != nil {
@@ -32,12 +38,6 @@ func postInstallationSetup(deps *defaultsetup.Dependencies, mariadb_config *mari
 	terminal.PrintHeader("Creating Default Users and Grants")
 	if err := defaultsetup.CreateDefaultMariaDBUser(); err != nil {
 		return fmt.Errorf("gagal membuat default users/grants: %w", err)
-	}
-
-	// Langkah 4 : Konfigurasi standart perusahaan
-	ctx := context.Background()
-	if err := defaultsetup.RunStandardConfiguration(ctx, mariadb_config, installation); err != nil {
-		return fmt.Errorf("gagal menjalankan konfigurasi standart perusahaan: %w", err)
 	}
 
 	// Selesai
