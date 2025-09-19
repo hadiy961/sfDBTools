@@ -34,6 +34,9 @@ func CreateDefaultDatabase() error {
 	databaseSQL += "CREATE DATABASE IF NOT EXISTS `dbsf_nbc_" + clientCode + "_archive` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"
 	databaseSQL += "CREATE DATABASE IF NOT EXISTS `dbsf_nbc_" + clientCode + "_secondary_training` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"
 	databaseSQL += "CREATE DATABASE IF NOT EXISTS `dbsf_nbc_" + clientCode + "_secondary_training_dmart` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"
+	databaseSQL += "DROP DATABASE test;\n"
+	databaseSQL += "DELETE FROM mysql.user WHERE user = '';\n"
+	databaseSQL += "FLUSH PRIVILEGES;\n"
 
 	// Jalankan skrip SQL via mysql client
 	args := []string{"-e", databaseSQL}

@@ -29,6 +29,7 @@ func CreateDefaultMariaDBUser() error {
 	grantsSQL += "-- Ini membuat skrip bisa dijalankan berulang kali tanpa error.\n"
 	grantsSQL += "-- ---------------------------------------------------------------------\n\n"
 	grantsSQL += "-- Pengguna Administratif\n"
+	grantsSQL += "ALTER USER 'root'@'localhost' IDENTIFIED BY 'P@ssw0rdDB';\n"
 	grantsSQL += "CREATE USER IF NOT EXISTS 'papp'@'%' IDENTIFIED BY 'P@ssw0rdpapp!@#';\n"
 	grantsSQL += "CREATE USER IF NOT EXISTS 'sysadmin'@'%' IDENTIFIED BY 'P@ssw0rdsys!@#';\n"
 	grantsSQL += "CREATE USER IF NOT EXISTS 'dbaDO'@'%' IDENTIFIED BY 'DataOn24!!';\n\n"

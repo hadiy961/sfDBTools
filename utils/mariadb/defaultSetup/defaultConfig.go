@@ -25,7 +25,12 @@ func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaD
 	}
 	lg.Info("Reading Existing Configurations from Application Config")
 
-	lg.Info("Reading Existing Configurations from MariaDB Installation (" + installation.ConfigPaths[0] + ")")
+	// Guard against nil installation or empty ConfigPaths to avoid panics
+	installPath := "unknown"
+	if installation != nil && len(installation.ConfigPaths) > 0 {
+		installPath = installation.ConfigPaths[0]
+	}
+	lg.Info("Reading Existing Configurations from MariaDB Installation (" + installPath + ")")
 
 	// Step 2-4: Template dan konfigurasi discovery - gunakan hasil discovery yang sudah ada
 	lg.Info("Loading configuration template and current settings")
@@ -69,6 +74,10 @@ func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaD
 	lg.Info("Backing up current configuration and applying new settings")
 	if err := migration.ApplyConfiguration(ctx, config, template); err != nil {
 		return fmt.Errorf("failed to apply configuration: %w", err)
+	}
+	lg.Info("Validating configuration and system requirements")
+	if err := validation.ValidateSystemRequirements(ctx, config); err != nil {
+		return fmt.Errorf("system validation failed: %w", err)
 	}
 
 	// Langkah 5 : Restart mariadb service

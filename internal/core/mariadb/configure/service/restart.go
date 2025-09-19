@@ -54,24 +54,6 @@ func RestartAndVerifyService(ctx context.Context, config *mariadb_config.MariaDB
 		}
 	}
 
-	// Verify service running
-	lg.Info("Verifying service status")
-	if err := verifyServiceRunning(sm, svcName); err != nil {
-		return fmt.Errorf("service verification failed: %w", err)
-	}
-
-	// Verify database connection
-	// lg.Info("Verifying database connection")
-	// if err := verifyDatabaseConnection(installation, config); err != nil {
-	// 	return fmt.Errorf("database connection verification failed: %w", err)
-	// }
-
-	// Verify configuration applied
-	lg.Info("Verifying configuration is applied")
-	if err := verifyConfigurationApplied(installation, config); err != nil {
-		return fmt.Errorf("configuration verification failed: %w", err)
-	}
-
-	lg.Info("Service restart and verification completed successfully")
+	lg.Info("Service restart completed successfully")
 	return nil
 }

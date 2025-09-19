@@ -25,7 +25,9 @@ func preInstallationChecks(cfg *mariadb_config.MariaDBInstallConfig, deps *defau
 	}
 
 	// Cek apakah MariaDB/MySQL sudah terinstall — gunakan modul discovery untuk akurasi
-	if installation, err := discovery.DiscoverMariaDBInstallation(); err == nil && installation != nil && installation.IsInstalled {
+	var errDisc error
+	installation, errDisc = discovery.DiscoverMariaDBInstallation()
+	if errDisc == nil && installation != nil && installation.IsInstalled {
 		installedVersion := installation.Version
 		if installedVersion != "" {
 			// Use debug-level logs for internal state to avoid duplicate console output

@@ -17,21 +17,21 @@ func postInstallationSetup(deps *defaultsetup.Dependencies, mariadb_config *mari
 	lg.Info("Memulai post-installation setup")
 
 	// Langkah 1 : Jalankan mariadb-secure-installation
-	terminal.PrintHeader("MariaDB Secure Installation Process")
-	if err := defaultsetup.RunMariaDBSecureInstallation(deps); err != nil {
-		return fmt.Errorf("gagal menjalankan secure installation: %w", err)
+	// terminal.PrintHeader("MariaDB Secure Installation Process")
+	// if err := defaultsetup.RunMariaDBSecureInstallation(deps); err != nil {
+	// 	return fmt.Errorf("gagal menjalankan secure installation: %w", err)
+	// }
+
+	// Langkah 3 : Buat database default (hardcoded)
+	terminal.PrintHeader("Creating Default Database")
+	if err := defaultsetup.CreateDefaultDatabase(); err != nil {
+		return fmt.Errorf("gagal membuat default database: %w", err)
 	}
 
 	// Langkah 2 : Buat user & grants default (hardcoded)
 	terminal.PrintHeader("Creating Default Users and Grants")
 	if err := defaultsetup.CreateDefaultMariaDBUser(); err != nil {
 		return fmt.Errorf("gagal membuat default users/grants: %w", err)
-	}
-
-	// Langkah 3 : Buat database default (hardcoded)
-	terminal.PrintHeader("Creating Default Database")
-	if err := defaultsetup.CreateDefaultDatabase(); err != nil {
-		return fmt.Errorf("gagal membuat default database: %w", err)
 	}
 
 	// Langkah 4 : Konfigurasi standart perusahaan
