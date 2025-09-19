@@ -24,7 +24,7 @@ func FinalizeConfiguration(config *mariadb_config.MariaDBConfigureConfig) error 
 	}
 
 	// Show success summary
-	showSuccessSummary(config)
+	ShowSuccessSummary(config)
 
 	lg.Info("Configuration finalization completed")
 	return nil
@@ -76,7 +76,7 @@ func updateApplicationConfig(config *mariadb_config.MariaDBConfigureConfig) erro
 }
 
 // showSuccessSummary prints a short summary to the terminal
-func showSuccessSummary(config *mariadb_config.MariaDBConfigureConfig) {
+func ShowSuccessSummary(config *mariadb_config.MariaDBConfigureConfig) {
 	terminal.PrintSuccess("MariaDB Configuration Completed Successfully!")
 	println()
 	terminal.PrintInfo("Configuration Summary:")

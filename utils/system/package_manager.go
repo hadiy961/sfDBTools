@@ -1,9 +1,12 @@
 package system
 
 import (
+	"bufio"
 	"fmt"
 	"os/exec"
 	"strings"
+
+	"sfDBTools/utils/terminal"
 )
 
 // PackageManager interface provides abstraction for package management operations
@@ -13,6 +16,7 @@ type PackageManager interface {
 	IsInstalled(pkg string) bool
 	GetInstalledPackages() ([]string, error)
 	UpdateCache() error
+	Upgrade() error
 }
 
 // packageManager implements PackageManager interface
@@ -54,9 +58,38 @@ func (pm *packageManager) Install(packages []string) error {
 		return fmt.Errorf("unsupported package manager")
 	}
 
-	output, err := cmd.CombinedOutput()
+	// Stream stdout and stderr so callers can see live progress (like UpdateCache)
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to install packages %v: %w\nOutput: %s", packages, err, string(output))
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start install command: %w", err)
+	}
+
+	// stream stdout
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	// stream stderr
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to install packages %v: %w", packages, err)
 	}
 
 	return nil
@@ -83,9 +116,38 @@ func (pm *packageManager) Remove(packages []string) error {
 		return fmt.Errorf("unsupported package manager")
 	}
 
-	output, err := cmd.CombinedOutput()
+	// Stream stdout and stderr so callers can see live progress
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to remove packages %v: %w\nOutput: %s", packages, err, string(output))
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start remove command: %w", err)
+	}
+
+	// stream stdout
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	// stream stderr
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to remove packages %v: %w", packages, err)
 	}
 
 	return nil
@@ -163,9 +225,93 @@ func (pm *packageManager) UpdateCache() error {
 		return fmt.Errorf("unsupported package manager: %s", pm.packageTool)
 	}
 
-	output, err := cmd.CombinedOutput()
+	// Stream stdout and stderr and print lines using terminal.SafePrintln so
+	// active spinner (if any) is paused/resumed properly.
+	stdout, err := cmd.StdoutPipe()
 	if err != nil {
-		return fmt.Errorf("failed to update package cache: %w\nOutput: %s", err, string(output))
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start update cache command: %w", err)
+	}
+
+	// stream stdout
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	// stream stderr
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to update package cache: %w", err)
+	}
+
+	return nil
+}
+
+// Upgrade performs a system package upgrade (distribution-specific) and streams output
+func (pm *packageManager) Upgrade() error {
+	var cmd *exec.Cmd
+	switch pm.packageTool {
+	case "yum":
+		// yum update will update packages
+		cmd = exec.Command("yum", "update", "-y")
+	case "apt":
+		// apt upgrade with -y to auto confirm
+		cmd = exec.Command("apt", "upgrade", "-y")
+	case "dnf":
+		cmd = exec.Command("dnf", "upgrade", "-y")
+	default:
+		return fmt.Errorf("unsupported package manager: %s", pm.packageTool)
+	}
+
+	// Stream stdout and stderr and print lines using terminal.SafePrintln so
+	// active spinner (if any) is paused/resumed properly.
+	stdout, err := cmd.StdoutPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stdout pipe: %w", err)
+	}
+	stderr, err := cmd.StderrPipe()
+	if err != nil {
+		return fmt.Errorf("failed to get stderr pipe: %w", err)
+	}
+
+	if err := cmd.Start(); err != nil {
+		return fmt.Errorf("failed to start upgrade command: %w", err)
+	}
+
+	// stream stdout
+	go func() {
+		scanner := bufio.NewScanner(stdout)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	// stream stderr
+	go func() {
+		scanner := bufio.NewScanner(stderr)
+		for scanner.Scan() {
+			terminal.SafePrintln(scanner.Text())
+		}
+	}()
+
+	if err := cmd.Wait(); err != nil {
+		return fmt.Errorf("failed to upgrade packages: %w", err)
 	}
 
 	return nil

@@ -30,15 +30,33 @@ func updatePackageCache(deps *defaultsetup.Dependencies) error {
 	return nil
 }
 
-// installMariaDBPackages menginstall paket MariaDB server dan client
+// updateSystemPackages menjalankan upgrade/update paket sistem (mis. apt upgrade / yum update)
+// dan menampilkan spinner selama proses berlangsung.
+func updateSystemPackages(deps *defaultsetup.Dependencies) error {
+	lg, _ := logger.Get()
+
+	spinner := terminal.NewInstallSpinner("Mengupgrade paket sistem...")
+	spinner.Start()
+
+	lg.Info("[Package Manager] Mengupgrade paket sistem")
+
+	if err := deps.PackageManager.Upgrade(); err != nil {
+		spinner.StopWithError("Gagal mengupgrade paket sistem")
+		lg.Error("upgrade paket sistem gagal", logger.Error(err))
+		return fmt.Errorf("gagal mengupgrade paket sistem: %w", err)
+	}
+
+	spinner.StopWithSuccess("Paket sistem berhasil diupgrade")
+	lg.Info("[Package Manager] Paket sistem berhasil diupgrade")
+	return nil
+}
+
+// installMariaDBPackages menginstall paket MariaDB server dan client satu per satu dengan progress
 func installMariaDBPackages(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
-	// Use spinner to provide user feedback while determining and installing packages
 	spinner := terminal.NewInstallSpinner("Menentukan dan menginstall paket MariaDB...")
 	spinner.Start()
 
-	// Tentukan nama paket berdasarkan OS
-	lg.Info("Menentukan nama paket MariaDB yang sesuai untuk OS")
 	osInfo, err := system.DetectOS()
 	if err != nil {
 		spinner.StopWithError("Gagal mendeteksi OS untuk penentuan paket")
@@ -51,15 +69,31 @@ func installMariaDBPackages(deps *defaultsetup.Dependencies) error {
 		return fmt.Errorf("gagal menentukan nama paket MariaDB: %w", err)
 	}
 
-	lg.Info("Menginstall paket MariaDB", logger.Strings("packages", packages))
+	spinner.StopWithSuccess("Daftar paket MariaDB berhasil didapatkan")
 
-	if err := deps.PackageManager.Install(packages); err != nil {
-		spinner.StopWithError("Gagal menginstall paket MariaDB")
-		return fmt.Errorf("gagal menginstall paket MariaDB: %w", err)
+	total := len(packages)
+	for i, pkg := range packages {
+		// Use spinner per package to avoid flooding logs with many lines
+		pkgSpinner := terminal.NewInstallSpinner(fmt.Sprintf("[%d/%d] Menginstall paket: %s", i+1, total, pkg))
+		pkgSpinner.Start()
+
+		lg.Info("installing package", logger.Int("index", i+1), logger.Int("total", total), logger.String("package", pkg))
+
+		// Install satu package
+		if err := deps.PackageManager.Install([]string{pkg}); err != nil {
+			pkgSpinner.StopWithError("Gagal menginstall paket")
+			errorMsg := fmt.Sprintf("Gagal menginstall paket %s", pkg)
+			// Log error with stack-like message but avoid printing full output to stdout
+			lg.Error(errorMsg, logger.Error(err))
+			return fmt.Errorf("gagal menginstall paket %s: %w", pkg, err)
+		}
+
+		pkgSpinner.StopWithSuccess("Berhasil")
+		lg.Info("package installed", logger.String("package", pkg))
 	}
 
-	spinner.StopWithSuccess("Paket MariaDB berhasil diinstall")
-	lg.Info("Paket MariaDB berhasil diinstall")
+	fmt.Println("Semua paket MariaDB berhasil diinstall")
+	lg.Info("Semua paket MariaDB berhasil diinstall")
 	return nil
 }
 
@@ -69,15 +103,81 @@ func getMariaDBPackageNames(osInfo *system.OSInfo) ([]string, error) {
 		return nil, fmt.Errorf("osInfo tidak boleh nil")
 	}
 
+	var packages []string
+
 	switch osInfo.PackageType {
 	case "deb":
-		// Ubuntu/Debian menggunakan huruf kecil
-		return []string{"mariadb-server", "mariadb-client"}, nil
+		// Ubuntu/Debian packages
+		packages = []string{
+			// Core MariaDB
+			"mariadb-server",
+			"mariadb-client",
+			"mariadb-backup",
+
+			// Performance & Monitoring
+			"mytop",
+			"mariadb-plugin-connect",
+			"mariadb-plugin-spider",
+			"mariadb-plugin-oqgraph",
+
+			// Development & Utilities
+			"libmariadb-dev",
+			"mariadb-test",
+			"percona-toolkit",
+
+			// Security & SSL
+			"ssl-cert",
+
+			// System utilities
+			"htop",
+			"iotop",
+			"sysstat",
+		}
+
 	case "rpm":
-		// CentOS/RHEL/Rocky menggunakan huruf kapital dari repo MariaDB
-		return []string{"MariaDB-server", "MariaDB-client"}, nil
+		// CentOS/RHEL/Rocky packages
+		packages = []string{
+			// EPEL repository (harus diinstall pertama)
+			"epel-release",
+
+			// Core MariaDB
+			"MariaDB-server",
+			"MariaDB-client",
+			"MariaDB-backup",
+			"MariaDB-common",
+			"MariaDB-shared",
+
+			// Performance & Monitoring
+			"mytop",
+			"nmon",
+
+			// System utilities & monitoring
+			"htop",
+			"iotop",
+			"sysstat",
+			"rsync",
+			"lsof",
+			"strace",
+
+			// Compression utilities for backups
+			"pigz",
+			"pv",
+		}
+
 	default:
-		// Default fallback ke nama standar
-		return []string{"mariadb-server", "mariadb-client"}, nil
+		// Default fallback
+		packages = []string{
+			"mariadb-server",
+			"mariadb-client",
+			"MariaBackup",
+			"mariadb-common",
+			"mariadb-shared",
+			"mytop",
+			"nmon",
+			"htop",
+			"sysstat",
+		}
 	}
+
+	return packages, nil
 }

@@ -10,9 +10,9 @@ import (
 	"sfDBTools/utils/system"
 )
 
-// performPreChecks melakukan pemeriksaan prasyarat sebelum konfigurasi
+// PerformPreChecks melakukan pemeriksaan prasyarat sebelum konfigurasi
 // Mengembalikan MariaDBInstallation untuk digunakan kembali di tahap selanjutnya
-func performPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) (*discovery.MariaDBInstallation, error) {
+func PerformPreChecks(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) (*discovery.MariaDBInstallation, error) {
 	lg, err := logger.Get()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get logger: %w", err)

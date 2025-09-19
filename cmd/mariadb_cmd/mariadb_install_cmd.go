@@ -77,13 +77,18 @@ func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
+	cfgPost, err := mariadb_config.ResolveMariaDBConfigureConfig(cmd)
+	if err != nil {
+		return err
+	}
+
 	lg.Info("Konfigurasi instalasi MariaDB",
 		logger.String("version", cfg.Version),
 		logger.Bool("non_interactive", cfg.NonInteractive))
 
 	// Jalankan instalasi - semua logic di core
 	ctx := context.Background()
-	if err := install.RunMariaDBInstall(ctx, cfg); err != nil {
+	if err := install.RunMariaDBInstall(ctx, cfg, cfgPost); err != nil {
 		// Spinner already displayed a user-facing error; return the error to Cobra.
 		return err
 	}
