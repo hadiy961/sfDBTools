@@ -35,7 +35,8 @@ func PromptConfigName(defaultName string) (string, error) {
 
 // PromptDatabaseConfig prompts for complete database configuration
 func PromptDatabaseConfig() (*InputConfig, error) {
-	terminal.PrintSubHeader("📋 Database Configuration")
+	terminal.PrintSubHeader("Database Configuration")
+	terminal.PrintInfo("Please provide database connection details:")
 
 	config := &InputConfig{}
 

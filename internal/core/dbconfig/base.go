@@ -43,7 +43,7 @@ func (bp *BaseProcessor) ShowSpinnerWithDelay(message string, delayMs int) {
 
 // GetEncryptionPassword prompts for encryption password with consistent messaging
 func (bp *BaseProcessor) GetEncryptionPassword(purpose string) (string, error) {
-	terminal.PrintSubHeader("🔐 Authentication Required")
+	terminal.PrintSubHeader("Authentication Required")
 	terminal.PrintInfo(fmt.Sprintf("Enter your encryption password to %s.", purpose))
 
 	encryptionPassword, err := crypto.GetEncryptionPassword("🔑 Encryption password: ")

@@ -20,7 +20,7 @@ and allow you to choose one. You can modify name, host, port, user, and password
 If the name changes, the file will be renamed accordingly.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Clear screen and show header
-		terminal.ClearAndShowHeader("✏️ Edit Database Configuration")
+		terminal.ClearAndShowHeader("Edit Database Configuration")
 
 		if err := executeEdit(cmd); err != nil {
 			lg, _ := logger.Get()
@@ -30,7 +30,7 @@ If the name changes, the file will be renamed accordingly.`,
 			os.Exit(1)
 		}
 
-		terminal.PrintSuccess("✅ Configuration updated successfully!")
+		terminal.PrintSuccess("Configuration updated successfully!")
 		terminal.WaitForEnterWithMessage("Press Enter to continue...")
 	},
 }

@@ -74,7 +74,8 @@ func (vh *ValidationHelper) ValidateWithDecryption(filePath string, result *dbco
 
 // displayConfigInfo shows configuration details in a formatted way
 func (vh *ValidationHelper) displayConfigInfo(dbConfig *config.EncryptedDatabaseConfig) {
-	terminal.PrintSubHeader("📋 Configuration Details")
+	terminal.ClearAndShowHeader("🔍 Configuration Details")
+	terminal.PrintSubHeader("Configuration Details")
 
 	headers := []string{"Property", "Value"}
 	rows := [][]string{
@@ -87,7 +88,7 @@ func (vh *ValidationHelper) displayConfigInfo(dbConfig *config.EncryptedDatabase
 
 // testDatabaseConnection tests database connection with timeout
 func (vh *ValidationHelper) testDatabaseConnection(dbConfig *config.EncryptedDatabaseConfig, result *dbconfig.ValidationResult) error {
-	terminal.PrintSubHeader("🔗 Database Connection Test")
+	terminal.PrintSubHeader(" Database Connection Test")
 
 	// Build DSN for MySQL connection
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/", dbConfig.User, dbConfig.Password, dbConfig.Host, dbConfig.Port)
@@ -129,7 +130,7 @@ func (vh *ValidationHelper) testDatabaseConnection(dbConfig *config.EncryptedDat
 	} else {
 		result.TestResults["connection_test"] = true
 		terminal.PrintSuccess("Database connection successful")
-		terminal.PrintInfo(fmt.Sprintf("🗃️ Server Version: %s", serverVersion))
+		terminal.PrintInfo(fmt.Sprintf("Server Version: %s", serverVersion))
 	}
 
 	return nil

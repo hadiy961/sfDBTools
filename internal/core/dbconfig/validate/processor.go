@@ -45,14 +45,8 @@ func ProcessValidate(cfg *dbconfig.Config) error {
 	if err != nil {
 		return err
 	}
-
+	terminal.ClearAndShowHeader("🔍 Validate Database Configuration")
 	processor.LogOperation("database configuration validation", "")
-
-	// Show validation info
-	terminal.PrintSubHeader("🔍 Configuration Validation")
-	terminal.PrintInfo("This will decrypt and test your database configuration.")
-	terminal.PrintInfo("A connection test will be performed to verify credentials.")
-	fmt.Println()
 
 	// If no specific file is provided, let user select
 	filePath := cfg.FilePath
@@ -85,10 +79,10 @@ func (p *Processor) validateSpecificConfig(filePath string) error {
 
 		// Display final results
 		dbconfig.DisplayValidationResult(result)
-		terminal.PrintSuccess("🎉 Configuration validation completed successfully!")
+		terminal.PrintSuccess("Configuration validation completed successfully!")
 	} else {
-		terminal.PrintError("❌ Configuration validation failed")
-		return fmt.Errorf("configuration validation failed")
+		terminal.PrintError("Configuration validation failed")
+		// return fmt.Errorf("configuration validation failed")
 	}
 
 	p.WaitForUserContinue()

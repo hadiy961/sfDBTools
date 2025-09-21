@@ -2,6 +2,7 @@ package delete
 
 import (
 	"sfDBTools/utils/dbconfig"
+	"sfDBTools/utils/terminal"
 )
 
 // ProcessDelete handles the core delete operation logic
@@ -12,7 +13,8 @@ func ProcessDelete(cfg *dbconfig.Config, args []string) error {
 	}
 
 	processor.LogOperation("database configuration deletion", "")
-
+	terminal.Clear()
+	terminal.PrintHeader("🗑️  Delete Database Configuration")
 	// Route to appropriate handler based on parameters
 	switch {
 	case cfg.DeleteAll:

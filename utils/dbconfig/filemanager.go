@@ -243,7 +243,7 @@ func (fm *FileManager) DisplayFileListSummary(files []*FileInfo) {
 		return
 	}
 
-	terminal.PrintSubHeader(fmt.Sprintf("📁 Found %d configuration files:", len(files)))
+	terminal.PrintSubHeader(fmt.Sprintf("Found %d configuration files:", len(files)))
 
 	data := [][]string{}
 	for i, file := range files {

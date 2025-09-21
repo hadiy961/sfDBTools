@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"time"
 
 	"sfDBTools/internal/config"
 	coredbconfig "sfDBTools/internal/core/dbconfig"
@@ -48,33 +47,13 @@ func ProcessEdit(cfg *dbconfig.Config) error {
 	}
 
 	processor.LogOperation("database configuration editing", cfg.FilePath)
-
-	// Show edit info
-	terminal.PrintSubHeader("✏️ Configuration Editor")
-	terminal.PrintInfo("This will allow you to modify database connection details.")
-	terminal.PrintInfo("You can change host, port, username, password, and configuration name.")
-	fmt.Println()
-
-	// Show spinner while preparing
-	spinner := terminal.NewProgressSpinner("Preparing configuration editor...")
-	spinner.Start()
-	time.Sleep(300 * time.Millisecond)
-	spinner.Stop()
-	fmt.Println()
-
+	terminal.Clear()
+	terminal.PrintHeader("Edit Database Configuration")
 	return processor.editSpecificConfig(cfg.FilePath)
 }
 
 // editSpecificConfig edits a specific configuration file
 func (p *Processor) editSpecificConfig(filePath string) error {
-	// Show loading with spinner
-	terminal.PrintSubHeader("🔧 Loading Configuration")
-	spinner := terminal.NewProgressSpinner("Loading configuration for editing...")
-	spinner.Start()
-	time.Sleep(500 * time.Millisecond)
-	spinner.Stop()
-	fmt.Println()
-
 	// Validate config file exists
 	if err := p.configHelper.ValidateConfigExists(filePath); err != nil {
 		return err
@@ -103,17 +82,16 @@ func (p *Processor) editSpecificConfig(filePath string) error {
 	if err != nil {
 		return err
 	}
-
 	// Check if any changes were made
 	if !hasChanges {
 		terminal.PrintInfo("No changes made.")
-		terminal.PrintSuccess("✅ Configuration editing completed (no changes).")
+		terminal.PrintSuccess("Configuration editing completed (no changes).")
 		return nil
 	}
 
 	// Confirm changes
 	if !terminal.AskYesNo("Save these changes?", true) {
-		terminal.PrintWarning("❌ Changes cancelled.")
+		terminal.PrintWarning("Changes cancelled.")
 		return nil
 	}
 
@@ -123,13 +101,12 @@ func (p *Processor) editSpecificConfig(filePath string) error {
 
 // displayCurrentConfig shows the current configuration
 func (p *Processor) displayCurrentConfig(filePath string, dbConfig *config.EncryptedDatabaseConfig) {
-	fmt.Println("🔧 Current Database Configuration:")
-	fmt.Println("==================================")
-	fmt.Printf("📁 Source: %s\n", filePath)
-	fmt.Printf("   Host: %s\n", dbConfig.Host)
-	fmt.Printf("   Port: %d\n", dbConfig.Port)
-	fmt.Printf("   User: %s\n", dbConfig.User)
-	fmt.Printf("   Password: %s\n", dbConfig.Password)
+	terminal.PrintSubHeader("Current Configuration:")
+	terminal.PrintInfo(fmt.Sprintf("📁 Source: %s", filePath))
+	terminal.PrintInfo(fmt.Sprintf("   Host: %s", dbConfig.Host))
+	terminal.PrintInfo(fmt.Sprintf("   Port: %d", dbConfig.Port))
+	terminal.PrintInfo(fmt.Sprintf("   User: %s", dbConfig.User))
+	terminal.PrintInfo(fmt.Sprintf("   Password: %s", dbConfig.Password))
 }
 
 // extractConfigName extracts configuration name from file path
@@ -144,21 +121,20 @@ func (p *Processor) extractConfigName(filePath string) string {
 
 // promptForUpdates prompts user for configuration updates
 func (p *Processor) promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, currentName string) (*config.EncryptedDatabaseConfig, string, bool, error) {
-	fmt.Println("\n✏️  Edit Configuration:")
-	fmt.Println("========================")
-	fmt.Println("Press Enter to keep current value, or type new value:")
+	terminal.PrintSubHeader("Edit Configuration:")
+	terminal.PrintInfo("Press Enter to keep current value, or type new value:")
 
 	// Edit configuration name
-	newName := terminal.AskString(fmt.Sprintf("Configuration name"), currentName)
+	newName := terminal.AskString("Configuration name", currentName)
 
 	// Edit host
-	newHost := terminal.AskString(fmt.Sprintf("Host"), dbConfig.Host)
+	newHost := terminal.AskString("Host", dbConfig.Host)
 
 	// Edit port
 	newPort := p.promptForPort(dbConfig.Port)
 
 	// Edit user
-	newUser := terminal.AskString(fmt.Sprintf("User"), dbConfig.User)
+	newUser := terminal.AskString("User", dbConfig.User)
 
 	// Edit password
 	newPassword := terminal.AskString("Password", dbConfig.Password)
@@ -171,6 +147,8 @@ func (p *Processor) promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, c
 		Password: newPassword,
 	}
 
+	terminal.Clear()
+	terminal.PrintHeader("Edit Database Configuration")
 	// Display changes summary and check for changes
 	hasChanges := p.displayChangesSummary(dbConfig, updatedConfig, currentName, newName)
 
@@ -313,6 +291,6 @@ func (p *Processor) saveInPlace(originalPath string, encryptedData []byte) error
 		return fmt.Errorf("failed to write encrypted config file: %v", err)
 	}
 
-	terminal.PrintSuccess(fmt.Sprintf("✅ Configuration updated: %s", originalPath))
+	terminal.PrintSuccess(fmt.Sprintf("Configuration updated: %s", originalPath))
 	return nil
 }

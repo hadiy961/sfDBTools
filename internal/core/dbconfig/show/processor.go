@@ -3,6 +3,7 @@ package show
 import (
 	"fmt"
 
+	"sfDBTools/internal/config"
 	coredbconfig "sfDBTools/internal/core/dbconfig"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
@@ -59,13 +60,19 @@ func (p *Processor) showSpecificConfig(filePath string) error {
 	if err := p.configHelper.ValidateConfigExists(filePath); err != nil {
 		return fmt.Errorf("invalid config file: %w", err)
 	}
-
-	// Load decrypted configuration
-	dbConfig, err := p.configHelper.LoadDecryptedConfig(filePath, "view the configuration")
+	terminal.ClearAndShowHeader("Show Database Configuration")
+	// Get encryption password
+	encryptionPassword, err := p.GetEncryptionPassword("view the configuration")
 	if err != nil {
 		return err
 	}
 
+	// Load decrypted configuration
+	dbConfig, err := p.configHelper.LoadDecryptedConfig(filePath, encryptionPassword)
+	if err != nil {
+		return err
+	}
+	terminal.Clear()
 	// Display configuration with enhanced formatting
 	configName := p.configHelper.GetConfigNameFromPath(filePath)
 	err = p.configHelper.DisplayConfigDetails(configName, filePath)
@@ -89,11 +96,9 @@ func (p *Processor) showSpecificConfig(filePath string) error {
 }
 
 // displayDatabaseDetails shows database connection details in a formatted way
-func (p *Processor) displayDatabaseDetails(dbConfig interface{}) {
+func (p *Processor) displayDatabaseDetails(dbConfig *config.EncryptedDatabaseConfig) {
 	terminal.PrintSubHeader("🗄️ Database Connection Details")
-
-	// Type assertion to get the config fields
-	// This assumes the config has Host, Port, User fields
-	// We'll use reflection or interface methods if needed
-	terminal.PrintInfo("Database configuration loaded successfully")
+	terminal.PrintInfo(fmt.Sprintf("📁 Host: %s", dbConfig.Host))
+	terminal.PrintInfo(fmt.Sprintf("🔌 Port: %d", dbConfig.Port))
+	terminal.PrintInfo(fmt.Sprintf("👤 User: %s", dbConfig.User))
 }

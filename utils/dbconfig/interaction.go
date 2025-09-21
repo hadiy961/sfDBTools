@@ -27,7 +27,7 @@ func ConfirmDeletion(deletionType DeletionType, items []string) bool {
 		message = "Are you sure you want to proceed with this deletion?"
 	}
 
-	terminal.PrintWarning("⚠️ " + message)
+	terminal.PrintWarning(message)
 	if deletionType == DeletionAll {
 		terminal.PrintError("This will permanently delete all database configurations!")
 	}

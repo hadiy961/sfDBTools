@@ -11,7 +11,7 @@ import (
 
 // DisplayConfigDetails shows configuration file details
 func DisplayConfigDetails(configName, configPath string) error {
-	terminal.PrintHeader(fmt.Sprintf("📋 Configuration Details: %s", configName))
+	terminal.PrintHeader(fmt.Sprintf(" Configuration Details: %s", configName))
 
 	// File information
 	if stat, err := os.Stat(configPath); err == nil {
@@ -137,16 +137,16 @@ func DisplayValidationResults(result *ValidationResult, serverVersion string) {
 	}
 
 	if serverVersion != "" {
-		terminal.PrintInfo(fmt.Sprintf("\n🗃️ Server Version: %s", serverVersion))
+		terminal.PrintInfo(fmt.Sprintf("\n Server Version: %s", serverVersion))
 	}
 }
 
 // DisplayDeleteSummary shows summary of delete operation
 func DisplayDeleteSummary(result *DeleteResult) {
-	terminal.PrintSubHeader("📊 Delete Operation Summary")
+	terminal.PrintSubHeader(" Delete Operation Summary")
 
 	if result.DeletedCount > 0 {
-		terminal.PrintSuccess(fmt.Sprintf("✅ Successfully deleted %d configuration(s)", result.DeletedCount))
+		terminal.PrintSuccess(fmt.Sprintf("Successfully deleted %d configuration(s)", result.DeletedCount))
 
 		if len(result.DeletedFiles) > 0 {
 			terminal.PrintInfo("\nDeleted files:")

@@ -63,9 +63,9 @@ func (p *Processor) deleteValidatedPaths(paths []string, kind dbconfig.DeletionT
 	fileManager := p.configHelper.GetFileManager()
 
 	names := p.namesFromPaths(paths)
-	title := "📁 Files to be deleted:"
+	title := " Files to be deleted:"
 	if kind == dbconfig.DeletionAll {
-		title = fmt.Sprintf("📁 All Configuration Files (%d found):", len(paths))
+		title = fmt.Sprintf("All Configuration Files (%d found):", len(paths))
 	}
 
 	if !p.confirmList(title, names, kind, force) {

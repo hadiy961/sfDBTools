@@ -1,9 +1,7 @@
 package dbconfig_cmd
 
 import (
-	"fmt"
 	"os"
-	"time"
 
 	"sfDBTools/internal/core/dbconfig/generate"
 	"sfDBTools/internal/logger"
@@ -32,19 +30,6 @@ If environment variables are not set, you will be prompted interactively.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Clear screen and show header
 		terminal.ClearAndShowHeader("Generate database configuration")
-
-		// Show generation info
-		terminal.PrintSubHeader("Configuration generation")
-		terminal.PrintInfo("This will create an encrypted database configuration file.")
-		terminal.PrintInfo("You'll be prompted for database connection details.")
-		fmt.Println()
-
-		// Show spinner while preparing
-		spinner := terminal.NewProgressSpinner("Preparing configuration generator...")
-		spinner.Start()
-		time.Sleep(500 * time.Millisecond)
-		spinner.Stop()
-		fmt.Println()
 
 		if err := executeGenerate(cmd); err != nil {
 			lg, _ := logger.Get()

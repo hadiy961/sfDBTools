@@ -104,7 +104,7 @@ func performBackup(options backup_utils.BackupOptions, outputFile string) error 
 func getOptimizedMysqldumpArgs(options backup_utils.BackupOptions) []string {
 	cfg, err := config.Get()
 	lg, _ := logger.Get()
-	if err != nil || cfg == nil || cfg.Mysqldump.Args == "" {
+	if err != nil || cfg == nil || cfg.Backup.MysqldumpArgs == "" {
 		lg.Fatal("Config/Mysqldump args is required but not found", logger.Error(err))
 		return nil
 	}

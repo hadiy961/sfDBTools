@@ -11,9 +11,6 @@ import (
 
 // processInteractiveMode handles interactive generation
 func (p *Processor) processInteractiveMode() error {
-	terminal.PrintSubHeader("Interactive configuration generator")
-	terminal.PrintInfo("Please provide database connection details:")
-
 	// Get configuration details from user
 	inputConfig, err := dbconfig.PromptDatabaseConfig()
 	if err != nil {
@@ -70,6 +67,7 @@ func (p *Processor) processInteractiveMode() error {
 		IsValid:      true,
 	}
 
+	terminal.Clear()
 	dbconfig.DisplayConfigSummary([]*dbconfig.ConfigInfo{configInfo})
 
 	// Confirm save

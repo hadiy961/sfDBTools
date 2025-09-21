@@ -135,23 +135,23 @@ func ValidateConfigStructure(content string) (*ValidationResult, error) {
 
 // DisplayValidationResult shows validation result in formatted way
 func DisplayValidationResult(result *ValidationResult) {
-	terminal.PrintSubHeader(fmt.Sprintf("🔍 Validation Results: %s", result.ConfigName))
+	terminal.PrintSubHeader(fmt.Sprintf("Validation Results: %s", result.ConfigName))
 
 	if result.IsValid {
-		terminal.PrintSuccess("✅ Configuration is valid")
+		terminal.PrintSuccess("Configuration is valid")
 	} else {
-		terminal.PrintError("❌ Configuration has errors")
+		terminal.PrintError("Configuration has errors")
 	}
 
 	// Display test results
 	if len(result.TestResults) > 0 {
-		terminal.PrintInfo("\n📋 Test Results:")
+		terminal.PrintInfo("\nTest Results:")
 
 		testData := [][]string{}
 		for test, passed := range result.TestResults {
-			status := "❌ Failed"
+			status := "Failed"
 			if passed {
-				status = "✅ Passed"
+				status = "Passed"
 			}
 			testData = append(testData, []string{formatTestName(test), status})
 		}
@@ -162,7 +162,7 @@ func DisplayValidationResult(result *ValidationResult) {
 
 	// Display errors
 	if len(result.Errors) > 0 {
-		terminal.PrintError("\n🚨 Errors:")
+		terminal.PrintError("\nErrors:")
 		for i, err := range result.Errors {
 			terminal.PrintError(fmt.Sprintf("  %d. %s", i+1, err))
 		}
@@ -170,7 +170,7 @@ func DisplayValidationResult(result *ValidationResult) {
 
 	// Display warnings
 	if len(result.Warnings) > 0 {
-		terminal.PrintWarning("\n⚠️ Warnings:")
+		terminal.PrintWarning("\nWarnings:")
 		for i, warning := range result.Warnings {
 			terminal.PrintWarning(fmt.Sprintf("  %d. %s", i+1, warning))
 		}
