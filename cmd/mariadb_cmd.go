@@ -29,7 +29,7 @@ All database configurations are stored in encrypted format for security.`,
 
 func init() {
 	rootCmd.AddCommand(MariaDBCmd)
-	MariaDBCmd.AddCommand(mariadb_cmd.CheckVersionCmd)
+	MariaDBCmd.AddCommand(mariadb_cmd.Check)
 	MariaDBCmd.AddCommand(mariadb_cmd.ConfigureMariadbCMD)
 	MariaDBCmd.AddCommand(mariadb_cmd.InstallCmd)
 	MariaDBCmd.AddCommand(mariadb_cmd.RemoveCmd)
