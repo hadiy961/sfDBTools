@@ -25,18 +25,18 @@ func PerformDataMigrationWithInstallation(ctx context.Context, config *mariadb_c
 	needsMigration := false
 	migrations := []DataMigration{}
 
+	currentLogDir := filepath.Clean(installation.LogDir)
+	targetLogDir := filepath.Clean(config.LogDir)
+	if currentLogDir != targetLogDir {
+		migrations = append(migrations, DataMigration{Type: "logs", Source: currentLogDir, Destination: targetLogDir, Critical: false})
+		needsMigration = true
+	}
+
 	// Clean paths to avoid false positives due to trailing slashes or relative segments
 	currentDataDir := filepath.Clean(installation.DataDir)
 	targetDataDir := filepath.Clean(config.DataDir)
 	if currentDataDir != targetDataDir {
 		migrations = append(migrations, DataMigration{Type: "data", Source: currentDataDir, Destination: targetDataDir, Critical: true})
-		needsMigration = true
-	}
-
-	currentLogDir := filepath.Clean(installation.LogDir)
-	targetLogDir := filepath.Clean(config.LogDir)
-	if currentLogDir != targetLogDir {
-		migrations = append(migrations, DataMigration{Type: "logs", Source: currentLogDir, Destination: targetLogDir, Critical: false})
 		needsMigration = true
 	}
 

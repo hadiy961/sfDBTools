@@ -144,7 +144,6 @@ type MariaDBConfig struct {
 	LogDir              string `mapstructure:"log_dir"`
 	BinlogDir           string `mapstructure:"binlog_dir"`
 	Port                int    `mapstructure:"port"`
-	SocketPath          string `mapstructure:"socket_path"`
 	InnodbEncryptTables bool   `mapstructure:"innodb_encrypt_tables"`
 	EncryptionKeyFile   string `mapstructure:"encryption_key_file"`
 	ConfigDir           string `mapstructure:"config_dir"`
