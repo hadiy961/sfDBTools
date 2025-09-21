@@ -62,12 +62,12 @@ log:
             tag: sfDBTools
     timezone: Asia/Jakarta
 mariadb:
-    binlog_dir: /mnt/nfs/mariadb/binlog
+    binlog_dir: /var/lib/mysqlbinlogs
     config_dir: /etc/my.cnf.d/server.cnf
-    data_dir: /mnt/nfs/mariadb/data
+    data_dir: /var/lib/mysql
     encryption_key_file: /etc/sfDBTools/key_maria_nbc.txt
     innodb_encrypt_tables: false
-    log_dir: /mnt/nfs/mariadb/log
+    log_dir: /var/lib/mysql
     port: 3306
     server_id: 1
     socket_path: /var/run/mysqld/mysqld.sock

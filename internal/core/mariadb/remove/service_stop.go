@@ -9,7 +9,7 @@ import (
 func stopMariaDBService(deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.SafePrintln("🛑 Menghentikan service MariaDB...")
+	terminal.PrintSubHeader("🛑 Menghentikan & mendisable service MariaDB...")
 
 	serviceName := "mariadb"
 
@@ -18,35 +18,35 @@ func stopMariaDBService(deps *Dependencies) error {
 		// Stop service
 		if err := deps.ServiceManager.Stop(serviceName); err != nil {
 			lg.Warn("Gagal menghentikan service MariaDB", logger.Error(err))
-			// Tidak return error karena mungkin service sudah mati
+			warn("Gagal menghentikan service MariaDB, melanjutkan cleanup")
 		} else {
-			terminal.SafePrintln("   ✓ Service MariaDB dihentikan")
+			success("Service MariaDB dihentikan")
 		}
 	} else {
-		terminal.SafePrintln("   ℹ Service MariaDB sudah tidak aktif")
+		info("Service MariaDB sudah tidak aktif")
 	}
 
 	// Disable service agar tidak auto-start
 	if err := deps.ServiceManager.Disable(serviceName); err != nil {
 		lg.Warn("Gagal mendisable service MariaDB", logger.Error(err))
-		// Tidak return error karena mungkin service sudah disabled
+		warn("Gagal mendisable service MariaDB")
 	} else {
-		terminal.SafePrintln("   ✓ Service MariaDB didisable")
+		success("Service MariaDB didisable")
 	}
 
 	// Kill proses yang mungkin masih berjalan
 	if err := killMariaDBProcesses(deps); err != nil {
 		lg.Warn("Gagal kill proses MariaDB", logger.Error(err))
-		// Tidak return error karena proses mungkin sudah mati
+		warn("Gagal menghentikan beberapa proses MariaDB")
 	}
 
-	lg.Info("Service MariaDB berhasil dihentikan dan didisable")
 	return nil
 }
 
 // killMariaDBProcesses membunuh proses MariaDB yang mungkin masih berjalan
 func killMariaDBProcesses(deps *Dependencies) error {
-	terminal.SafePrintln("   🔫 Menghentikan proses MariaDB yang masih berjalan...")
+
+	terminal.PrintSubHeader("🔫 Menghentikan proses MariaDB yang masih berjalan...")
 
 	// Cari proses mysqld
 	processes := []string{"mysqld", "mariadbd", "mysql"}
@@ -60,6 +60,6 @@ func killMariaDBProcesses(deps *Dependencies) error {
 		}
 	}
 
-	terminal.SafePrintln("   ✓ Proses MariaDB dihentikan")
+	success("Proses MariaDB dihentikan")
 	return nil
 }

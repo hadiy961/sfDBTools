@@ -38,12 +38,12 @@ func cleanupSystem(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) 
 
 // removeMySQLUser menghapus user mysql dari sistem
 func removeMySQLUser(deps *Dependencies) error {
-	terminal.SafePrintln("👤 Menghapus user mysql dari sistem...")
+	terminal.PrintSubHeader("👤 Menghapus user mysql dari sistem...")
 
 	// Cek apakah user mysql ada
 	_, err := deps.ProcessManager.ExecuteWithOutput("id", []string{"mysql"})
 	if err != nil {
-		terminal.SafePrintln("   ℹ User mysql tidak ditemukan")
+		info("ℹ User mysql tidak ditemukan")
 		return nil
 	}
 
@@ -55,13 +55,13 @@ func removeMySQLUser(deps *Dependencies) error {
 		}
 	}
 
-	terminal.SafePrintln("   ✓ User mysql berhasil dihapus")
+	success("User mysql berhasil dihapus")
 	return nil
 }
 
 // cleanupLogFiles menghapus file-file log MariaDB
 func cleanupLogFiles() error {
-	terminal.SafePrintln("🧹 Membersihkan log files...")
+	terminal.PrintSubHeader("🧹 Membersihkan log files...")
 
 	logPaths := []string{
 		"/var/log/mysql",
@@ -81,11 +81,11 @@ func cleanupLogFiles() error {
 			continue // Skip error, tidak critical
 		}
 
-		terminal.SafePrintln("   🗂️  Menghapus log: " + path)
+		info("🗂️  Menghapus log: " + path)
 		if err := os.RemoveAll(path); err != nil {
-			terminal.SafePrintln("   ⚠️  Gagal menghapus: " + path)
+			warn("Gagal menghapus: " + path)
 		} else {
-			terminal.SafePrintln("   ✓ Dihapus: " + path)
+			success("Dihapus: " + path)
 		}
 	}
 
@@ -94,7 +94,7 @@ func cleanupLogFiles() error {
 
 // cleanupTempFiles menghapus file-file temporary MariaDB
 func cleanupTempFiles() error {
-	terminal.SafePrintln("🧹 Membersihkan temp files...")
+	terminal.PrintSubHeader("🧹 Membersihkan temp files...")
 
 	tempPaths := []string{
 		"/tmp/mysql.sock",
@@ -114,11 +114,11 @@ func cleanupTempFiles() error {
 			continue // Skip error, tidak critical
 		}
 
-		terminal.SafePrintln("   🗂️  Menghapus temp: " + path)
+		info("🗂️  Menghapus temp: " + path)
 		if err := os.RemoveAll(path); err != nil {
-			terminal.SafePrintln("   ⚠️  Gagal menghapus: " + path)
+			warn("Gagal menghapus: " + path)
 		} else {
-			terminal.SafePrintln("   ✓ Dihapus: " + path)
+			success("Dihapus: " + path)
 		}
 	}
 
@@ -127,7 +127,7 @@ func cleanupTempFiles() error {
 
 // verifyRemoval memverifikasi bahwa penghapusan berhasil
 func verifyRemoval(deps *Dependencies) error {
-	terminal.SafePrintln("✅ Memverifikasi penghapusan...")
+	terminal.PrintSubHeader("✅ Memverifikasi penghapusan...")
 
 	// Cek apakah masih ada paket yang terinstall
 	packages, err := getMariaDBPackageList()
@@ -143,9 +143,9 @@ func verifyRemoval(deps *Dependencies) error {
 	}
 
 	if len(stillInstalled) > 0 {
-		terminal.SafePrintln("   ⚠️  Masih ada paket yang terinstall:")
+		warn("Masih ada paket yang terinstall:")
 		for _, pkg := range stillInstalled {
-			terminal.SafePrintln("      - " + pkg)
+			info("- " + pkg)
 		}
 		return fmt.Errorf("penghapusan tidak lengkap, masih ada %d paket terinstall", len(stillInstalled))
 	}
@@ -157,48 +157,15 @@ func verifyRemoval(deps *Dependencies) error {
 
 	// Cek apakah masih ada proses yang berjalan
 	if isMariaDBProcessRunning(deps) {
-		terminal.SafePrintln("   ⚠️  Masih ada proses MariaDB yang berjalan")
+		warn("Masih ada proses MariaDB yang berjalan")
 		return fmt.Errorf("masih ada proses MariaDB yang berjalan")
 	}
 
-	terminal.SafePrintln("   ✓ Tidak ada paket MariaDB yang terinstall")
-	terminal.SafePrintln("   ✓ Tidak ada service MariaDB yang aktif")
-	terminal.SafePrintln("   ✓ Tidak ada proses MariaDB yang berjalan")
+	success("Tidak ada paket MariaDB yang terinstall")
+	success("Tidak ada service MariaDB yang aktif")
+	success("Tidak ada proses MariaDB yang berjalan")
 
 	return nil
-}
-
-// displayRemovalSuccess menampilkan pesan sukses penghapusan
-func displayRemovalSuccess(cfg *mariadb_config.MariaDBRemoveConfig) {
-	terminal.SafePrintln("\n🎉 Penghapusan MariaDB berhasil!")
-	terminal.SafePrintln("=====================================")
-
-	terminal.SafePrintln("Yang telah dihapus:")
-	terminal.SafePrintln("✓ Paket MariaDB server dan client")
-
-	if cfg.RemoveData {
-		terminal.SafePrintln("✓ Data directory (/var/lib/mysql)")
-	}
-
-	if cfg.RemoveConfig {
-		terminal.SafePrintln("✓ File konfigurasi")
-	}
-
-	if cfg.RemoveRepository {
-		terminal.SafePrintln("✓ Repository MariaDB")
-	}
-
-	if cfg.RemoveUser {
-		terminal.SafePrintln("✓ User sistem 'mysql'")
-	}
-
-	if cfg.BackupData {
-		terminal.SafePrintln("\n📋 Backup data tersedia di: " + cfg.BackupPath)
-	}
-
-	terminal.SafePrintln("\n📝 Sistem telah dibersihkan dari MariaDB")
-	terminal.SafePrintln("   Anda dapat menginstall MariaDB lagi jika diperlukan")
-	terminal.SafePrintln("")
 }
 
 // isMariaDBProcessRunning mengecek apakah masih ada proses MariaDB yang berjalan

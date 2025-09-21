@@ -3,6 +3,7 @@ package remove
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"sfDBTools/internal/logger"
@@ -14,7 +15,7 @@ import (
 func preRemovalChecks(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.SafePrintln("🔍 Melakukan pemeriksaan sistem untuk penghapusan...")
+	terminal.PrintSubHeader("🔍 Melakukan pemeriksaan sistem untuk penghapusan...")
 
 	// Cek hak akses root
 	if !isRunningAsRoot() {
@@ -29,21 +30,14 @@ func preRemovalChecks(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencie
 	// Deteksi versi yang terinstall untuk informasi
 	installedVersion := getInstalledMariaDBVersion(deps)
 	if installedVersion != "" {
-		terminal.SafePrintln("📋 MariaDB terdeteksi:")
-		terminal.SafePrintln("   Versi: " + installedVersion)
+		listHeader("📋 MariaDB terdeteksi:")
+		infof("Versi: %s", installedVersion)
 	}
 
 	// Cek status service
 	if deps.ServiceManager.IsActive("mariadb") {
-		terminal.SafePrintln("⚠️  Service MariaDB sedang berjalan")
-		terminal.SafePrintln("   Status: Akan dihentikan sebagai bagian dari proses penghapusan")
-	}
-
-	// Cek direktori data jika akan dihapus
-	if cfg.RemoveData {
-		if err := checkDataDirectories(); err != nil {
-			return fmt.Errorf("pemeriksaan direktori data gagal: %w", err)
-		}
+		warn("Service MariaDB sedang berjalan")
+		info("Status: Akan dihentikan sebagai bagian dari proses penghapusan")
 	}
 
 	lg.Info("Pre-removal checks berhasil")
@@ -57,54 +51,73 @@ func confirmRemoval(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies)
 		return nil
 	}
 
-	terminal.SafePrintln("\n⚠️  PERINGATAN: Penghapusan MariaDB")
-	terminal.SafePrintln("=====================================")
-
-	// Tampilkan apa yang akan dihapus
-	terminal.SafePrintln("Yang akan dihapus:")
-	terminal.SafePrintln("✓ Paket MariaDB server dan client")
+	// Show concise confirmation block
+	terminal.PrintSubHeader("⚠️  Konfirmasi Penghapusan ⚠️")
+	listHeader("Yang akan dihapus:")
+	info("✓ Paket MariaDB server dan client")
 
 	if cfg.RemoveData {
-		terminal.SafePrintln("✓ Data directory - SEMUA DATABASE AKAN HILANG!")
+		info("✓ Data directory - SEMUA DATABASE AKAN HILANG!")
 
 		// Deteksi dan tampilkan direktori custom yang akan dihapus
-		if mariadbConfig, err := detectCustomDirectories(); err == nil {
+		if mariadbConfig := getDetectedConfig(deps); mariadbConfig != nil {
 			customDirs := getAllCustomDirectories(mariadbConfig)
 			if len(customDirs) > 0 {
-				terminal.SafePrintln("   📂 Direktori yang akan dihapus:")
+				info("📂 Direktori yang akan dihapus:")
+
+				// Default placeholder directories that we shouldn't show if they don't exist
+				defaults := map[string]bool{
+					"/var/lib/mysql": true,
+					"/var/log/mysql": true,
+				}
+
 				for _, dir := range customDirs {
-					if _, err := os.Stat(dir); err == nil {
-						terminal.SafePrintln("      - " + dir)
+					// Normalize to absolute path for reliable comparisons
+					absDir := dir
+					if p, err := filepath.Abs(dir); err == nil {
+						absDir = p
+					}
+
+					// If this dir is a default placeholder and is absent, skip it to reduce noise
+					if defaults[absDir] {
+						if _, err := os.Stat(absDir); os.IsNotExist(err) {
+							// skip showing default placeholder that doesn't exist
+							continue
+						}
+					}
+
+					// Show directory; if missing, annotate
+					if _, err := os.Stat(absDir); err == nil {
+						info("- " + absDir)
+					} else {
+						info("- " + absDir + " (tidak ditemukan)")
 					}
 				}
 			}
 		} else {
-			terminal.SafePrintln("   📂 Direktori default: /var/lib/mysql")
+			info("📂 Direktori default: /var/lib/mysql")
 		}
 	}
 
 	if cfg.RemoveConfig {
-		terminal.SafePrintln("✓ File konfigurasi (/etc/mysql, /etc/my.cnf)")
+		info("✓ File konfigurasi (/etc/mysql, /etc/my.cnf)")
 	}
 
 	if cfg.RemoveRepository {
-		terminal.SafePrintln("✓ Repository MariaDB")
+		info("✓ Repository MariaDB")
 	}
 
 	if cfg.RemoveUser {
-		terminal.SafePrintln("✓ User sistem 'mysql'")
+		info("✓ User sistem 'mysql'")
 	}
 
 	if cfg.BackupData {
-		terminal.SafePrintln("\n📋 Backup data akan dibuat di: " + cfg.BackupPath)
+		infof("Backup data akan dibuat di: %s", cfg.BackupPath)
 	}
 
-	terminal.SafePrintln("\n💥 PERHATIAN:")
-	terminal.SafePrintln("   - Proses ini TIDAK DAPAT DIBATALKAN")
-	terminal.SafePrintln("   - Pastikan Anda sudah backup data penting")
-	terminal.SafePrintln("   - Semua koneksi database akan terputus")
+	warn("PERHATIAN: Proses ini TIDAK DAPAT DIBATALKAN. Ketik 'HAPUS' untuk melanjutkan.")
 
-	fmt.Print("\nApakah Anda yakin ingin melanjutkan? Ketik 'HAPUS' untuk konfirmasi: ")
+	fmt.Print("\nKonfirmasi: ")
 
 	var response string
 	fmt.Scanln(&response)
@@ -179,37 +192,30 @@ func checkDataDirectory() error {
 
 	// Cek ukuran direktori untuk peringatan
 	// Ini adalah implementasi sederhana, bisa diperluas
-	terminal.SafePrintln("⚠️  Direktori data ditemukan: " + dataDir)
+	warn("Direktori data ditemukan: " + dataDir)
 
 	return nil
 }
 
-func checkDataDirectories() error {
-	// Deteksi direktori custom dari konfigurasi
-	mariadbConfig, err := detectCustomDirectories()
-	if err != nil {
-		terminal.SafePrintln("⚠️  Gagal deteksi direktori custom, akan cek direktori default")
-		return checkDataDirectory()
-	}
+// func checkDataDirectories() error {
+// 	// Deteksi direktori custom dari konfigurasi
+// 	mariadbConfig, err := detectCustomDirectories()
+// 	if err != nil {
+// 		warn("Gagal deteksi direktori custom, akan cek direktori default")
+// 		return checkDataDirectory()
+// 	}
 
-	// Cek semua direktori yang terdeteksi
-	customDirs := getAllCustomDirectories(mariadbConfig)
+// 	// Cek semua direktori yang terdeteksi
+// 	customDirs := getAllCustomDirectories(mariadbConfig)
 
-	terminal.SafePrintln("📂 Direktori yang akan dihapus:")
-	foundDirs := 0
+// 	foundDirs := 0
 
-	for _, dir := range customDirs {
-		if _, err := os.Stat(dir); err == nil {
-			terminal.SafePrintln("   ✓ " + dir)
-			foundDirs++
-		}
-	}
+// 	for _, dir := range customDirs {
+// 		if _, err := os.Stat(dir); err == nil {
+// 			success("" + dir)
+// 			foundDirs++
+// 		}
+// 	}
 
-	if foundDirs == 0 {
-		terminal.SafePrintln("   ℹ Tidak ada direktori data yang ditemukan")
-	} else {
-		terminal.SafePrintln(fmt.Sprintf("   📊 Total: %d direktori akan dihapus", foundDirs))
-	}
-
-	return nil
-}
+// 	return nil
+// }

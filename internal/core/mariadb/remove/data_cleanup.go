@@ -19,17 +19,15 @@ func handleDataBackup(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencie
 	}
 
 	lg, _ := logger.Get()
-	terminal.SafePrintln("💾 Membuat backup data MariaDB...")
+	info("💾 Membuat backup data MariaDB...")
 
 	// Deteksi direktori custom dari konfigurasi
-	mariadbConfig, err := detectCustomDirectories()
-	if err != nil {
-		lg.Warn("Gagal deteksi direktori custom untuk backup, menggunakan default", logger.Error(err))
-		// Fallback ke backup direktori default
+	mariadbConfig := getDetectedConfig(deps)
+	if mariadbConfig == nil {
+		lg.Warn("Gagal deteksi direktori custom untuk backup, menggunakan default")
 		return backupDefaultDataDirectory(cfg, deps)
 	}
 
-	// Backup semua direktori custom yang terdeteksi
 	return backupCustomDataDirectories(cfg, deps, mariadbConfig)
 }
 
@@ -39,7 +37,7 @@ func backupDefaultDataDirectory(cfg *mariadb_config.MariaDBRemoveConfig, deps *D
 
 	// Cek apakah data directory ada
 	if _, err := os.Stat(dataDir); os.IsNotExist(err) {
-		terminal.SafePrintln("   ℹ Direktori data tidak ditemukan, skip backup")
+		info("ℹ Direktori data tidak ditemukan, skip backup")
 		return nil
 	}
 
@@ -51,14 +49,14 @@ func backupDefaultDataDirectory(cfg *mariadb_config.MariaDBRemoveConfig, deps *D
 		return fmt.Errorf("gagal membuat direktori backup: %w", err)
 	}
 
-	terminal.SafePrintln("   📁 Direktori backup: " + backupDir)
+	infof("📁 Direktori backup: %s", backupDir)
 
 	// Copy data directory
 	if err := copyDirectory(deps, dataDir, filepath.Join(backupDir, "mysql")); err != nil {
 		return fmt.Errorf("gagal backup data: %w", err)
 	}
 
-	terminal.SafePrintln("   ✓ Backup data berhasil")
+	success("Backup data berhasil")
 	return nil
 }
 
@@ -74,7 +72,7 @@ func backupCustomDataDirectories(cfg *mariadb_config.MariaDBRemoveConfig, deps *
 		return fmt.Errorf("gagal membuat direktori backup: %w", err)
 	}
 
-	terminal.SafePrintln("   📁 Direktori backup: " + backupDir)
+	infof("📁 Direktori backup: %s", backupDir)
 
 	// Backup direktori data utama
 	if _, err := os.Stat(config.DataDir); err == nil {
@@ -82,7 +80,7 @@ func backupCustomDataDirectories(cfg *mariadb_config.MariaDBRemoveConfig, deps *
 		if err := copyDirectory(deps, config.DataDir, destDir); err != nil {
 			return fmt.Errorf("gagal backup data directory: %w", err)
 		}
-		terminal.SafePrintln("   ✓ Backup data directory: " + config.DataDir)
+		success("Backup data directory: " + config.DataDir)
 	}
 
 	// Backup direktori InnoDB jika berbeda
@@ -92,7 +90,7 @@ func backupCustomDataDirectories(cfg *mariadb_config.MariaDBRemoveConfig, deps *
 			if err := copyDirectory(deps, config.InnoDBDir, destDir); err != nil {
 				lg.Warn("Gagal backup InnoDB directory", logger.Error(err))
 			} else {
-				terminal.SafePrintln("   ✓ Backup InnoDB directory: " + config.InnoDBDir)
+				success("Backup InnoDB directory: " + config.InnoDBDir)
 			}
 		}
 	}
@@ -104,7 +102,7 @@ func backupCustomDataDirectories(cfg *mariadb_config.MariaDBRemoveConfig, deps *
 			if err := copyDirectory(deps, config.BinlogDir, destDir); err != nil {
 				lg.Warn("Gagal backup binlog directory", logger.Error(err))
 			} else {
-				terminal.SafePrintln("   ✓ Backup binlog directory: " + config.BinlogDir)
+				success("Backup binlog directory: " + config.BinlogDir)
 			}
 		}
 	}
@@ -120,14 +118,14 @@ func backupCustomDataDirectories(cfg *mariadb_config.MariaDBRemoveConfig, deps *
 					if err := copyFile(logFile, destFile); err != nil {
 						lg.Warn("Gagal backup log file", logger.String("file", logFile), logger.Error(err))
 					} else {
-						terminal.SafePrintln("   ✓ Backup log file: " + logFile)
+						success("Backup log file: " + logFile)
 					}
 				}
 			}
 		}
 	}
 
-	terminal.SafePrintln("   ✓ Backup data berhasil")
+	success("Backup data berhasil")
 	lg.Info("Backup data MariaDB berhasil", logger.String("backup_path", backupDir))
 
 	return nil
@@ -157,15 +155,13 @@ func removeDataAndConfig(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependen
 
 	if cfg.RemoveData {
 		// Deteksi direktori custom dari konfigurasi
-		mariadbConfig, err := detectCustomDirectories()
-		if err != nil {
-			lg.Warn("Gagal deteksi direktori custom, menggunakan default", logger.Error(err))
-			// Fallback ke penghapusan direktori default
+		mariadbConfig := getDetectedConfig(deps)
+		if mariadbConfig == nil {
+			lg.Warn("Gagal deteksi direktori custom, menggunakan default")
 			if err := removeDefaultDataDirectories(); err != nil {
 				return fmt.Errorf("gagal menghapus data directory: %w", err)
 			}
 		} else {
-			// Hapus direktori berdasarkan konfigurasi yang terdeteksi
 			if err := removeCustomDataDirectories(mariadbConfig); err != nil {
 				return fmt.Errorf("gagal menghapus data directory custom: %w", err)
 			}
@@ -185,7 +181,7 @@ func removeDataAndConfig(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependen
 
 // removeDefaultDataDirectories menghapus direktori data default MariaDB
 func removeDefaultDataDirectories() error {
-	terminal.SafePrintln("🗑️  Menghapus data directory MariaDB (default)...")
+	info("🗑️  Menghapus data directory MariaDB (default)...")
 
 	dataDirs := []string{
 		"/var/lib/mysql",
@@ -201,11 +197,11 @@ func removeDefaultDataDirectories() error {
 			return fmt.Errorf("tidak dapat mengakses direktori %s: %w", dir, err)
 		}
 
-		terminal.SafePrintln("   🗂️  Menghapus: " + dir)
+		info("🗂️  Menghapus: " + dir)
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("gagal menghapus direktori %s: %w", dir, err)
 		}
-		terminal.SafePrintln("   ✓ Dihapus: " + dir)
+		success("Dihapus: " + dir)
 	}
 
 	return nil
@@ -213,7 +209,7 @@ func removeDefaultDataDirectories() error {
 
 // removeCustomDataDirectories menghapus direktori berdasarkan konfigurasi yang terdeteksi
 func removeCustomDataDirectories(config *MariaDBConfig) error {
-	terminal.SafePrintln("🗑️  Menghapus data directory MariaDB (custom)...")
+	terminal.PrintSubHeader("🗑️  Menghapus data directory MariaDB (custom)...")
 
 	// Dapatkan semua direktori yang perlu dihapus
 	customDirs := getAllCustomDirectories(config)
@@ -228,11 +224,9 @@ func removeCustomDataDirectories(config *MariaDBConfig) error {
 			continue // Skip error, tidak critical untuk file individual
 		}
 
-		terminal.SafePrintln("   📄 Menghapus file: " + file)
+		info("📄 Menghapus file: " + file)
 		if err := os.Remove(file); err != nil {
-			terminal.SafePrintln("   ⚠️  Gagal menghapus file: " + file)
-		} else {
-			terminal.SafePrintln("   ✓ Dihapus file: " + file)
+			warn("Gagal menghapus file: " + file)
 		}
 	}
 
@@ -240,7 +234,7 @@ func removeCustomDataDirectories(config *MariaDBConfig) error {
 	for _, dir := range customDirs {
 		// Validasi keamanan direktori
 		if err := validateDirectoryForRemoval(dir); err != nil {
-			terminal.SafePrintln("   ⚠️  Skip direktori tidak aman: " + dir + " (" + err.Error() + ")")
+			warn("Skip direktori tidak aman: " + dir + " (" + err.Error() + ")")
 			continue
 		}
 
@@ -251,11 +245,11 @@ func removeCustomDataDirectories(config *MariaDBConfig) error {
 			return fmt.Errorf("tidak dapat mengakses direktori %s: %w", dir, err)
 		}
 
-		terminal.SafePrintln("   🗂️  Menghapus direktori: " + dir)
+		info("🗂️  Menghapus direktori: " + dir)
 		if err := os.RemoveAll(dir); err != nil {
 			return fmt.Errorf("gagal menghapus direktori %s: %w", dir, err)
 		}
-		terminal.SafePrintln("   ✓ Dihapus direktori: " + dir)
+		success("Dihapus direktori: " + dir)
 	}
 
 	return nil
@@ -263,7 +257,7 @@ func removeCustomDataDirectories(config *MariaDBConfig) error {
 
 // removeConfigFiles menghapus file-file konfigurasi MariaDB
 func removeConfigFiles() error {
-	terminal.SafePrintln("🗑️  Menghapus file konfigurasi MariaDB...")
+	terminal.PrintSubHeader("🗑️  Menghapus file konfigurasi MariaDB...")
 
 	configPaths := []string{
 		"/etc/mysql",
@@ -280,7 +274,7 @@ func removeConfigFiles() error {
 			// Handle wildcard path secara manual
 			if err := removeUserConfigFiles(); err != nil {
 				// Log warning tapi tidak return error
-				terminal.SafePrintln("   ⚠️  Gagal menghapus beberapa file config user")
+				warn("Gagal menghapus beberapa file config user")
 			}
 			continue
 		}
@@ -292,11 +286,11 @@ func removeConfigFiles() error {
 			return fmt.Errorf("tidak dapat mengakses %s: %w", path, err)
 		}
 
-		terminal.SafePrintln("   📄 Menghapus: " + path)
+		info("📄 Menghapus: " + path)
 		if err := os.RemoveAll(path); err != nil {
 			return fmt.Errorf("gagal menghapus %s: %w", path, err)
 		}
-		terminal.SafePrintln("   ✓ Dihapus: " + path)
+		success("Dihapus: " + path)
 	}
 
 	return nil
@@ -315,9 +309,9 @@ func removeUserConfigFiles() error {
 	for _, match := range matches {
 		if err := os.Remove(match); err != nil {
 			// Log tapi tidak return error
-			terminal.SafePrintln("   ⚠️  Gagal menghapus: " + match)
+			warn("Gagal menghapus: " + match)
 		} else {
-			terminal.SafePrintln("   ✓ Dihapus: " + match)
+			success("Dihapus: " + match)
 		}
 	}
 

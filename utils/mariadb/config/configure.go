@@ -63,7 +63,7 @@ func ResolveMariaDBConfigureConfig(cmd *cobra.Command) (*MariaDBConfigureConfig,
 		dataDir = val
 	}
 
-	logDir := appConfig.MariaDB.DataDir
+	logDir := appConfig.MariaDB.LogDir
 	if val, err := cmd.Flags().GetString("log-dir"); err == nil && cmd.Flags().Changed("log-dir") {
 		logDir = val
 	}

@@ -17,7 +17,7 @@ func removeMariaDBRepository(cfg *mariadb_config.MariaDBRemoveConfig, deps *Depe
 	}
 
 	lg, _ := logger.Get()
-	terminal.SafePrintln("🗑️  Menghapus repository MariaDB...")
+	terminal.PrintSubHeader("🗑️  Menghapus repository MariaDB...")
 
 	osInfo, err := system.DetectOS()
 	if err != nil {
@@ -34,7 +34,7 @@ func removeMariaDBRepository(cfg *mariadb_config.MariaDBRemoveConfig, deps *Depe
 			return fmt.Errorf("gagal menghapus repository RPM: %w", err)
 		}
 	default:
-		terminal.SafePrintln("   ℹ Repository removal tidak didukung untuk OS ini")
+		info("ℹ Repository removal tidak didukung untuk OS ini")
 		return nil
 	}
 
@@ -59,20 +59,20 @@ func removeDebianRepository(deps *Dependencies) error {
 			return fmt.Errorf("tidak dapat mengakses %s: %w", file, err)
 		}
 
-		terminal.SafePrintln("   📄 Menghapus: " + file)
+		info("📄 Menghapus: " + file)
 		if err := os.Remove(file); err != nil {
 			return fmt.Errorf("gagal menghapus %s: %w", file, err)
 		}
-		terminal.SafePrintln("   ✓ Dihapus: " + file)
+		success("Dihapus: " + file)
 	}
 
 	// Update package cache setelah menghapus repository
-	terminal.SafePrintln("   🔄 Mengupdate package cache...")
+	info("🔄 Mengupdate package cache...")
 	if err := deps.PackageManager.UpdateCache(); err != nil {
 		// Log warning tapi tidak return error
-		terminal.SafePrintln("   ⚠️  Gagal update package cache")
+		warn("Gagal update package cache")
 	} else {
-		terminal.SafePrintln("   ✓ Package cache diupdate")
+		success("Package cache diupdate")
 	}
 
 	return nil
@@ -93,25 +93,25 @@ func removeRPMRepository(deps *Dependencies) error {
 			return fmt.Errorf("tidak dapat mengakses %s: %w", file, err)
 		}
 
-		terminal.SafePrintln("   📄 Menghapus: " + file)
+		info("📄 Menghapus: " + file)
 		if err := os.Remove(file); err != nil {
 			return fmt.Errorf("gagal menghapus %s: %w", file, err)
 		}
-		terminal.SafePrintln("   ✓ Dihapus: " + file)
+		success("Dihapus: " + file)
 	}
 
 	// Clean package cache
-	terminal.SafePrintln("   🔄 Membersihkan package cache...")
+	terminal.PrintSubHeader("🔄 Membersihkan package cache...")
 	if err := deps.ProcessManager.Execute("yum", []string{"clean", "all"}); err != nil {
 		// Try dnf if yum fails
 		if err := deps.ProcessManager.Execute("dnf", []string{"clean", "all"}); err != nil {
 			// Log warning tapi tidak return error
-			terminal.SafePrintln("   ⚠️  Gagal membersihkan package cache")
+			warn("Gagal membersihkan package cache")
 		} else {
-			terminal.SafePrintln("   ✓ Package cache dibersihkan")
+			success("Package cache dibersihkan")
 		}
 	} else {
-		terminal.SafePrintln("   ✓ Package cache dibersihkan")
+		success("Package cache dibersihkan")
 	}
 
 	return nil

@@ -12,7 +12,7 @@ import (
 func removeMariaDBPackages(deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.SafePrintln("🗑️  Menghapus paket MariaDB...")
+	terminal.PrintSubHeader("🗑️  Menghapus paket MariaDB...")
 
 	// Tentukan nama paket berdasarkan OS
 	packages, err := getMariaDBPackageList()
@@ -25,15 +25,16 @@ func removeMariaDBPackages(deps *Dependencies) error {
 	for _, pkg := range packages {
 		if deps.PackageManager.IsInstalled(pkg) {
 			installedPackages = append(installedPackages, pkg)
-			terminal.SafePrintln("   📦 Ditemukan: " + pkg)
+			info("📦 Ditemukan: " + pkg)
 		}
 	}
 
 	if len(installedPackages) == 0 {
-		terminal.SafePrintln("   ℹ Tidak ada paket MariaDB yang terinstall")
+		info("ℹ Tidak ada paket MariaDB yang terinstall")
 		return nil
 	}
 
+	fmt.Println()
 	lg.Info("Menghapus paket MariaDB", logger.Strings("packages", installedPackages))
 
 	// Hapus paket
@@ -41,7 +42,7 @@ func removeMariaDBPackages(deps *Dependencies) error {
 		return fmt.Errorf("gagal menghapus paket MariaDB: %w", err)
 	}
 
-	terminal.SafePrintln("   ✓ Paket MariaDB berhasil dihapus")
+	success("Paket MariaDB berhasil dihapus")
 
 	// Purge paket untuk menghapus konfigurasi juga (khusus Debian/Ubuntu)
 	if err := purgePackagesIfSupported(deps, installedPackages); err != nil {
@@ -49,7 +50,6 @@ func removeMariaDBPackages(deps *Dependencies) error {
 		// Tidak return error karena paket sudah dihapus
 	}
 
-	lg.Info("Paket MariaDB berhasil dihapus")
 	return nil
 }
 
@@ -109,7 +109,7 @@ func purgePackagesIfSupported(deps *Dependencies, packages []string) error {
 
 	// Hanya lakukan purge di Debian/Ubuntu
 	if osInfo.PackageType == "deb" {
-		terminal.SafePrintln("   🧹 Melakukan purge konfigurasi paket...")
+		info("🧹 Melakukan purge konfigurasi paket...")
 
 		// Gunakan apt-get purge untuk menghapus konfigurasi
 		args := append([]string{"purge", "-y"}, packages...)
@@ -117,7 +117,7 @@ func purgePackagesIfSupported(deps *Dependencies, packages []string) error {
 			return fmt.Errorf("gagal purge paket: %w", err)
 		}
 
-		terminal.SafePrintln("   ✓ Konfigurasi paket berhasil dihapus")
+		success("Konfigurasi paket berhasil dihapus")
 	}
 
 	return nil

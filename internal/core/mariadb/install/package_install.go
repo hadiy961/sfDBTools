@@ -13,6 +13,8 @@ import (
 func updatePackageCache(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 
+	terminal.PrintSubHeader("[Package Manager] Update Cache")
+
 	// Show spinner while updating package cache so user sees progress
 	spinner := terminal.NewInstallSpinner("Mengupdate cache package manager...")
 	spinner.Start()
@@ -35,6 +37,8 @@ func updatePackageCache(deps *defaultsetup.Dependencies) error {
 func updateSystemPackages(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
 
+	terminal.PrintSubHeader("[Package Manager] Upgrade Paket Sistem")
+	// Show spinner while upgrading packages so user sees progress
 	spinner := terminal.NewInstallSpinner("Mengupgrade paket sistem...")
 	spinner.Start()
 
@@ -54,6 +58,7 @@ func updateSystemPackages(deps *defaultsetup.Dependencies) error {
 // installMariaDBPackages menginstall paket MariaDB server dan client satu per satu dengan progress
 func installMariaDBPackages(deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
+	terminal.PrintSubHeader("[Package Manager] Install Paket MariaDB")
 	spinner := terminal.NewInstallSpinner("Menentukan dan menginstall paket MariaDB...")
 	spinner.Start()
 

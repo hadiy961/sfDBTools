@@ -19,6 +19,7 @@ import (
 // setupMariaDBRepository mengunduh dan menjalankan script setup repository
 func setupMariaDBRepository(ctx context.Context, cfg *mariadb_config.MariaDBInstallConfig, deps *defaultsetup.Dependencies) error {
 	lg, _ := logger.Get()
+	terminal.PrintSubHeader("[Repository] Setup")
 	lg.Info("[Repository] Setup Start")
 
 	// 1) Detect existing repo files

@@ -4,14 +4,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// CheckVersionCmd command for checking available MariaDB versions
-var CheckVersionCmd = &cobra.Command{
-	Use:   "check_version",
-	Short: "Cek versi MariaDB yang tersedia",
-	Long: `Menampilkan daftar versi MariaDB yang tersedia untuk instalasi.
-Informasi diambil dari dokumentasi resmi MariaDB Repository Setup Script.`,
+// Check command for checking installed MariaDB version
+var Check = &cobra.Command{
+	Use:   "check",
+	Short: "Cek versi MariaDB yang terpasang",
+	Long: `Menampilkan versi MariaDB yang terpasang saat ini.
+Informasi diambil dari sistem yang sedang berjalan.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		// return mariadb.DisplayAvailableVersions()
+		// return mariadb.DisplayInstalledVersion()
 		return nil
 	},
 }
