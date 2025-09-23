@@ -28,6 +28,7 @@ func CreateDefaultDatabase() error {
 	databaseSQL += "-- LANGKAH 2: BUAT DATABASE UNTUK KLIEN '" + clientCode + "' (Gunakan IF NOT EXISTS)\n"
 	databaseSQL += "-- Ini membuat skrip bisa dijalankan berulang kali tanpa error.\n"
 	databaseSQL += "-- ---------------------------------------------------------------------\n\n"
+	databaseSQL += "CREATE DATABASE IF NOT EXISTS `sfDBTools` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"
 	databaseSQL += "CREATE DATABASE IF NOT EXISTS `dbsf_nbc_" + clientCode + "` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"
 	databaseSQL += "CREATE DATABASE IF NOT EXISTS `dbsf_nbc_" + clientCode + "_dmart` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"
 	databaseSQL += "CREATE DATABASE IF NOT EXISTS `dbsf_nbc_" + clientCode + "_temp` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;\n"

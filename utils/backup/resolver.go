@@ -4,9 +4,11 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/config"
+	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/database"
 	"sfDBTools/utils/database/info"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -124,14 +126,21 @@ func selectConfigOrUseDefaults() (string, error) {
 
 // DisplayConfigurationSource shows which configuration source is being used
 func DisplayConfigurationSource(source ConfigurationSource, details string) {
+	lg, _ := logger.Get()
+
+	var msg string
 	switch source {
 	case SourceConfigFile:
-		fmt.Printf("📁 Using configuration file: %s\n", details)
+		msg = fmt.Sprintf("Using configuration file: %s", details)
 	case SourceFlags:
-		fmt.Printf("🔧 Using command line flags\n")
+		msg = "Using configuration from command-line flags"
 	case SourceDefaults:
-		fmt.Printf("⚙️  Using default configuration from config.yaml\n")
+		msg = "Using default configuration from config.yaml"
 	case SourceInteractive:
-		fmt.Printf("👤 Using interactively selected configuration: %s\n", details)
+		msg = fmt.Sprintf("Using configuration from selected file: %s", details)
+	default:
+		msg = "Using unknown configuration source"
 	}
+	terminal.PrintSubHeader(msg)
+	lg.Debug(msg)
 }

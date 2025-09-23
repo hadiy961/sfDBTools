@@ -8,6 +8,7 @@ import (
 	user_grants_backup "sfDBTools/internal/core/backup/user_grants"
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -35,6 +36,7 @@ func executeUserGrantsBackup(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
+	terminal.ClearAndShowHeader("Backup Tools - User Grants Backup")
 
 	lg.Info("Starting user grants backup process")
 

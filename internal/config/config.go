@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"sfDBTools/internal/config/model"
 	"sfDBTools/internal/config/validate"
@@ -63,7 +64,7 @@ func GetBackupDefaults() (host string, port int, user string, outputDir string,
 	defaultPort := 3306
 	defaultUser := "root"
 	defaultOutputDir := "./backup"
-	defaultCompress := true
+	defaultCompress := false
 	defaultCompression := "pgzip"
 	defaultCompressionLevel := "fast"
 	defaultIncludeData := true
@@ -80,10 +81,80 @@ func GetBackupDefaults() (host string, port int, user string, outputDir string,
 		}
 	}()
 
-	// Return hardcoded defaults if config is not available
-	return defaultHost, defaultPort, defaultUser, defaultOutputDir,
-		defaultCompress, defaultCompression, defaultCompressionLevel, defaultIncludeData,
-		defaultEncrypt, defaultVerifyDisk, defaultRetentionDays, defaultCalculateChecksum, defaultSystemUser
+	// Start with defaults
+	host = defaultHost
+	port = defaultPort
+	user = defaultUser
+	outputDir = defaultOutputDir
+	compress = defaultCompress
+	compression = defaultCompression
+	compressionLevel = defaultCompressionLevel
+	includeData = defaultIncludeData
+	encrypt = defaultEncrypt
+	verifyDisk = defaultVerifyDisk
+	retentionDays = defaultRetentionDays
+	calculateChecksum = defaultCalculateChecksum
+	systemUser = defaultSystemUser
+
+	// Try to load configuration and override defaults when available
+	cfg, err := Get()
+	if err != nil || cfg == nil {
+		return
+	}
+
+	// Database defaults
+	if cfg.Database.Host != "" {
+		host = cfg.Database.Host
+	}
+	if cfg.Database.Port != 0 {
+		port = cfg.Database.Port
+	}
+	if cfg.Database.User != "" {
+		user = cfg.Database.User
+	}
+
+	// Output directory from backup storage base directory
+	if cfg.Backup.Storage.BaseDirectory != "" {
+		outputDir = cfg.Backup.Storage.BaseDirectory
+	}
+
+	// Compression settings
+	if cfg.Backup.Compression.Algorithm != "" {
+		compression = cfg.Backup.Compression.Algorithm
+	}
+	if cfg.Backup.Compression.Level != "" {
+		compressionLevel = cfg.Backup.Compression.Level
+	}
+	// If config explicitly requires compression, use it; otherwise keep default
+	compress = cfg.Backup.Compression.Required || compress
+
+	// Determine includeData heuristically from mysqldump args (if --no-data present)
+	if cfg.Mysqldump.Args != "" {
+		argsLower := strings.ToLower(cfg.Mysqldump.Args)
+		if strings.Contains(argsLower, "--no-data") {
+			includeData = false
+		} else {
+			includeData = true
+		}
+	}
+
+	// Security and verification
+	encrypt = cfg.Backup.Security.EncryptionRequired || encrypt
+	// consider either verify after write or disk space check as indicator to verify disk
+	verifyDisk = cfg.Backup.Verification.VerifyAfterWrite || cfg.Backup.Verification.DiskSpaceCheck || verifyDisk
+	calculateChecksum = cfg.Backup.Security.ChecksumVerification || cfg.Backup.Verification.CompareChecksums || calculateChecksum
+
+	// Retention
+	if cfg.Backup.Retention.Days != 0 {
+		retentionDays = cfg.Backup.Retention.Days
+	}
+
+	// System user presence
+	if len(cfg.SystemUsers.Users) > 0 {
+		systemUser = true
+	}
+
+	return
 }
 
 // GetDatabaseCredentials returns database credentials, preferring encrypted config if available

@@ -2,7 +2,7 @@ backup:
     compression:
         algorithm: gzip
         level: best
-        required: true
+        required: false
     mysqldump_args: -CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt
     retention:
         cleanup_enabled: true
@@ -10,7 +10,7 @@ backup:
         days: 1
     security:
         checksum_verification: true
-        encryption_required: true
+        encryption_required: false
         integrity_check: true
     storage:
         base_directory: backup
