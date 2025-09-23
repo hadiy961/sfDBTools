@@ -24,10 +24,10 @@ func CreateMetadataFile(
 	mysqlVersion, _ := database.GetMySQLVersion(config)
 
 	// Get replication information
-	replicationInfo, err := GetReplicationInfoForBackup(config)
-	if err != nil {
-		lg.Warn("Failed to get replication information for metadata", logger.Error(err))
-	}
+	// replicationInfo, err := GetReplicationInfoForBackup(config)
+	// if err != nil {
+	// 	lg.Warn("Failed to get replication information for metadata", logger.Error(err))
+	// }
 
 	metadata := BackupMetadata{
 		DatabaseName:    options.DBName,
@@ -45,7 +45,6 @@ func CreateMetadataFile(
 		Port:            options.Port,
 		User:            options.User,
 		MySQLVersion:    mysqlVersion,
-		ReplicationInfo: CreateReplicationMetadata(replicationInfo),
 	}
 
 	// Helper to convert *info.DatabaseInfo to *utils.DatabaseInfoMeta

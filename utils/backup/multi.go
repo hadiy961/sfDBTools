@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,8 @@ func ExecuteMultipleDatabaseBackup(
 	operationType string,
 ) (*MultiBackupResult, error) {
 	lg, _ := logger.Get()
-	lg.Info("Starting multi-database backup",
+	terminal.ClearAndShowHeader("Backup Tools - Multi-Database Backup")
+	lg.Debug("Starting multi-database backup",
 		logger.String("operation", operationType),
 		logger.Int("total_databases", len(databases)),
 		logger.Strings("databases", databases))
@@ -33,7 +35,8 @@ func ExecuteMultipleDatabaseBackup(
 	}
 
 	for i, dbName := range databases {
-		lg.Info("Processing database",
+		terminal.PrintSubHeader(fmt.Sprintf("Processing Database (%d/%d): %s", i+1, len(databases), dbName))
+		lg.Debug("Processing database",
 			logger.String("database", dbName),
 			logger.Int("current", i+1),
 			logger.Int("total", len(databases)))
@@ -51,6 +54,7 @@ func ExecuteMultipleDatabaseBackup(
 	}
 
 	// Final summary
+	terminal.PrintSubHeader("Backup Summary")
 	lg.Info("Multi-database backup completed",
 		logger.String("operation", operationType),
 		logger.Int("total_processed", result.TotalProcessed),

@@ -9,6 +9,7 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/database/info"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -33,6 +34,8 @@ sfDBTools backup selection --config ./config/mydb.cnf.enc --db_list ./databases.
 	Run: func(cmd *cobra.Command, args []string) {
 		lg, _ := logger.Get()
 
+		// Clear terminal and show header
+		terminal.ClearAndShowHeader("Backup Tools - Database Selection Backup")
 		// Get the values of both flags
 		dbListPath, err := cmd.Flags().GetString("db_list")
 		if err != nil {

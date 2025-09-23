@@ -6,7 +6,9 @@ import (
 	"strconv"
 
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/common"
 	"sfDBTools/utils/database"
+	"sfDBTools/utils/terminal"
 )
 
 // DatabaseInfo represents information about a database
@@ -14,6 +16,7 @@ type DatabaseInfo struct {
 	DatabaseName string  `json:"database_name"`
 	SizeBytes    int64   `json:"size_bytes"`
 	SizeMB       float64 `json:"size_mb"`
+	SizeHuman    string  `json:"size_human"`
 	TableCount   int     `json:"table_count"`
 	ViewCount    int     `json:"view_count"`
 	RoutineCount int     `json:"routine_count"`
@@ -36,49 +39,96 @@ func GetDatabaseInfo(config database.Config) (*DatabaseInfo, error) {
 		DatabaseName: config.DBName,
 	}
 
+	// Use a single shared spinner for the whole metadata collection and
+	// update its message between steps. Track if any step produced an
+	// error so we can show a final warning message when finished.
+	spinner := terminal.NewProgressSpinner("Collecting database metadata...")
+	spinner.Start()
+	defer func() {
+		// Ensure spinner is stopped; if there were warnings we show a warning
+		// message, otherwise show success.
+		if spinner == nil {
+			return
+		}
+	}()
+
+	hadWarning := false
+
 	// Get database size
+	spinner.UpdateMessage("Calculating database size...")
 	if size, err := getDatabaseSize(db, config.DBName); err == nil {
 		info.SizeBytes = size
 		info.SizeMB = float64(size) / (1024 * 1024)
+		info.SizeHuman = common.FormatSize(size)
+		spinner.UpdateMessage(fmt.Sprintf("Database size: %s", info.SizeHuman))
 	} else {
+		hadWarning = true
+		spinner.UpdateMessage("Failed to get database size")
 		lg.Warn("Failed to get database size", logger.Error(err))
 	}
 
 	// Get table count
+	spinner.UpdateMessage("Counting tables...")
 	if count, err := getTableCount(db, config.DBName); err == nil {
 		info.TableCount = count
+		spinner.UpdateMessage(fmt.Sprintf("Tables: %d", info.TableCount))
 	} else {
+		hadWarning = true
+		spinner.UpdateMessage("Failed to get table count")
 		lg.Warn("Failed to get table count", logger.Error(err))
 	}
 
 	// Get view count
+	spinner.UpdateMessage("Counting views...")
 	if count, err := getViewCount(db, config.DBName); err == nil {
 		info.ViewCount = count
+		spinner.UpdateMessage(fmt.Sprintf("Views: %d", info.ViewCount))
 	} else {
+		hadWarning = true
+		spinner.UpdateMessage("Failed to get view count")
 		lg.Warn("Failed to get view count", logger.Error(err))
 	}
 
-	// // Get routine count (stored procedures + functions)
+	// Get routine count (stored procedures + functions)
+	spinner.UpdateMessage("Counting routines (procs & funcs)...")
 	if count, err := getRoutineCount(db, config.DBName); err == nil {
 		info.RoutineCount = count
+		spinner.UpdateMessage(fmt.Sprintf("Routines: %d", info.RoutineCount))
 	} else {
+		hadWarning = true
+		spinner.UpdateMessage("Failed to get routine count")
 		lg.Warn("Failed to get routine count", logger.Error(err))
 	}
 
-	// // Get trigger count
+	// Get trigger count
+	spinner.UpdateMessage("Counting triggers...")
 	if count, err := getTriggerCount(db, config.DBName); err == nil {
 		info.TriggerCount = count
+		spinner.UpdateMessage(fmt.Sprintf("Triggers: %d", info.TriggerCount))
 	} else {
+		hadWarning = true
+		spinner.UpdateMessage("Failed to get trigger count")
 		lg.Warn("Failed to get trigger count", logger.Error(err))
 	}
 
 	// Get user count with grants to this database
+	spinner.UpdateMessage("Counting users with grants...")
 	if count, err := getUserCount(db, config.DBName); err == nil {
 		info.UserCount = count
+		spinner.UpdateMessage(fmt.Sprintf("Users with grants: %d", info.UserCount))
 	} else {
+		hadWarning = true
+		spinner.UpdateMessage("Failed to get user count")
 		lg.Warn("Failed to get user count", logger.Error(err))
 	}
 
+	// Finalize spinner with appropriate final status
+	if hadWarning {
+		spinner.StopWithWarning("Completed with warnings")
+	} else {
+		spinner.StopWithSuccess("Database information collected")
+	}
+	spinner.Stop()
 	return info, nil
 }
 
@@ -371,7 +421,7 @@ type TableInfo struct {
 
 // collectDatabaseInfo retrieves database information and logs it
 func CollectDatabaseInfo(config database.Config, lg *logger.Logger) *DatabaseInfo {
-	lg.Info("Collecting database information", logger.String("database", config.DBName))
+	lg.Debug("Collecting database information", logger.String("database", config.DBName))
 
 	dbInfo, err := GetDatabaseInfo(config)
 	if err != nil {
@@ -381,7 +431,9 @@ func CollectDatabaseInfo(config database.Config, lg *logger.Logger) *DatabaseInf
 
 	lg.Info("Database information collected",
 		logger.String("database", dbInfo.DatabaseName),
-		logger.Float64("size_mb", dbInfo.SizeMB),
+		// Log both raw bytes as integer and size in MB as float to avoid
+		// scientific notation for very large sizes in logs.
+		logger.String("size", dbInfo.SizeHuman),
 		logger.Int("tables", dbInfo.TableCount),
 		logger.Int("views", dbInfo.ViewCount),
 		logger.Int("routines", dbInfo.RoutineCount),

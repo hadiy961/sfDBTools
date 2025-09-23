@@ -12,10 +12,11 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/database/info"
 )
 
 // performBackup performs the actual database backup using mysqldump
-func performBackup(options backup_utils.BackupOptions, outputFile string) error {
+func performBackup(options backup_utils.BackupOptions, outputFile string, dbinfo *info.DatabaseInfo) error {
 	lg, _ := logger.Get()
 
 	if err := backup_utils.ValidateBackupOptions(options); err != nil {
@@ -29,11 +30,8 @@ func performBackup(options backup_utils.BackupOptions, outputFile string) error 
 	// Build mysqldump command with optimizations
 	args := getOptimizedMysqldumpArgs(options)
 
-	lg.Debug("Executing mysqldump with compression",
-		logger.String("database", options.DBName),
+	lg.Info("Executing mysqldump",
 		logger.String("output", outputFile),
-		logger.String("compression", options.Compression),
-		logger.Bool("compress", options.Compress),
 		logger.Bool("is_remote", common.IsRemoteConnection(options.Host)))
 
 	// Create output file
@@ -63,9 +61,6 @@ func performBackup(options backup_utils.BackupOptions, outputFile string) error 
 		cmd.Env = append(os.Environ(), fmt.Sprintf("MYSQL_PWD=%s", options.Password))
 	}
 
-	// Execute the command with retry logic for remote connections
-	lg.Info("Starting mysqldump execution")
-
 	// Start the command execution
 	startTime := time.Now()
 
@@ -92,11 +87,6 @@ func performBackup(options backup_utils.BackupOptions, outputFile string) error 
 			return fmt.Errorf("failed to close writer: %w", err)
 		}
 	}
-
-	lg.Info("Backup file created successfully",
-		logger.String("file", outputFile),
-		logger.Bool("compressed", options.Compress),
-		logger.Bool("encrypted", options.Encrypt))
 
 	return nil
 }

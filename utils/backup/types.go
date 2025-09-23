@@ -20,6 +20,7 @@ type BackupOptions struct {
 	CalculateChecksum bool
 	IncludeSystem     bool
 	SystemUsers       bool
+	Background        bool
 }
 
 // BackupResult represents the result of a backup operation

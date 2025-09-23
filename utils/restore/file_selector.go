@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"sfDBTools/utils/terminal"
 	"strconv"
 	"strings"
 	"time"
@@ -199,8 +200,7 @@ func SelectBackupFileInteractive(baseDir string) (string, error) {
 	}
 
 	// Display available files
-	fmt.Println("📁 Available Backup Files:")
-	fmt.Println("===========================")
+	terminal.PrintSubHeader("Available Backup Files")
 	for i, file := range allFiles {
 		relPath, err := filepath.Rel(".", file.Path)
 		if err != nil {

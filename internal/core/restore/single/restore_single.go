@@ -1,26 +1,38 @@
 package single
 
 import (
-	"crypto/sha256"
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io"
 	"os"
 	"os/exec"
-	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
+
+	"github.com/schollz/progressbar/v3"
 
 	restoreUtils "sfDBTools/internal/core/restore/utils"
 	"sfDBTools/internal/logger"
-	backup_utils "sfDBTools/utils/backup"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/compression"
 	"sfDBTools/utils/crypto"
 	"sfDBTools/utils/database"
-	"sfDBTools/utils/database/info"
 )
+
+// countingReader counts bytes read through it in an atomic counter
+type countingReader struct {
+	r     io.Reader
+	count int64
+}
+
+func (c *countingReader) Read(p []byte) (int, error) {
+	n, err := c.r.Read(p)
+	if n > 0 {
+		atomic.AddInt64(&c.count, int64(n))
+	}
+	return n, err
+}
+
+func (c *countingReader) Count() int64 { return atomic.LoadInt64(&c.count) }
 
 // RestoreSingle restores a single database from backup file
 func RestoreSingle(options restoreUtils.RestoreOptions) error {
@@ -37,8 +49,11 @@ func RestoreSingle(options restoreUtils.RestoreOptions) error {
 		logger.Int("port", options.Port))
 	DisplayRestoreOverview(options, startTime, options.File, lg)
 	configDB := database.Config{
-		Host: options.Host, Port: options.Port, User: options.User,
-		Password: options.Password, DBName: options.DBName,
+		Host:     options.Host,
+		Port:     options.Port,
+		User:     options.User,
+		Password: options.Password,
+		DBName:   options.DBName,
 	}
 
 	if timeManager, _ := database.SetupMaxStatementTimeManager(configDB, lg); timeManager != nil {
@@ -108,229 +123,78 @@ func RestoreSingle(options restoreUtils.RestoreOptions) error {
 		options.DBName,
 	}
 
+	// Wrap the final reader with a counting reader so we can display progress
+	counting := &countingReader{r: reader}
+
 	cmd := exec.Command("mysql", args...)
-	cmd.Stdin = reader
+	cmd.Stdin = counting
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	if options.Password != "" {
 		cmd.Env = append(os.Environ(), fmt.Sprintf("MYSQL_PWD=%s", options.Password))
 	}
 
-	lg.Info("Starting restore", logger.String("db", options.DBName), logger.String("file", options.File))
+	// Determine whether we can compute an accurate total for percentage.
+	// Accurate if file is not encrypted and not compressed (we can use raw file size).
+	wasEncrypted := strings.HasSuffix(strings.ToLower(options.File), ".enc")
+	accuratePercentage := !wasEncrypted && (compression.DetectCompressionTypeFromFile(options.File) == compression.CompressionNone)
+	var totalBytes int64 = 0
+	if fi, err := os.Stat(options.File); err == nil {
+		totalBytes = fi.Size()
+	}
+
+	lg.Info("Starting restore", logger.String("db", options.DBName))
+
+	// Setup progressbar (use accurate total only when not compressed and not encrypted)
+	var readerForCmd io.Reader = counting
+	var bar *progressbar.ProgressBar
+	if accuratePercentage && totalBytes > 0 {
+		bar = progressbar.NewOptions64(totalBytes,
+			progressbar.OptionSetDescription("Restoring"),
+			progressbar.OptionSetWidth(40),
+			progressbar.OptionShowBytes(true),
+			progressbar.OptionSetElapsedTime(true),
+			progressbar.OptionSetPredictTime(false),
+		)
+		// wrap counting so bar is updated as bytes flow
+		readerForCmd = io.TeeReader(counting, bar)
+	} else {
+		// Unknown total: show bytes and elapsed only
+		bar = progressbar.NewOptions(-1,
+			progressbar.OptionSetDescription("Restoring"),
+			progressbar.OptionSetWidth(40),
+			progressbar.OptionShowBytes(true),
+			progressbar.OptionSetElapsedTime(true),
+			progressbar.OptionSpinnerType(14),
+		)
+		readerForCmd = io.TeeReader(counting, bar)
+	}
+
+	cmd.Stdin = io.NopCloser(readerForCmd)
+
 	if err := cmd.Run(); err != nil {
+		// ensure bar finished/cleared
+		if bar != nil {
+			_ = bar.Finish()
+		}
 		lg.Error("mysql restore failed", logger.Error(err))
-		return fmt.Errorf("mysql restore failed: %w", err)
+		return err
+	}
+	if bar != nil {
+		_ = bar.Finish()
 	}
 
 	for i := len(closers) - 1; i >= 0; i-- {
-		closers[i].Close()
+		// Best-effort close any readers (decompressor/decrypters)
+		_ = closers[i].Close()
 	}
 
 	lg.Info("Restore completed", logger.String("db", options.DBName))
-	DisplayRestoreSummary(options, startTime, lg, &configDB)
+	// Display summary and collect DB info (single-db restore only)
+	dbInfo, _ := DisplayRestoreSummary(options, startTime, lg, &configDB)
 
-	meta := metadataPath(options.File)
-	if meta != "" {
-		data, err := os.ReadFile(meta)
-		if err == nil {
-			var metaInfo backup_utils.BackupMetadata
-			if json.Unmarshal(data, &metaInfo) == nil {
-				dbInfo, err := info.GetDatabaseInfo(configDB)
-				if err == nil {
-					DisplayDatabaseComparison(metaInfo, *dbInfo)
-				}
-			}
-		}
-	}
+	// Process metadata (read metadata file and compare with collected db info)
+	ProcessMetadataAfterRestore(options.File, dbInfo, lg)
 
 	return nil
-}
-
-func verifyChecksumIfPossible(filePath string, lg *logger.Logger) {
-	meta := metadataPath(filePath)
-	if meta == "" {
-		lg.Warn("Metadata file not found, skipping checksum verification", logger.String("file", filePath))
-		return
-	}
-
-	data, err := os.ReadFile(meta)
-	if err != nil {
-		lg.Warn("Failed to read metadata file", logger.String("metadata", meta), logger.Error(err))
-		return
-	}
-
-	var metaInfo backup_utils.BackupMetadata
-	if err := json.Unmarshal(data, &metaInfo); err != nil {
-		lg.Warn("Invalid metadata format", logger.String("metadata", meta), logger.Error(err))
-		return
-	}
-
-	if metaInfo.Checksum == "" {
-		lg.Warn("Checksum not found in metadata, skipping verification", logger.String("metadata", meta))
-		return
-	}
-
-	sum, err := calculateChecksum(filePath)
-	if err != nil {
-		lg.Warn("Checksum calculation failed", logger.String("file", filePath), logger.Error(err))
-		return
-	}
-
-	if strings.EqualFold(sum, metaInfo.Checksum) {
-		lg.Info("Checksum verified successfully", logger.String("file", filePath))
-	} else {
-		lg.Error("Checksum mismatch", logger.String("file", filePath), logger.String("expected", metaInfo.Checksum), logger.String("got", sum))
-	}
-}
-
-func metadataPath(filePath string) string {
-	base := strings.TrimSuffix(filePath, ".enc")
-	ext := filepath.Ext(base)
-	for _, e := range []string{".gz", ".zst", ".zlib", ".sql"} {
-		if ext == e {
-			base = strings.TrimSuffix(base, ext)
-			ext = filepath.Ext(base)
-		}
-	}
-	base = strings.TrimSuffix(base, ".sql")
-	if base == filePath {
-		return ""
-	}
-	return base + ".json"
-}
-
-func calculateChecksum(filename string) (string, error) {
-	f, err := os.Open(filename)
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return "", err
-	}
-	return hex.EncodeToString(h.Sum(nil)), nil
-}
-
-// DisplayRestoreOverview shows restore parameters before execution
-func DisplayRestoreOverview(options restoreUtils.RestoreOptions, startTime time.Time, filePath string, lg *logger.Logger) {
-
-	lg.Info("Restore overview",
-		logger.String("target_database", options.DBName),
-		logger.String("target_host", options.Host),
-		logger.Int("target_port", options.Port),
-		logger.String("target_user", options.User),
-		logger.String("backup_file", options.File),
-		logger.String("start_time", common.FormatTime(startTime, "2006-01-02 15:04:05")))
-
-	meta := metadataPath(filePath)
-	if meta == "" {
-		lg.Warn("Metadata file not found, skipping display backup metadata", logger.String("file", filePath))
-		return
-	} else {
-		data, err := os.ReadFile(meta)
-		if err != nil {
-			lg.Warn("Failed to read metadata file", logger.String("metadata", meta), logger.Error(err))
-			return
-		}
-
-		var metaInfo backup_utils.BackupMetadata
-		if err := json.Unmarshal(data, &metaInfo); err != nil {
-			lg.Warn("Invalid metadata format", logger.String("metadata", meta), logger.Error(err))
-			return
-		}
-
-		lg.Info("Backup metadata",
-			logger.String("metadata_file", meta),
-			logger.String("backup_date", common.FormatTime(metaInfo.BackupDate, "2006-01-02 15:04:05")),
-			logger.Bool("compression", metaInfo.Compressed),
-			logger.Bool("encryption", metaInfo.Encrypted),
-			logger.Bool("included_data", metaInfo.IncludesData),
-			logger.String("source_host", metaInfo.Host),
-			logger.Int("source_port", metaInfo.Port),
-			logger.String("source_user", metaInfo.User))
-
-		lg.Info("DB source metadata",
-			logger.String("db_name", metaInfo.DatabaseName),
-			logger.String("db_size", common.FormatSize(metaInfo.DatabaseInfo.SizeBytes)),
-			logger.Int("table_count", metaInfo.DatabaseInfo.TableCount),
-			logger.Int("view_count", metaInfo.DatabaseInfo.ViewCount),
-			logger.Int("routine_count", metaInfo.DatabaseInfo.RoutineCount),
-			logger.Int("trigger_count", metaInfo.DatabaseInfo.TriggerCount),
-			logger.Int("user_count", metaInfo.DatabaseInfo.UserCount))
-
-	}
-}
-
-func DisplayRestoreSummary(options restoreUtils.RestoreOptions, startTime time.Time, lg *logger.Logger, config *database.Config) {
-	endTime := time.Now()
-	duration := endTime.Sub(startTime)
-
-	lg.Info("Restore summary",
-		logger.String("target_database", options.DBName),
-		logger.String("target_host", options.Host),
-		logger.Int("target_port", options.Port),
-		logger.String("target_user", options.User),
-		logger.String("backup_file", options.File),
-		logger.String("start_time", common.FormatTime(startTime, "2006-01-02 15:04:05")),
-		logger.String("end_time", common.FormatTime(endTime, "2006-01-02 15:04:05")),
-		logger.String("duration", duration.String()))
-
-	lg.Info("Collecting database information", logger.String("database", config.DBName))
-
-	dbInfo, err := info.GetDatabaseInfo(*config)
-	if err != nil {
-		lg.Warn("Failed to collect database information", logger.Error(err))
-		return
-	}
-
-	lg.Info("Restore database info",
-		logger.String("db_size", common.FormatSize(dbInfo.SizeBytes)),
-		logger.Int("table_count", dbInfo.TableCount),
-		logger.Int("view_count", dbInfo.ViewCount),
-		logger.Int("routine_count", dbInfo.RoutineCount),
-		logger.Int("trigger_count", dbInfo.TriggerCount),
-		logger.Int("user_count", dbInfo.UserCount))
-}
-
-func DisplayDatabaseComparison(metaInfo backup_utils.BackupMetadata, dbInfo info.DatabaseInfo) {
-	lg, _ := logger.Get()
-
-	lg.Info("Database comparison - Database Size",
-		logger.String("source_size", common.FormatSize(metaInfo.DatabaseInfo.SizeBytes)),
-		logger.String("restored_size", common.FormatSize(dbInfo.SizeBytes)),
-		logger.String("status", compareValues(metaInfo.DatabaseInfo.SizeBytes, dbInfo.SizeBytes)))
-
-	lg.Info("Database comparison - Table Count",
-		logger.Int("source_count", metaInfo.DatabaseInfo.TableCount),
-		logger.Int("restored_count", dbInfo.TableCount),
-		logger.String("status", compareValues(metaInfo.DatabaseInfo.TableCount, dbInfo.TableCount)))
-
-	lg.Info("Database comparison - View Count",
-		logger.Int("source_count", metaInfo.DatabaseInfo.ViewCount),
-		logger.Int("restored_count", dbInfo.ViewCount),
-		logger.String("status", compareValues(metaInfo.DatabaseInfo.ViewCount, dbInfo.ViewCount)))
-
-	lg.Info("Database comparison - Routine Count",
-		logger.Int("source_count", metaInfo.DatabaseInfo.RoutineCount),
-		logger.Int("restored_count", dbInfo.RoutineCount),
-		logger.String("status", compareValues(metaInfo.DatabaseInfo.RoutineCount, dbInfo.RoutineCount)))
-
-	lg.Info("Database comparison - Trigger Count",
-		logger.Int("source_count", metaInfo.DatabaseInfo.TriggerCount),
-		logger.Int("restored_count", dbInfo.TriggerCount),
-		logger.String("status", compareValues(metaInfo.DatabaseInfo.TriggerCount, dbInfo.TriggerCount)))
-
-	lg.Info("Database comparison - User Count",
-		logger.Int("source_count", metaInfo.DatabaseInfo.UserCount),
-		logger.Int("restored_count", dbInfo.UserCount),
-		logger.String("status", compareValues(metaInfo.DatabaseInfo.UserCount, dbInfo.UserCount)))
-}
-
-// Helper function to compare values and return "MATCHED" or "MISMATCHED"
-func compareValues(sourceValue, restoredValue interface{}) string {
-	if sourceValue == restoredValue {
-		return "MATCHED"
-	}
-	return "MISMATCHED"
 }

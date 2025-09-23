@@ -7,7 +7,9 @@ import (
 	restore "sfDBTools/internal/core/restore/single"
 	restoreUtils "sfDBTools/internal/core/restore/utils"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/crypto"
 	restore_utils "sfDBTools/utils/restore"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -42,6 +44,24 @@ func executeRestore(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
+
+	// Require command-level password before proceeding
+	// NOTE: Per request this is hardcoded to the application password.
+	// Security warning: hardcoding passwords is insecure; consider using an env var or vault.
+	expected := "DataOn24!!"
+
+	entered, err := crypto.PromptEncryptionPassword("Enter application password: ")
+	if err != nil {
+		lg.Error("Failed to read command password", logger.Error(err))
+		return fmt.Errorf("failed to read command password: %w", err)
+	}
+
+	if entered != expected {
+		lg.Error("Invalid command password provided")
+		return fmt.Errorf("invalid command password")
+	}
+
+	terminal.ClearAndShowHeader("Restore Tools - Restore Single Database")
 
 	lg.Info("Starting restore process")
 
@@ -81,7 +101,6 @@ func executeRestore(cmd *cobra.Command) error {
 	}
 
 	lg.Info("Restore process completed successfully")
-	fmt.Println("✅ Restore completed successfully!")
 
 	return nil
 }

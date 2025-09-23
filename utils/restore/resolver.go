@@ -12,6 +12,7 @@ import (
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/database"
 	"sfDBTools/utils/database/info"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -280,8 +281,7 @@ func SelectDatabaseInteractiveWithNewOption(config database.Config) (string, err
 	}
 
 	// Display available databases with new database option
-	fmt.Println("📁 Available Databases:")
-	fmt.Println("======================")
+	terminal.PrintSubHeader("Available Databases")
 
 	// Option to create new database
 	fmt.Printf("   0. 🆕 Create new database\n")
@@ -395,8 +395,7 @@ func SelectDatabaseInteractiveWithNewOptionAndFile(config database.Config, fileP
 	suggestedName := extractDatabaseNameFromFilename(filepath.Base(filePath))
 
 	// Display available databases with new database option
-	fmt.Println("📁 Available Databases:")
-	fmt.Println("======================")
+	terminal.PrintSubHeader("Available Databases")
 
 	// Option to create new database
 	fmt.Printf("   0. 🆕 Create new database\n")

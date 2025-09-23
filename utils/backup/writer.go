@@ -58,7 +58,7 @@ func BuildWriterChain(base io.WriteCloser, options BackupOptions, lg *logger.Log
 		}
 		closers = append(closers, cw)
 		writer = cw
-		lg.Info("Compression configured", logger.String("type", string(compressionType)), logger.String("level", string(compressionLevel)))
+		// lg.Info("Compression configured", logger.String("type", string(compressionType)), logger.String("level", string(compressionLevel)))
 	}
 
 	return writer, closers, nil

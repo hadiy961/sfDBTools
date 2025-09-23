@@ -26,7 +26,7 @@ func DisplayBackupParameters(options BackupOptions) {
 
 // DisplayBackupResults logs comprehensive backup results with all information
 func DisplayBackupResults(result *BackupResult, options BackupOptions, title string) {
-	lg, _ := logger.Get()
+	// lg, _ := logger.Get()
 
 	if title == "" {
 		title = "Backup"
@@ -82,5 +82,5 @@ func DisplayBackupResults(result *BackupResult, options BackupOptions, title str
 		)
 	}
 
-	lg.Info("Backup completed successfully", fields...)
+	// lg.Info("Backup completed successfully", fields...)
 }

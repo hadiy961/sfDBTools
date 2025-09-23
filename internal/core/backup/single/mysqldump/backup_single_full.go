@@ -26,24 +26,6 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
 
-	// defaultConfig := database.Config{
-	// 	Host:     cfg.Database.Host,
-	// 	Port:     cfg.Database.Port,
-	// 	User:     cfg.Database.User,
-	// 	Password: cfg.Database.Password,
-	// 	DBName:   cfg.Database.DBName,
-	// }
-
-	// // Validate basic connection
-	// if err := database.ValidateConnection(defaultConfig); err != nil {
-	// 	lg.Error("Connection validation failed", logger.Error(err))
-	// }
-
-	// // Validate database exists
-	// if err := database.ValidateDatabase(defaultConfig); err != nil {
-	// 	lg.Error("Database validation failed", logger.Error(err))
-	// }
-
 	manager := fs.NewManager()
 	if !manager.Dir().Exists(options.OutputDir) {
 		if err := manager.Dir().Create(options.OutputDir); err != nil {
@@ -67,11 +49,6 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 	}
 
 	startTime := time.Now()
-	lg.Info("Starting single database backup using mysqldump",
-		logger.String("database", options.DBName),
-		logger.String("host", options.Host),
-		logger.Int("port", options.Port))
-
 	result := backup_utils.InitializeBackupResult(options)
 
 	if err := backup_utils.ValidateAndPrepareBackup(options); err != nil {
@@ -89,12 +66,12 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 	}
 
 	// Collect replication information before backup
-	replicationInfo, err := backup_utils.GetReplicationInfoForBackup(config)
-	if err != nil {
-		lg.Warn("Failed to collect replication information before backup", logger.Error(err))
-	} else if replicationInfo != nil {
-		lg.Info("Replication information collected successfully before backup")
-	}
+	// replicationInfo, err := backup_utils.GetReplicationInfoForBackup(config)
+	// if err != nil {
+	// 	lg.Warn("Failed to collect replication information before backup", logger.Error(err))
+	// } else if replicationInfo != nil {
+	// 	lg.Info("Replication information collected successfully before backup")
+	// }
 
 	dbInfo := info.CollectDatabaseInfo(config, lg)
 
@@ -105,7 +82,7 @@ func BackupSingle(options backup_utils.BackupOptions) (*backup_utils.BackupResul
 	}
 	result.OutputFile, result.BackupMetaFile = outputFile, metaFile
 
-	if err := performBackup(options, outputFile); err != nil {
+	if err := performBackup(options, outputFile, dbInfo); err != nil {
 		result.Error = err
 		return result, err
 	}

@@ -289,9 +289,15 @@ func (ps *ProgressSpinner) StopWithMessage(message string) {
 
 // UpdateMessage updates the spinner message thread-safely
 func (ps *ProgressSpinner) UpdateMessage(message string) {
+	// Update the message under write lock then trigger an immediate redraw.
 	ps.mu.Lock()
-	defer ps.mu.Unlock()
 	ps.message = message
+	ps.mu.Unlock()
+
+	// Trigger an immediate render in a goroutine so the new message is shown
+	// without waiting for the next ticker tick. render() will check ps.active
+	// and acquire the read lock itself.
+	go ps.render()
 }
 
 // NewLoadingSpinner creates a spinner optimized for loading operations

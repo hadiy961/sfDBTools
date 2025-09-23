@@ -6,19 +6,21 @@ import (
 	"os"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/terminal"
 	"strings"
 	"time"
 )
 
 // DisplayRestoreParameters shows restore parameters before execution
 func DisplayRestoreParameters(options RestoreOptions) {
-	fmt.Println("\n=== Restore Parameters ===")
+	terminal.ClearAndShowHeader("Restore Tools - Restore Single Database")
+	terminal.PrintSubHeader("Restore Parameters")
 	fmt.Printf("Target Database:  %s\n", options.DBName)
 	fmt.Printf("Target Host:      %s:%d\n", options.Host, options.Port)
 	fmt.Printf("Target User:      %s\n", options.User)
 	fmt.Printf("Backup File:      %s\n", options.File)
 	fmt.Printf("Verify Checksum:  %t\n", options.VerifyChecksum)
-	fmt.Println("==========================")
+	terminal.PrintSeparator()
 }
 
 // DisplayRestoreResults shows restore results after completion with customizable title
@@ -85,8 +87,7 @@ func PromptRestoreConfirmation(options RestoreOptions) error {
 	if options.DBName == "" {
 		options.DBName = "All Database"
 	}
-	fmt.Println("\n⚠️  RESTORE CONFIRMATION")
-	fmt.Println("========================")
+	terminal.PrintSubHeader("RESTORE CONFIRMATION")
 	fmt.Printf("You are about to restore backup to:\n")
 	fmt.Printf("  Database: %s\n", options.DBName)
 	fmt.Printf("  Host:     %s:%d\n", options.Host, options.Port)
@@ -105,7 +106,7 @@ func PromptRestoreConfirmation(options RestoreOptions) error {
 		return fmt.Errorf("restore operation cancelled by user")
 	}
 
-	fmt.Println("✅ Proceeding with restore...")
+	terminal.PrintSubHeader("Proceeding with restore...")
 	return nil
 }
 

@@ -75,7 +75,7 @@ func (m *MaxStatementTimeManager) getOriginalTime() error {
 		m.originalTime = fmt.Sprintf("%v", v)
 	}
 
-	m.lg.Info("Retrieved original max_statement_time",
+	m.lg.Debug("Retrieved original max_statement_time",
 		logger.String("value", m.originalTime))
 
 	return nil

@@ -10,6 +10,7 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/database"
+	"sfDBTools/utils/terminal"
 )
 
 // DatabaseInfo represents basic information about a database
@@ -168,8 +169,7 @@ func SelectDatabaseInteractive(config database.Config) (string, error) {
 	}
 
 	// Display available databases
-	fmt.Println("📁 Available Databases:")
-	fmt.Println("======================")
+	terminal.PrintSubHeader("Available Databases:")
 	for i, db := range databases {
 		fmt.Printf("   %d. %s\n", i+1, db)
 	}
@@ -204,8 +204,7 @@ func SelectMultipleDatabasesInteractive(config database.Config) ([]string, error
 	}
 
 	// Display available databases
-	fmt.Println("📁 Available Databases:")
-	fmt.Println("======================")
+	terminal.PrintSubHeader("Available Databases:")
 	for i, db := range databases {
 		fmt.Printf("   %d. %s\n", i+1, db)
 	}

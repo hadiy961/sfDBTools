@@ -10,6 +10,7 @@ import (
 
 	"sfDBTools/internal/config"
 	"sfDBTools/utils/crypto"
+	"sfDBTools/utils/terminal"
 )
 
 // findEncryptedConfigFiles finds all .cnf.enc files in the specified directory
@@ -52,8 +53,7 @@ func SelectConfigFileInteractive() (string, error) {
 	}
 
 	// Display available files
-	fmt.Println("📁 Available Encrypted Configuration Files:")
-	fmt.Println("==========================================")
+	terminal.PrintSubHeader("Available Encrypted Configuration Files:")
 	for i, file := range encFiles {
 		// Extract just the filename for display
 		filename := filepath.Base(file)

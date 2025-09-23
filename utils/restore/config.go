@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -34,6 +35,7 @@ func ResolveRestoreConfig(cmd *cobra.Command) (*RestoreConfig, error) {
 		fmt.Printf("   Host: %s:%d\n", host, port)
 		fmt.Printf("   User: %s\n", user)
 	case SourceInteractive:
+		terminal.ClearAndShowHeader("Restore Tools - Restore Single Database")
 		fmt.Printf("👤 Using interactively selected configuration\n")
 		fmt.Printf("   Host: %s:%d\n", host, port)
 		fmt.Printf("   User: %s\n", user)
