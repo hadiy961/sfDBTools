@@ -36,10 +36,6 @@ func CreateReplicationMetadata(replicationInfo *database.ReplicationInfo) *Repli
 func GetReplicationInfoForBackup(dbConfig database.Config) (*database.ReplicationInfo, error) {
 	lg, _ := logger.Get()
 
-	lg.Info("Collecting replication information for backup",
-		logger.String("host", dbConfig.Host),
-		logger.Int("port", dbConfig.Port))
-
 	// Get complete replication information
 	replicationInfo, err := database.GetReplicationInfo(dbConfig)
 	if err != nil {

@@ -1,4 +1,4 @@
-package backup_all_databases_mysqldump
+package mysqldump
 
 import (
 	"encoding/json"

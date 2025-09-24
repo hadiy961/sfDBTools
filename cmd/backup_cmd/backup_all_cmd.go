@@ -1,11 +1,10 @@
 package backup_cmd
 
 import (
-	"fmt"
 	"os"
 
 	"sfDBTools/internal/config"
-	backup_all_databases_mysqldump "sfDBTools/internal/core/backup/all_databases/mysqldump"
+	"sfDBTools/internal/core/backup/all_databases/mysqldump"
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 
@@ -56,7 +55,7 @@ sfDBTools backup all --source_host localhost --source_user root --data=false`,
 		"category": "backup",
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if err := executeAllDatabasesBackup(cmd); err != nil {
+		if err := executeAllDatabasesBackup(cmd, Lg); err != nil {
 			lg, _ := logger.Get()
 			lg.Error("All databases backup failed", logger.Error(err))
 			os.Exit(1)
@@ -65,16 +64,11 @@ sfDBTools backup all --source_host localhost --source_user root --data=false`,
 }
 
 // executeAllDatabasesBackup handles the main all databases backup execution logic
-func executeAllDatabasesBackup(cmd *cobra.Command) error {
-	lg, err := logger.Get()
-	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
-	}
-
+func executeAllDatabasesBackup(cmd *cobra.Command, lg *logger.Logger) error {
 	lg.Info("Starting all databases backup process")
 
 	// Execute the all databases backup workflow
-	return backup_utils.ExecuteAllDatabasesBackup(cmd, backup_all_databases_mysqldump.BackupAllDatabases)
+	return backup_utils.ExecuteAllDatabasesBackup(cmd, mysqldump.BackupAllDatabases)
 }
 
 func init() {
