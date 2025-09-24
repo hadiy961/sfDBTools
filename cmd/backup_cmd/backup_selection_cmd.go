@@ -35,7 +35,7 @@ sfDBTools backup selection --config ./config/mydb.cnf.enc --db_list ./databases.
 		lg, _ := logger.Get()
 
 		// Clear terminal and show header
-		terminal.ClearAndShowHeader("Backup Tools - Database Selection Backup")
+		terminal.Headers("Backup Tools - Database Selection Backup")
 		// Get the values of both flags
 		dbListPath, err := cmd.Flags().GetString("db_list")
 		if err != nil {

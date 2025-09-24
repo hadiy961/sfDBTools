@@ -61,7 +61,7 @@ func executeRestore(cmd *cobra.Command) error {
 		return fmt.Errorf("invalid command password")
 	}
 
-	terminal.ClearAndShowHeader("Restore Tools - Restore Single Database")
+	terminal.Headers("Restore Tools - Restore Single Database")
 
 	lg.Info("Starting restore process")
 

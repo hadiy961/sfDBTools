@@ -45,7 +45,6 @@ func execDBConfigGenerate(cmd *cobra.Command) error {
 	if err != nil {
 		return err
 	}
-
 	// Execute generate operation
 	return generate.ProcessGenerate(config, Lg)
 }

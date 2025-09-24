@@ -45,7 +45,7 @@ func ProcessValidate(cfg *dbconfig.Config) error {
 	if err != nil {
 		return err
 	}
-	terminal.ClearAndShowHeader("🔍 Validate Database Configuration")
+	terminal.Headers("🔍 Validate Database Configuration")
 	processor.LogOperation("database configuration validation", "")
 
 	// If no specific file is provided, let user select

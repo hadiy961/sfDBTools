@@ -17,7 +17,7 @@ import (
 
 // membuat konfigurasi standart perusahaan
 func RunStandardConfiguration(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig, installation *discovery.MariaDBInstallation) error {
-	terminal.PrintHeader("MariaDB Configuration Process")
+	terminal.Headers("MariaDB Configuration Process")
 	fmt.Println()
 	lg, err := logger.Get()
 	if err != nil {

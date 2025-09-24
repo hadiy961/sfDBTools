@@ -60,7 +60,7 @@ func (p *Processor) showSpecificConfig(filePath string) error {
 	if err := p.configHelper.ValidateConfigExists(filePath); err != nil {
 		return fmt.Errorf("invalid config file: %w", err)
 	}
-	terminal.ClearAndShowHeader("Show Database Configuration")
+	terminal.Headers("Show Database Configuration")
 	// Get encryption password
 	encryptionPassword, err := p.GetEncryptionPassword("view the configuration")
 	if err != nil {

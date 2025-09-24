@@ -19,7 +19,7 @@ and test the actual database connection. If no file is specified, it will list a
 available encrypted config files and allow you to choose one.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// Clear screen and show header
-		terminal.ClearAndShowHeader("✅ Validate Database Configuration")
+		terminal.Headers("Validate Database Configuration")
 
 		if err := executeValidate(cmd); err != nil {
 			lg, _ := logger.Get()

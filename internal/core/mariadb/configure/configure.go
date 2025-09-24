@@ -18,7 +18,7 @@ import (
 // Mengikuti flow implementasi yang telah ditentukan dalam dokumentasi
 func RunMariaDBConfigure(ctx context.Context, config *mariadb_config.MariaDBConfigureConfig) error {
 	terminal.ClearScreen()
-	terminal.PrintHeader("MariaDB Configuration Process")
+	terminal.Headers("MariaDB Configuration Process")
 	terminal.PrintSubHeader("Reading Existing Configurations from Application Config")
 	fmt.Println()
 	lg, err := logger.Get()

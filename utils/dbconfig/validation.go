@@ -213,7 +213,7 @@ func ValidateMultipleConfigs(filePaths []string) ([]*ValidationResult, error) {
 
 // DisplayMultipleValidationResults shows summary of multiple validations
 func DisplayMultipleValidationResults(results []*ValidationResult) {
-	terminal.PrintHeader("📊 Validation Summary")
+	terminal.Headers("📊 Validation Summary")
 
 	validCount := 0
 	invalidCount := 0

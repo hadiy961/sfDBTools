@@ -11,7 +11,7 @@ import (
 
 // DisplayConfigDetails shows configuration file details
 func DisplayConfigDetails(configName, configPath string) error {
-	terminal.PrintHeader(fmt.Sprintf(" Configuration Details: %s", configName))
+	terminal.Headers(fmt.Sprintf(" Configuration Details: %s", configName))
 
 	// File information
 	if stat, err := os.Stat(configPath); err == nil {

@@ -13,7 +13,7 @@ import (
 
 // DisplayRestoreParameters shows restore parameters before execution
 func DisplayRestoreParameters(options RestoreOptions) {
-	terminal.ClearAndShowHeader("Restore Tools - Restore Single Database")
+	terminal.Headers("Restore Tools - Restore Single Database")
 	terminal.PrintSubHeader("Restore Parameters")
 	fmt.Printf("Target Database:  %s\n", options.DBName)
 	fmt.Printf("Target Host:      %s:%d\n", options.Host, options.Port)

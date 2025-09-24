@@ -36,13 +36,18 @@ func DBConfigMenu(lg *logger.Logger, cfg *model.Config) {
 		// Panggil fungsi atau command untuk Edit Konfigurasi DB
 	case 3:
 		lg.Info("Selected: Hapus Konfigurasi DB")
+		dbconfig_cmd.DeleteCmd.Run(dbconfig_cmd.DeleteCmd, []string{})
+		return
 		// Panggil fungsi atau command untuk Backup Database
 	case 4:
-		lg.Info("Selected: Restore Database")
+		dbconfig_cmd.ValidateCmd.Run(dbconfig_cmd.ValidateCmd, []string{})
+		return
 		// Panggil fungsi atau command untuk Restore Database
 	case 5:
-		lg.Info("Exiting application")
+		lg.Info("Selected: Lihat Konfigurasi DB")
+		dbconfig_cmd.ShowCmd.Run(dbconfig_cmd.ShowCmd, []string{})
 		return
+		// Panggil fungsi atau command untuk Lihat Konfigurasi DB
 	case 6:
 		MenuUtama(lg, cfg)
 		return

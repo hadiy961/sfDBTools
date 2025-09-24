@@ -22,7 +22,7 @@ func ExecuteMultipleDatabaseBackup(
 	operationType string,
 ) (*MultiBackupResult, error) {
 	lg, _ := logger.Get()
-	terminal.ClearAndShowHeader("Backup Tools - Multi-Database Backup")
+	terminal.Headers("Backup Tools - Multi-Database Backup")
 	lg.Debug("Starting multi-database backup",
 		logger.String("operation", operationType),
 		logger.Int("total_databases", len(databases)),

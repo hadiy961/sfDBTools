@@ -36,7 +36,7 @@ func executeUserGrantsBackup(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	terminal.ClearAndShowHeader("Backup Tools - User Grants Backup")
+	terminal.Headers("Backup Tools - User Grants Backup")
 
 	lg.Info("Starting user grants backup process")
 

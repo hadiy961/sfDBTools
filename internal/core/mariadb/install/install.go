@@ -26,13 +26,13 @@ func RunMariaDBInstall(ctx context.Context, cfg *mariadb_config.MariaDBInstallCo
 	}
 
 	// Langkah 1: Pre-installation checks (termasuk OS dan hak akses)
-	terminal.PrintHeader("Pre-Installation Checks")
+	terminal.Headers("Pre-Installation Checks")
 	installation, err := preInstallationChecks(cfg, deps)
 	if err != nil {
 		return fmt.Errorf("pre-installation checks gagal: %w", err)
 	}
 
-	terminal.PrintHeader("MariaDB Installation Process")
+	terminal.Headers("MariaDB Installation Process")
 	// Langkah 2: Validasi konfigurasi (tidak ada lagi interactive input)
 	if err := validateFinalConfig(cfg); err != nil {
 		return fmt.Errorf("validasi konfigurasi gagal: %w", err)

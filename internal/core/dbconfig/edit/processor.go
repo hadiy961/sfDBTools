@@ -10,6 +10,7 @@ import (
 
 	"sfDBTools/internal/config"
 	coredbconfig "sfDBTools/internal/core/dbconfig"
+	"sfDBTools/internal/logger"
 	"sfDBTools/utils/crypto"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
@@ -40,15 +41,13 @@ func NewProcessor() (*Processor, error) {
 }
 
 // ProcessEdit handles the core edit operation logic
-func ProcessEdit(cfg *dbconfig.Config) error {
+func ProcessEdit(cfg *dbconfig.Config, Lg *logger.Logger) error {
 	processor, err := NewProcessor()
 	if err != nil {
 		return err
 	}
 
 	processor.LogOperation("database configuration editing", cfg.FilePath)
-	terminal.Clear()
-	terminal.PrintHeader("Edit Database Configuration")
 	return processor.editSpecificConfig(cfg.FilePath)
 }
 
@@ -147,8 +146,7 @@ func (p *Processor) promptForUpdates(dbConfig *config.EncryptedDatabaseConfig, c
 		Password: newPassword,
 	}
 
-	terminal.Clear()
-	terminal.PrintHeader("Edit Database Configuration")
+	terminal.Headers("Edit Database Configuration")
 	// Display changes summary and check for changes
 	hasChanges := p.displayChangesSummary(dbConfig, updatedConfig, currentName, newName)
 

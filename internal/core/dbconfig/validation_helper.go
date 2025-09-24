@@ -74,7 +74,7 @@ func (vh *ValidationHelper) ValidateWithDecryption(filePath string, result *dbco
 
 // displayConfigInfo shows configuration details in a formatted way
 func (vh *ValidationHelper) displayConfigInfo(dbConfig *config.EncryptedDatabaseConfig) {
-	terminal.ClearAndShowHeader("🔍 Configuration Details")
+	terminal.Headers("🔍 Configuration Details")
 	terminal.PrintSubHeader("Configuration Details")
 
 	headers := []string{"Property", "Value"}

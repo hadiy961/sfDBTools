@@ -13,8 +13,7 @@ func ProcessDelete(cfg *dbconfig.Config, args []string) error {
 	}
 
 	processor.LogOperation("database configuration deletion", "")
-	terminal.Clear()
-	terminal.PrintHeader("🗑️  Delete Database Configuration")
+	terminal.Headers("Hapus Konfigurasi DB")
 	// Route to appropriate handler based on parameters
 	switch {
 	case cfg.DeleteAll:

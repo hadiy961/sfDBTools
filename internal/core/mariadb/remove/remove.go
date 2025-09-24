@@ -22,7 +22,7 @@ type Dependencies struct {
 func RunMariaDBRemove(ctx context.Context, cfg *mariadb_config.MariaDBRemoveConfig) error {
 	lg, _ := logger.Get()
 	terminal.ClearScreen()
-	terminal.PrintHeader("MariaDB Removal Process")
+	terminal.Headers("MariaDB Removal Process")
 
 	// Inisialisasi dependencies
 	deps := &Dependencies{
