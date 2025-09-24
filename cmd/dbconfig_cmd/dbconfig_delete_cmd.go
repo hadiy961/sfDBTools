@@ -28,7 +28,7 @@ var DeleteCmd = &cobra.Command{
 
 func executeDelete(cmd *cobra.Command, args []string) error {
 	// Resolve configuration from flags and arguments
-	config, err := dbconfig.ResolveConfig(cmd)
+	config, err := dbconfig.ResDBConfigFlag(cmd)
 	if err != nil {
 		return err
 	}

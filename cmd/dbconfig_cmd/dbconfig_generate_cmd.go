@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"sfDBTools/internal/core/dbconfig/generate"
-	"sfDBTools/internal/logger"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 
@@ -28,31 +27,27 @@ Sensitive data (passwords) must be provided via environment variables:
 
 If environment variables are not set, you will be prompted interactively.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Clear screen and show header
-		terminal.ClearAndShowHeader("Generate database configuration")
-
-		if err := executeGenerate(cmd); err != nil {
-			lg, _ := logger.Get()
-			lg.Error("Failed to generate encrypted config", logger.Error(err))
+		if err := execDBConfigGenerate(cmd); err != nil {
 			terminal.PrintError("Generation failed")
 			terminal.WaitForEnterWithMessage("Press Enter to continue...")
 			os.Exit(1)
+		} else {
+			terminal.PrintSuccess("Generation completed successfully")
+			terminal.WaitForEnterWithMessage("Press Enter to continue...")
+			return
 		}
-
-		terminal.PrintSuccess("Configuration generated successfully!")
-		terminal.WaitForEnterWithMessage("Press Enter to continue...")
 	},
 }
 
-func executeGenerate(cmd *cobra.Command) error {
+func execDBConfigGenerate(cmd *cobra.Command) error {
 	// Resolve configuration from flags
-	config, err := dbconfig.ResolveConfig(cmd)
+	config, err := dbconfig.ResDBConfigFlag(cmd)
 	if err != nil {
 		return err
 	}
 
 	// Execute generate operation
-	return generate.ProcessGenerate(config)
+	return generate.ProcessGenerate(config, Lg)
 }
 
 func init() {

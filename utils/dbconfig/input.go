@@ -23,7 +23,7 @@ func PromptConfigName(defaultName string) (string, error) {
 		defaultName = "database"
 	}
 
-	terminal.PrintSubHeader("📁 Configuration File Name")
+	terminal.PrintSubHeader("Configuration File Name")
 	name := terminal.AskString("Enter configuration name (without extension)", defaultName)
 
 	// Validate and sanitize filename
@@ -35,7 +35,7 @@ func PromptConfigName(defaultName string) (string, error) {
 
 // PromptDatabaseConfig prompts for complete database configuration
 func PromptDatabaseConfig() (*InputConfig, error) {
-	terminal.PrintSubHeader("Database Configuration")
+	terminal.Headers("Database Configuration")
 	terminal.PrintInfo("Please provide database connection details:")
 
 	config := &InputConfig{}

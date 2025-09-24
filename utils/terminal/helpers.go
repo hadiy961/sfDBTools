@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"sfDBTools/internal/config"
 	"strings"
 )
 
@@ -50,6 +51,16 @@ func PauseAndClear() error {
 func PauseAndClearWithMessage(message string) error {
 	WaitForEnterWithMessage(message)
 	return ClearScreen()
+}
+
+func Headers(title string) {
+	cfg, err := config.Get()
+	if err != nil {
+		PrintError(fmt.Sprintf("Error loading config: %v", err))
+		return
+	}
+
+	ClearAndShowHeader(cfg.General.AppName + " v" + cfg.General.Version + " - " + title)
 }
 
 // RefreshDisplay clears screen and refreshes with new content

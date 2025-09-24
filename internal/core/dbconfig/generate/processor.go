@@ -2,7 +2,9 @@ package generate
 
 import (
 	coredbconfig "sfDBTools/internal/core/dbconfig"
+	"sfDBTools/internal/logger"
 	"sfDBTools/utils/dbconfig"
+	"sfDBTools/utils/terminal"
 )
 
 // Processor handles generate operations for database configurations
@@ -31,7 +33,9 @@ func NewProcessor() (*Processor, error) {
 
 // ProcessGenerate handles the core generate operation logic and delegates to
 // either automated or interactive flows.
-func ProcessGenerate(cfg *dbconfig.Config) error {
+func ProcessGenerate(cfg *dbconfig.Config, lg *logger.Logger) error {
+	// Clear screen and show header
+	terminal.Headers("Buat Konfigurasi DB")
 	processor, err := NewProcessor()
 	if err != nil {
 		return err

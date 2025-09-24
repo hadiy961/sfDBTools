@@ -75,6 +75,6 @@ func (p *Processor) saveEncryptedConfig(configName string, dbConfig *config.Encr
 
 	terminal.PrintSuccess(fmt.Sprintf("Configuration '%s' saved successfully!", configName))
 	terminal.PrintInfo(fmt.Sprintf("Saved to: %s", filePath))
-
+	terminal.PrintInfo("Keep your encryption password safe - it is required to decrypt the configuration.")
 	return nil
 }

@@ -35,12 +35,11 @@ func DisplayConfigDetails(configName, configPath string) error {
 
 // DisplayConfigSummary shows a summary table of configurations
 func DisplayConfigSummary(configs []*ConfigInfo) {
+	terminal.Headers("Ringkasan Konfigurasi Database")
 	if len(configs) == 0 {
 		terminal.PrintWarning("No configuration files found.")
 		return
 	}
-
-	terminal.PrintHeader(fmt.Sprintf("📁 Database Configurations (%d found)", len(configs)))
 
 	data := [][]string{}
 	for i, config := range configs {
@@ -72,8 +71,8 @@ func DisplayConfigSummary(configs []*ConfigInfo) {
 
 // DisplayPasswordOption prompts for password handling option
 func DisplayPasswordOption() (string, error) {
-	terminal.PrintSubHeader("🔑 Password Configuration")
-	terminal.PrintWarning("⚠️ Password is MANDATORY - must be provided via one of the options below:")
+	terminal.PrintSubHeader("Password Configuration")
+	terminal.PrintWarning("Password is MANDATORY - must be provided via one of the options below:")
 
 	options := []string{
 		"1. Enter password now",

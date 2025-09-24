@@ -9,7 +9,7 @@ import (
 )
 
 // ResolveConfig resolves dbconfig configuration from various sources
-func ResolveConfig(cmd *cobra.Command) (*Config, error) {
+func ResDBConfigFlag(cmd *cobra.Command) (*Config, error) {
 	config := &Config{}
 
 	// Get file path from flag
@@ -48,7 +48,7 @@ func ResolveConfig(cmd *cobra.Command) (*Config, error) {
 
 // ResolveConfigWithInteractiveSelection resolves config with interactive file selection if needed
 func ResolveConfigWithInteractiveSelection(cmd *cobra.Command) (*Config, error) {
-	config, err := ResolveConfig(cmd)
+	config, err := ResDBConfigFlag(cmd)
 	if err != nil {
 		return nil, err
 	}
