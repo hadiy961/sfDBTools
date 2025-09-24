@@ -3,7 +3,6 @@ package connection
 import (
 	"database/sql"
 	"fmt"
-
 	"sfDBTools/internal/logger"
 )
 

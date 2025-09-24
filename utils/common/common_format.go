@@ -240,3 +240,50 @@ func ParseMemorySizeToMB(size string) (int, error) {
 	}
 	return result, nil
 }
+
+func ParseSize(sizeStr string) int64 {
+	sizeStr = strings.TrimSpace(strings.ToUpper(sizeStr))
+	if len(sizeStr) == 0 {
+		return 0
+	}
+
+	// Extract number dan suffix
+	var number int64
+	var suffix string
+
+	for i, char := range sizeStr {
+		if char < '0' || char > '9' {
+			var err error
+			number, err = strconv.ParseInt(sizeStr[:i], 10, 64)
+			if err != nil {
+				return 0
+			}
+			suffix = sizeStr[i:]
+			break
+		}
+	}
+
+	// Jika tidak ada suffix, anggap sudah dalam bytes
+	if suffix == "" {
+		var err error
+		number, err = strconv.ParseInt(sizeStr, 10, 64)
+		if err != nil {
+			return 0
+		}
+		return number
+	}
+
+	// Convert berdasarkan suffix
+	switch suffix {
+	case "K", "KB":
+		return number * 1024
+	case "M", "MB":
+		return number * 1024 * 1024
+	case "G", "GB":
+		return number * 1024 * 1024 * 1024
+	case "T", "TB":
+		return number * 1024 * 1024 * 1024 * 1024
+	default:
+		return 0
+	}
+}

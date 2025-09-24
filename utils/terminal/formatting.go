@@ -4,11 +4,10 @@ import (
 	"fmt"
 	"os"
 	"regexp"
+	"sfDBTools/internal/logger"
 	"strings"
 	"sync"
 	"time"
-
-	"sfDBTools/internal/logger"
 
 	"github.com/olekukonko/tablewriter"
 )
