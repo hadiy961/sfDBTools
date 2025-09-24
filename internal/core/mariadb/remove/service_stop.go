@@ -9,7 +9,7 @@ import (
 func stopMariaDBService(deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.PrintSubHeader("🛑 Menghentikan & mendisable service MariaDB...")
+	terminal.PrintSubHeader("Menghentikan & mendisable service MariaDB...")
 
 	serviceName := "mariadb"
 
@@ -46,7 +46,7 @@ func stopMariaDBService(deps *Dependencies) error {
 // killMariaDBProcesses membunuh proses MariaDB yang mungkin masih berjalan
 func killMariaDBProcesses(deps *Dependencies) error {
 
-	terminal.PrintSubHeader("🔫 Menghentikan proses MariaDB yang masih berjalan...")
+	terminal.PrintSubHeader("Menghentikan proses MariaDB yang masih berjalan...")
 
 	// Cari proses mysqld
 	processes := []string{"mysqld", "mariadbd", "mysql"}

@@ -42,31 +42,27 @@ Contoh penggunaan:
   
   # Instalasi dengan environment variable
   SFDBTOOLS_MARIADB_VERSION=10.11 sudo sfdbtools mariadb install`,
-	RunE: executeMariaDBInstall,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := executeMariaDBInstall(cmd, Lg); err != nil {
+			terminal.PrintError("Instalasi MariaDB gagal")
+			terminal.WaitForEnterWithMessage("Tekan Enter untuk melanjutkan...")
+			// Jangan panggil os.Exit di sini; biarkan Cobra menangani exit code
+		} else {
+			terminal.PrintSuccess("Instalasi MariaDB selesai")
+			terminal.WaitForEnterWithMessage("Tekan Enter untuk melanjutkan...")
+			return
+		}
+	},
 }
 
 func init() {
 	// Tambah flags untuk konfigurasi instalasi
 	InstallCmd.Flags().StringP("version", "v", "", "Versi MariaDB yang akan diinstall (default dari config atau 10.6.23)")
 
-	// Do not print usage automatically on error (we already show an error message / spinner)
-	// InstallCmd.SilenceUsage = true
-	// Do not let Cobra print the error again; spinner already displayed a user-facing error
-	// InstallCmd.SilenceErrors = true
-
-	// Tambah common flags jika tersedia
-	// common.AddCommonFlags(InstallCmd) // Uncomment jika ada helper ini
 }
 
 // executeMariaDBInstall menjalankan command instalasi MariaDB
-func executeMariaDBInstall(cmd *cobra.Command, args []string) error {
-	lg, err := logger.Get()
-	if err != nil {
-		// If logger failed, still print minimal output directly
-		terminal.SafePrintln("Gagal inisialisasi logger: " + err.Error())
-		return err
-	}
-
+func executeMariaDBInstall(cmd *cobra.Command, lg *logger.Logger) error {
 	// Clear screen untuk UX yang lebih baik
 	terminal.ClearScreen()
 

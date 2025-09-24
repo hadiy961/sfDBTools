@@ -44,7 +44,6 @@ func GatherInteractiveInput(ctx context.Context, mariadbConfig *mariadb_config.M
 	// Task 1: Load application config sebagai fallback defaults
 
 	// Show welcome message
-	terminal.Headers("MariaDB Configuration Setup")
 	terminal.PrintSubHeader("Please provide the following configuration values.")
 	terminal.PrintInfo("Press Enter to use default values shown in brackets.")
 	fmt.Println()

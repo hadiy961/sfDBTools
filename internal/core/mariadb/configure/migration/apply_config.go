@@ -57,7 +57,7 @@ func buildConfigValues(config *mariadb_config.MariaDBConfigureConfig) map[string
 
 	if config.InnodbEncryptTables {
 		values["innodb_encrypt_tables"] = "ON"
-		values["file_key_management_encryption_key_file"] = config.EncryptionKeyFile
+		values["file_key_management_filename"] = config.EncryptionKeyFile
 		values["file_key_management_encryption_algorithm"] = "AES_CTR"
 	} else {
 		values["innodb_encrypt_tables"] = "OFF"

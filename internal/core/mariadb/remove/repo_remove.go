@@ -17,7 +17,7 @@ func removeMariaDBRepository(cfg *mariadb_config.MariaDBRemoveConfig, deps *Depe
 	}
 
 	lg, _ := logger.Get()
-	terminal.PrintSubHeader("🗑️  Menghapus repository MariaDB...")
+	terminal.PrintSubHeader("Menghapus repository MariaDB...")
 
 	osInfo, err := system.DetectOS()
 	if err != nil {
@@ -101,7 +101,7 @@ func removeRPMRepository(deps *Dependencies) error {
 	}
 
 	// Clean package cache
-	terminal.PrintSubHeader("🔄 Membersihkan package cache...")
+	terminal.PrintSubHeader("Membersihkan package cache...")
 	if err := deps.ProcessManager.Execute("yum", []string{"clean", "all"}); err != nil {
 		// Try dnf if yum fails
 		if err := deps.ProcessManager.Execute("dnf", []string{"clean", "all"}); err != nil {

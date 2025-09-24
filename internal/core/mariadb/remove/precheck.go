@@ -15,7 +15,7 @@ import (
 func preRemovalChecks(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.PrintSubHeader("🔍 Melakukan pemeriksaan sistem untuk penghapusan...")
+	terminal.PrintSubHeader("Melakukan pemeriksaan sistem untuk penghapusan...")
 
 	// Cek hak akses root
 	if !isRunningAsRoot() {

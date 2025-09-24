@@ -62,12 +62,12 @@ log:
             tag: sfDBTools
     timezone: Asia/Jakarta
 mariadb:
-    binlog_dir: /mnt/nfs/db/logbin
+    binlog_dir: /mnt/nfs/mariadb/binlogs
     config_dir: /etc/my.cnf.d/server.cnf
-    data_dir: /mnt/nfs/db/data
+    data_dir: /mnt/nfs/mariadb/data
     encryption_key_file: /etc/sfDBTools/key_maria_nbc.txt
-    innodb_encrypt_tables: false
-    log_dir: /mnt/nfs/db/logs
+    innodb_encrypt_tables: true
+    log_dir: /mnt/nfs/mariadb/logs
     port: 3306
     server_id: 1
     version: 10.6.23

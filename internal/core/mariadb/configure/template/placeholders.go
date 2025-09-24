@@ -32,7 +32,7 @@ func SetDefaultValues(template *MariaDBConfigTemplate) {
 	defaults := map[string]string{
 		"server_id": "1",
 		"file_key_management_encryption_algorithm": "AES_CTR",
-		"file_key_management_filename":             "/var/lib/mysql/encryption/keyfile",
+		"file_key_management_filename":             "/etc/sfDBTools/key_maria_nbc.txt",
 		"innodb_encrypt_tables":                    "ON",
 		"log_bin":                                  "/var/lib/mysqlbinlogs/mysql-bin",
 		"datadir":                                  "/var/lib/mysql",

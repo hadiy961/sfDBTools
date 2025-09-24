@@ -5,6 +5,7 @@ import (
 
 	"sfDBTools/internal/core/mariadb/configure"
 	mariadb_config "sfDBTools/utils/mariadb/config"
+	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
 )
@@ -23,6 +24,17 @@ var ConfigureMariadbCMD = &cobra.Command{
 
 This command will safely migrate existing data if directories are changed.`,
 	RunE: executeMariaDBConfigure,
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := executeMariaDBConfigure(cmd, args); err != nil {
+			terminal.PrintError("Instalasi MariaDB gagal")
+			terminal.WaitForEnterWithMessage("Tekan Enter untuk melanjutkan...")
+			// Jangan panggil os.Exit di sini; biarkan Cobra menangani exit code
+		} else {
+			terminal.PrintSuccess("Instalasi MariaDB selesai")
+			terminal.WaitForEnterWithMessage("Tekan Enter untuk melanjutkan...")
+			return
+		}
+	},
 }
 
 func executeMariaDBConfigure(cmd *cobra.Command, args []string) error {

@@ -51,28 +51,21 @@ Contoh penggunaan:
 
   # Hapus semua termasuk repository dan user sistem
   sudo sfdbtools mariadb remove --remove-data --remove-config --remove-repository --remove-user`,
-	RunE: executeMariaDBRemove,
-}
-
-func init() {
-	// Tambah flags untuk konfigurasi penghapusan
-	RemoveCmd.Flags().Bool("remove-data", false, "Hapus data directory (/var/lib/mysql) - SEMUA DATABASE AKAN HILANG!")
-	RemoveCmd.Flags().Bool("remove-config", false, "Hapus file konfigurasi (/etc/mysql, /etc/my.cnf)")
-	RemoveCmd.Flags().Bool("remove-repository", false, "Hapus repository MariaDB dari sistem")
-	RemoveCmd.Flags().Bool("remove-user", false, "Hapus user sistem 'mysql'")
-	RemoveCmd.Flags().Bool("force", false, "Force removal tanpa konfirmasi (BERBAHAYA!)")
-	RemoveCmd.Flags().Bool("backup-data", false, "Backup data sebelum dihapus")
-	RemoveCmd.Flags().String("backup-path", "/tmp/mariadb_backup", "Path untuk menyimpan backup data")
-	RemoveCmd.Flags().Bool("non-interactive", false, "Mode non-interactive, tidak menampilkan output interaktif")
+	Run: func(cmd *cobra.Command, args []string) {
+		if err := executeMariaDBRemove(cmd, args, Lg); err != nil {
+			terminal.PrintError("Instalasi MariaDB gagal")
+			terminal.WaitForEnterWithMessage("Tekan Enter untuk melanjutkan...")
+			// Jangan panggil os.Exit di sini; biarkan Cobra menangani exit code
+		} else {
+			terminal.PrintSuccess("Instalasi MariaDB selesai")
+			terminal.WaitForEnterWithMessage("Tekan Enter untuk melanjutkan...")
+			return
+		}
+	},
 }
 
 // executeMariaDBRemove menjalankan command penghapusan MariaDB
-func executeMariaDBRemove(cmd *cobra.Command, args []string) error {
-	lg, err := logger.Get()
-	if err != nil {
-		terminal.SafePrintln("❌ Gagal inisialisasi logger: " + err.Error())
-		return err
-	}
+func executeMariaDBRemove(cmd *cobra.Command, args []string, lg *logger.Logger) error {
 
 	// Clear screen untuk UX yang lebih baik
 	if !common.GetBoolFlagOrEnv(cmd, "non-interactive", "SFDBTOOLS_NON_INTERACTIVE", false) {

@@ -26,7 +26,7 @@ func RunMariaDBInstall(ctx context.Context, cfg *mariadb_config.MariaDBInstallCo
 	}
 
 	// Langkah 1: Pre-installation checks (termasuk OS dan hak akses)
-	terminal.Headers("Pre-Installation Checks")
+	terminal.Headers("MariaDB Pre-Installation Checks")
 	installation, err := preInstallationChecks(cfg, deps)
 	if err != nil {
 		return fmt.Errorf("pre-installation checks gagal: %w", err)
@@ -69,6 +69,7 @@ func RunMariaDBInstall(ctx context.Context, cfg *mariadb_config.MariaDBInstallCo
 	}
 
 	// Langkah 8: Post-installation
+	terminal.Headers("MariaDB Post-Installation Setup")
 	if err := postInstallationSetup(deps, mariadb_config, installation); err != nil {
 		return fmt.Errorf("post-installation setup gagal: %w", err)
 	}

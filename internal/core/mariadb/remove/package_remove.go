@@ -12,7 +12,7 @@ import (
 func removeMariaDBPackages(deps *Dependencies) error {
 	lg, _ := logger.Get()
 
-	terminal.PrintSubHeader("🗑️  Menghapus paket MariaDB...")
+	terminal.PrintSubHeader("Menghapus paket MariaDB...")
 
 	// Tentukan nama paket berdasarkan OS
 	packages, err := getMariaDBPackageList()

@@ -38,7 +38,7 @@ func cleanupSystem(cfg *mariadb_config.MariaDBRemoveConfig, deps *Dependencies) 
 
 // removeMySQLUser menghapus user mysql dari sistem
 func removeMySQLUser(deps *Dependencies) error {
-	terminal.PrintSubHeader("👤 Menghapus user mysql dari sistem...")
+	terminal.PrintSubHeader("Menghapus user mysql dari sistem...")
 
 	// Cek apakah user mysql ada
 	_, err := deps.ProcessManager.ExecuteWithOutput("id", []string{"mysql"})
@@ -61,7 +61,7 @@ func removeMySQLUser(deps *Dependencies) error {
 
 // cleanupLogFiles menghapus file-file log MariaDB
 func cleanupLogFiles() error {
-	terminal.PrintSubHeader("🧹 Membersihkan log files...")
+	terminal.PrintSubHeader("Membersihkan log files...")
 
 	logPaths := []string{
 		"/var/log/mysql",
@@ -94,7 +94,7 @@ func cleanupLogFiles() error {
 
 // cleanupTempFiles menghapus file-file temporary MariaDB
 func cleanupTempFiles() error {
-	terminal.PrintSubHeader("🧹 Membersihkan temp files...")
+	terminal.PrintSubHeader("Membersihkan temp files...")
 
 	tempPaths := []string{
 		"/tmp/mysql.sock",
@@ -114,7 +114,7 @@ func cleanupTempFiles() error {
 			continue // Skip error, tidak critical
 		}
 
-		info("🗂️  Menghapus temp: " + path)
+		info("Menghapus temp: " + path)
 		if err := os.RemoveAll(path); err != nil {
 			warn("Gagal menghapus: " + path)
 		} else {
@@ -127,7 +127,7 @@ func cleanupTempFiles() error {
 
 // verifyRemoval memverifikasi bahwa penghapusan berhasil
 func verifyRemoval(deps *Dependencies) error {
-	terminal.PrintSubHeader("✅ Memverifikasi penghapusan...")
+	terminal.PrintSubHeader("Memverifikasi penghapusan...")
 
 	// Cek apakah masih ada paket yang terinstall
 	packages, err := getMariaDBPackageList()

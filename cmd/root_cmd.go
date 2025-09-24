@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"sfDBTools/cmd/dbconfig_cmd"
+	mariadb_cmd "sfDBTools/cmd/mariadb_cmd"
 	"sfDBTools/internal/config/model"
 	"sfDBTools/internal/core/menu"
 	"sfDBTools/internal/logger"
@@ -28,6 +29,8 @@ func Execute(config *model.Config, logger *logger.Logger) error {
 	// initialize sub-command packages that need cfg/lg
 	// ensure dbconfig subpackage has access to cfg/lg
 	dbconfig_cmd.Init(cfg, lg)
+	// ensure mariadb subpackage has access to cfg/lg as well
+	mariadb_cmd.Init(cfg, lg)
 
 	return rootCmd.Execute()
 }

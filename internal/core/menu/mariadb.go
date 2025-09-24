@@ -1,6 +1,7 @@
 package menu
 
 import (
+	"sfDBTools/cmd/mariadb_cmd"
 	"sfDBTools/internal/config/model"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/terminal"
@@ -24,17 +25,20 @@ func MariaDBMenu(lg *logger.Logger, cfg *model.Config) {
 
 	switch choice {
 	case 1:
-		lg.Info("Selected: Install MariaDB")
 		// Panggil fungsi atau command untuk Install MariaDB
+		mariadb_cmd.InstallCmd.Run(mariadb_cmd.InstallCmd, []string{})
+		return
 	case 2:
-		lg.Info("Selected: Hapus MariaDB")
 		// Panggil fungsi atau command untuk Hapus MariaDB
+		mariadb_cmd.RemoveCmd.Run(mariadb_cmd.RemoveCmd, []string{})
 	case 3:
 		lg.Info("Selected: Modifikasi Konfigurasi MariaDB")
 		// Panggil fungsi atau command untuk Modifikasi Konfigurasi MariaDB
+		mariadb_cmd.ConfigureMariadbCMD.Run(mariadb_cmd.ConfigureMariadbCMD, []string{})
 	case 4:
 		lg.Info("Selected: Check Status MariaDB")
 		// Panggil fungsi atau command untuk Check Status MariaDB
+
 	case 5:
 		lg.Info("Selected: Check Versi (Online)")
 		// Panggil fungsi atau command untuk Check Versi (Online)

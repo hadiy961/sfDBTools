@@ -209,7 +209,7 @@ func removeDefaultDataDirectories() error {
 
 // removeCustomDataDirectories menghapus direktori berdasarkan konfigurasi yang terdeteksi
 func removeCustomDataDirectories(config *MariaDBConfig) error {
-	terminal.PrintSubHeader("🗑️  Menghapus data directory MariaDB (custom)...")
+	terminal.PrintSubHeader("Menghapus data directory MariaDB (custom)...")
 
 	// Dapatkan semua direktori yang perlu dihapus
 	customDirs := getAllCustomDirectories(config)
@@ -257,7 +257,7 @@ func removeCustomDataDirectories(config *MariaDBConfig) error {
 
 // removeConfigFiles menghapus file-file konfigurasi MariaDB
 func removeConfigFiles() error {
-	terminal.PrintSubHeader("🗑️  Menghapus file konfigurasi MariaDB...")
+	terminal.PrintSubHeader("Menghapus file konfigurasi MariaDB...")
 
 	configPaths := []string{
 		"/etc/mysql",
