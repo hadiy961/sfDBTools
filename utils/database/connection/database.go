@@ -6,46 +6,6 @@ import (
 	"sfDBTools/internal/logger"
 )
 
-// ValidateDatabase checks if the specified database exists
-func ValidateDatabase(config Config) error {
-	lg, err := getLogger()
-	if err != nil {
-		return err
-	}
-
-	dsn := buildDSN(config, false) // Connect without selecting a database
-	lg.Debug("Validating database exists",
-		logger.String("database", config.DBName))
-
-	db, err := createConnection(dsn)
-	if err != nil {
-		lg.Error("Failed to open database connection", logger.Error(err))
-		return fmt.Errorf("failed to open database connection: %w", err)
-	}
-	defer db.Close()
-
-	// Check if database exists
-	var exists bool
-	query := "SELECT COUNT(*) > 0 FROM information_schema.schemata WHERE schema_name = ?"
-	err = db.QueryRow(query, config.DBName).Scan(&exists)
-	if err != nil {
-		lg.Error("Failed to check if database exists",
-			logger.Error(err),
-			logger.String("database", config.DBName))
-		return fmt.Errorf("failed to check if database '%s' exists: %w", config.DBName, err)
-	}
-
-	if !exists {
-		lg.Error("Database does not exist",
-			logger.String("database", config.DBName))
-		return fmt.Errorf("database '%s' does not exist", config.DBName)
-	}
-
-	lg.Debug("Database exists",
-		logger.String("database", config.DBName))
-	return nil
-}
-
 // EnsureDatabase checks if the database exists and creates it if missing
 func EnsureDatabase(config Config) error {
 	lg, err := getLogger()
