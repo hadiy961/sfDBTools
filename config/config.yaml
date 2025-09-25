@@ -12,7 +12,7 @@ backup:
         checksum_verification: true
         encryption_required: true
         integrity_check: true
-    storage:
+    output:
         base_directory: /mnt/nfs/backup
         cleanup_temp: true
         naming:

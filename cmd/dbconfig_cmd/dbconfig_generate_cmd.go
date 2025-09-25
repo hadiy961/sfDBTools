@@ -4,7 +4,8 @@ import (
 	"os"
 
 	"sfDBTools/internal/core/dbconfig/generate"
-	"sfDBTools/utils/dbconfig"
+	"sfDBTools/utils/common/flags"
+	"sfDBTools/utils/common/parsing"
 	"sfDBTools/utils/terminal"
 
 	"github.com/spf13/cobra"
@@ -41,16 +42,16 @@ If environment variables are not set, you will be prompted interactively.`,
 
 func execDBConfigGenerate(cmd *cobra.Command) error {
 	// Resolve configuration from flags
-	config, err := dbconfig.ResDBConfigFlag(cmd)
+	DBConfig, err := parsing.ParseDBConfigFlags(cmd)
 	if err != nil {
 		return err
 	}
 	// Execute generate operation
-	return generate.ProcessGenerate(config, Lg)
+	return generate.ProcessGenerate(DBConfig, Lg)
 }
 
 func init() {
 	// Add shared and generate-specific flags
-	dbconfig.AddCommonDbConfigFlags(GenerateCmd)
-	dbconfig.AddGenerateFlags(GenerateCmd)
+	flags.AddCommonDbConfigFlags(GenerateCmd)
+	flags.AddGenerateFlags(GenerateCmd)
 }

@@ -1,13 +1,6 @@
-package dbconfig
+package flags
 
-import (
-	"github.com/spf13/cobra"
-)
-
-// AddCommonDbConfigFlags adds shared flags used across dbconfig commands
-func AddCommonDbConfigFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("file", "f", "", "Specific encrypted config file")
-}
+import "github.com/spf13/cobra"
 
 // AddGenerateFlags adds flags specific to the generate command
 func AddGenerateFlags(cmd *cobra.Command) {
@@ -16,6 +9,11 @@ func AddGenerateFlags(cmd *cobra.Command) {
 	cmd.Flags().IntP("port", "p", 0, "Database port")
 	cmd.Flags().StringP("user", "u", "", "Database username")
 	cmd.Flags().BoolP("auto", "a", false, "Auto mode - skip confirmations")
+}
+
+// AddCommonDbConfigFlags adds shared flags used across dbconfig commands
+func AddCommonDbConfigFlags(cmd *cobra.Command) {
+	cmd.Flags().StringP("file", "f", "", "Specific encrypted config file")
 }
 
 // AddDeleteFlags adds flags specific to the delete command

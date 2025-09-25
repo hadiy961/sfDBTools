@@ -5,6 +5,7 @@ import (
 
 	"sfDBTools/internal/core/dbconfig/validate"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/common/flags"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 
@@ -44,5 +45,5 @@ func executeValidate(cmd *cobra.Command) error {
 
 func init() {
 	// Add shared flags
-	dbconfig.AddCommonDbConfigFlags(ValidateCmd)
+	flags.AddCommonDbConfigFlags(ValidateCmd)
 }

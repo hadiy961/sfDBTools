@@ -5,6 +5,7 @@ import (
 
 	"sfDBTools/internal/core/dbconfig/delete"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/common/flags"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 
@@ -39,6 +40,6 @@ func executeDelete(cmd *cobra.Command, args []string) error {
 
 func init() {
 	// Add shared and delete-specific flags
-	dbconfig.AddCommonDbConfigFlags(DeleteCmd)
-	dbconfig.AddDeleteFlags(DeleteCmd)
+	flags.AddCommonDbConfigFlags(DeleteCmd)
+	flags.AddDeleteFlags(DeleteCmd)
 }

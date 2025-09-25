@@ -5,6 +5,7 @@ import (
 
 	"sfDBTools/internal/core/dbconfig/show"
 	"sfDBTools/internal/logger"
+	"sfDBTools/utils/common/flags"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 
@@ -45,5 +46,5 @@ func executeShow(cmd *cobra.Command) error {
 
 func init() {
 	// Add shared flags
-	dbconfig.AddCommonDbConfigFlags(ShowCmd)
+	flags.AddCommonDbConfigFlags(ShowCmd)
 }

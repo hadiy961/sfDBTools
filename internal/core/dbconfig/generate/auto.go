@@ -4,20 +4,21 @@ import (
 	"time"
 
 	"sfDBTools/internal/config"
+	"sfDBTools/utils/common/structs"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 )
 
 // processAutoMode handles automated generation using provided parameters
-func (p *Processor) processAutoMode(cfg *dbconfig.Config) error {
+func (p *Processor) processAutoMode(cfg *structs.DBConfig) error {
 	terminal.PrintInfo("Automated mode - using provided parameters")
 
 	// Create configuration from provided parameters
 	dbConfig := &config.EncryptedDatabaseConfig{
-		Host:     cfg.Host,
-		Port:     cfg.Port,
-		User:     cfg.User,
-		Password: cfg.Password,
+		Host:     cfg.ConnectionOptions.Host,
+		Port:     cfg.ConnectionOptions.Port,
+		User:     cfg.ConnectionOptions.User,
+		Password: cfg.ConnectionOptions.Password,
 	}
 
 	// Final name provided by caller

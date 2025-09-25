@@ -4,6 +4,7 @@ import (
 	"os"
 
 	"sfDBTools/internal/core/dbconfig/edit"
+	"sfDBTools/utils/common/flags"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 
@@ -45,5 +46,5 @@ func executeEdit(cmd *cobra.Command) error {
 
 func init() {
 	// Add shared flags
-	dbconfig.AddCommonDbConfigFlags(EditCmd)
+	flags.AddCommonDbConfigFlags(EditCmd)
 }
