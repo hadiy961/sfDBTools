@@ -6,7 +6,6 @@ import (
 	"sfDBTools/utils/common/format"
 	"strconv"
 	"strings"
-	"time"
 
 	"github.com/dustin/go-humanize"
 )
@@ -54,22 +53,6 @@ func FormatNumber(number interface{}, precision ...int) string {
 		return humanize.Comma(intPart)
 	default:
 		return fmt.Sprintf("%v", v)
-	}
-}
-
-// Time formatting
-func FormatTime(t time.Time, format string) string {
-	switch format {
-	case "iso":
-		return t.Format("2006-01-02")
-	case "iso-time":
-		return t.Format("2006-01-02 15:04:05")
-	case "iso-tz":
-		return t.Format("2006-01-02T15:04:05-07:00")
-	case "relative":
-		return humanize.Time(t)
-	default:
-		return t.Format(format)
 	}
 }
 
