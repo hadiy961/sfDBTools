@@ -46,7 +46,7 @@ The package is now split into three focused modules:
 
 ### 3. Consistent Formatting
 - **Before**: Mixed formatting and duplicate size formatting functions
-- **After**: Uses `common.FormatSizeWithPrecision()` and `common.FormatPercent()` consistently
+- **After**: Uses `format.FormatSizeWithPrecision()` and `common.FormatPercent()` consistently
 
 ### 4. Improved Naming and Documentation
 - **Before**: Mixed English and Indonesian names and comments
@@ -108,7 +108,7 @@ if err != nil {
     log.Fatal(err)
 }
 fmt.Printf("Best location: %s with %s free\n", best.Path, 
-    common.FormatSizeWithPrecision(best.Free, 2))
+    format.FormatSizeWithPrecision(best.Free, 2))
 
 // Get all partition information
 partitions, err := disk.GetAllPartitions()
@@ -117,7 +117,7 @@ if err != nil {
 }
 for _, p := range partitions {
     fmt.Printf("%s: %s free\n", p.Mountpoint, 
-        common.FormatSizeWithPrecision(p.Free, 2))
+        format.FormatSizeWithPrecision(p.Free, 2))
 }
 ```
 

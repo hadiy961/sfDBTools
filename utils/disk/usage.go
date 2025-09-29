@@ -10,7 +10,6 @@ import (
 	gopsutildisk "github.com/shirou/gopsutil/v3/disk"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/fs"
 )
@@ -65,8 +64,8 @@ func GetUsageStatistics(path string) (*UsageStatistics, error) {
 		logger.String("path", path),
 		logger.String("mountpoint", stats.Mountpoint),
 		logger.String("fstype", stats.Fstype),
-		logger.String("total", common.FormatSizeWithPrecision(stats.Total, 2)),
-		logger.String("free", common.FormatSizeWithPrecision(stats.Free, 2)),
+		logger.String("total", format.FormatSizeWithPrecision(stats.Total, 2)),
+		logger.String("free", format.FormatSizeWithPrecision(stats.Free, 2)),
 		logger.Float64("used_percent", stats.UsedPercent))
 
 	return stats, nil
@@ -174,7 +173,7 @@ func FindBestStorageLocation(candidates []string) (*UsageStatistics, error) {
 	lg.Info("Best storage location selected",
 		logger.String("path", bestStats.Path),
 		logger.String("mountpoint", bestStats.Mountpoint),
-		logger.String("free_space", common.FormatSizeWithPrecision(bestStats.Free, 2)),
+		logger.String("free_space", format.FormatSizeWithPrecision(bestStats.Free, 2)),
 		logger.Float64("used_percent", bestStats.UsedPercent))
 
 	return bestStats, nil
@@ -187,10 +186,10 @@ func (s *UsageStatistics) FormatUsageReport() string {
 		s.Path,
 		s.Mountpoint,
 		s.Fstype,
-		common.FormatSizeWithPrecision(s.Total, 2),
-		common.FormatSizeWithPrecision(s.Used, 2),
+		format.FormatSizeWithPrecision(s.Total, 2),
+		format.FormatSizeWithPrecision(s.Used, 2),
 		format.FormatPercent(s.UsedPercent, 1),
-		common.FormatSizeWithPrecision(s.Free, 2),
+		format.FormatSizeWithPrecision(s.Free, 2),
 	)
 }
 

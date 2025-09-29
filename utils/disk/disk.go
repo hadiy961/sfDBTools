@@ -9,7 +9,6 @@ import (
 	"math"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
 	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/fs"
 )
@@ -35,18 +34,18 @@ func CheckDiskSpace(path string, minFreeSpace int64) error {
 
 	if usage.Free < required {
 		lg.Error("Insufficient disk space",
-			logger.String("available", common.FormatSizeWithPrecision(usage.Free, 2)),
-			logger.String("required", common.FormatSizeWithPrecision(required, 2)),
+			logger.String("available", format.FormatSizeWithPrecision(usage.Free, 2)),
+			logger.String("required", format.FormatSizeWithPrecision(required, 2)),
 			logger.String("checked_path", usage.Path),
 			logger.String("percent_free", format.FormatPercent(percentFree, 1)))
 		return fmt.Errorf("insufficient disk space: available %s, required %s (free %s)",
-			common.FormatSizeWithPrecision(usage.Free, 2),
-			common.FormatSizeWithPrecision(required, 2),
+			format.FormatSizeWithPrecision(usage.Free, 2),
+			format.FormatSizeWithPrecision(required, 2),
 			format.FormatPercent(percentFree, 1))
 	}
 
 	lg.Debug("Disk space check passed",
-		logger.String("available", common.FormatSizeWithPrecision(usage.Free, 2)),
+		logger.String("available", format.FormatSizeWithPrecision(usage.Free, 2)),
 		logger.String("checked_path", usage.Path),
 		logger.String("percent_free", format.FormatPercent(percentFree, 1)))
 	return nil
@@ -67,17 +66,17 @@ func CheckDiskSpaceBytes(path string, minFreeBytes int64) error {
 
 	if usage.Free < minFreeBytes {
 		lg.Error("Insufficient disk space",
-			logger.String("available", common.FormatSizeWithPrecision(usage.Free, 2)),
-			logger.String("required", common.FormatSizeWithPrecision(minFreeBytes, 2)),
+			logger.String("available", format.FormatSizeWithPrecision(usage.Free, 2)),
+			logger.String("required", format.FormatSizeWithPrecision(minFreeBytes, 2)),
 			logger.String("path", usage.Path))
 		return fmt.Errorf("insufficient disk space: available %s, required %s",
-			common.FormatSizeWithPrecision(usage.Free, 2),
-			common.FormatSizeWithPrecision(minFreeBytes, 2))
+			format.FormatSizeWithPrecision(usage.Free, 2),
+			format.FormatSizeWithPrecision(minFreeBytes, 2))
 	}
 
 	lg.Debug("Disk space check passed",
-		logger.String("available", common.FormatSizeWithPrecision(usage.Free, 2)),
-		logger.String("required", common.FormatSizeWithPrecision(minFreeBytes, 2)),
+		logger.String("available", format.FormatSizeWithPrecision(usage.Free, 2)),
+		logger.String("required", format.FormatSizeWithPrecision(minFreeBytes, 2)),
 		logger.String("path", usage.Path))
 	return nil
 }

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/disk"
 	"sfDBTools/utils/fs"
 
@@ -42,9 +42,9 @@ var SystemDiskCmd = &cobra.Command{
 			stats, _ := disk.GetUsageStatistics(path)
 			fmt.Printf("Path: %s\nMount: %s (%s)\nFree: %s\nTotal: %s\nUsed: %s (%.1f%%)\n",
 				stats.Path, stats.Mountpoint, stats.Fstype,
-				common.FormatSizeWithPrecision(stats.Free, 2),
-				common.FormatSizeWithPrecision(stats.Total, 2),
-				common.FormatSizeWithPrecision(stats.Used, 2), stats.UsedPercent)
+				format.FormatSizeWithPrecision(stats.Free, 2),
+				format.FormatSizeWithPrecision(stats.Total, 2),
+				format.FormatSizeWithPrecision(stats.Used, 2), stats.UsedPercent)
 		} else {
 			fmt.Printf("Disk check passed for %s (required %d MB)\n", path, minMB)
 		}
@@ -72,7 +72,7 @@ var SystemDiskMonitorCmd = &cobra.Command{
 		}
 
 		stop := disk.MonitorDisk(path, time.Duration(intervalSec)*time.Second, threshold, func(u *fs.DiskUsage) {
-			fmt.Printf("[WARN] disk %s used %.1f%% (free %s)\n", u.Path, u.UsedPercent, common.FormatSizeWithPrecision(u.Free, 2))
+			fmt.Printf("[WARN] disk %s used %.1f%% (free %s)\n", u.Path, u.UsedPercent, format.FormatSizeWithPrecision(u.Free, 2))
 		})
 
 		fmt.Printf("Monitoring disk %s every %d seconds. Press CTRL+C to stop.\n", path, intervalSec)

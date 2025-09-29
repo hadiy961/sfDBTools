@@ -78,3 +78,22 @@ func ParseSize(sizeStr string) (uint64, error) {
 	}
 	return bytes, nil
 }
+
+// FormatSizeWithPrecision formats bytes with a specific precision using
+// binary units (KiB, MiB, ...). This mirrors the behavior of
+// format.FormatSizeWithPrecision which accepts an int64 and returns
+// values like "1.23 MiB".
+
+func FormatSizeWithPrecision(bytes int64, precision int) string {
+	const unit = 1024
+	if bytes < unit {
+		return fmt.Sprintf("%d B", bytes)
+	}
+
+	div, exp := int64(unit), 0
+	for n := bytes / unit; n >= unit; n /= unit {
+		div, exp = div*unit, exp+1
+	}
+
+	return fmt.Sprintf("%.*f %ciB", precision, float64(bytes)/float64(div), "KMGTPE"[exp])
+}

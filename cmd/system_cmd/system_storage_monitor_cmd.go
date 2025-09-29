@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 	"sort"
 
 	"github.com/spf13/cobra"
@@ -97,8 +97,8 @@ var SystemStorageMonitorCmd = &cobra.Command{
 				for _, e := range displayList {
 					growthPerSec := e.delta / int64(interval)
 					fmt.Printf("%-30s %-12s %-12s\n", e.name,
-						common.FormatSizeWithPrecision(e.size, 2),
-						common.FormatSizeWithPrecision(growthPerSec, 2))
+						format.FormatSizeWithPrecision(e.size, 2),
+						format.FormatSizeWithPrecision(growthPerSec, 2))
 				}
 
 				// update prev for all seen directories (not only displayed)

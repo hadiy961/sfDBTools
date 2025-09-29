@@ -16,20 +16,6 @@ func FormatSize(bytes int64) string {
 	return format
 }
 
-func FormatSizeWithPrecision(bytes int64, precision int) string {
-	const unit = 1024
-	if bytes < unit {
-		return fmt.Sprintf("%d B", bytes)
-	}
-
-	div, exp := int64(unit), 0
-	for n := bytes / unit; n >= unit; n /= unit {
-		div, exp = div*unit, exp+1
-	}
-
-	return fmt.Sprintf("%.*f %ciB", precision, float64(bytes)/float64(div), "KMGTPE"[exp])
-}
-
 func FormatSpeed(bytesPerSecond float64) string {
 	format := format.FormatTransferRate(uint64(bytesPerSecond), format.SizeBinary)
 	return format
