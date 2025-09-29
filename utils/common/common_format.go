@@ -3,6 +3,7 @@ package common
 import (
 	"fmt"
 	"math"
+	"sfDBTools/utils/common/format"
 	"strconv"
 	"strings"
 	"time"
@@ -12,7 +13,8 @@ import (
 
 // Size formatting
 func FormatSize(bytes int64) string {
-	return humanize.Bytes(uint64(bytes))
+	format := format.FormatSize(uint64(bytes), format.SizeBinary)
+	return format
 }
 
 func FormatSizeWithPrecision(bytes int64, precision int) string {
@@ -30,67 +32,8 @@ func FormatSizeWithPrecision(bytes int64, precision int) string {
 }
 
 func FormatSpeed(bytesPerSecond float64) string {
-	return FormatSize(int64(bytesPerSecond)) + "/s"
-}
-
-// Duration formatting
-func FormatDuration(d time.Duration, format string) string {
-	switch format {
-	case "compact":
-		return strings.ReplaceAll(d.Round(time.Second).String(), " ", "")
-	case "hms":
-		return formatHMS(d, false)
-	case "hms-ms":
-		return formatHMS(d, true)
-	case "words":
-		return formatDurationWords(d, false)
-	case "words-ms":
-		return formatDurationWords(d, true)
-	default:
-		return d.Round(time.Second).String()
-	}
-}
-
-func formatHMS(d time.Duration, withMillis bool) string {
-	h, m, s := int(d.Hours()), int(d.Minutes())%60, int(d.Seconds())%60
-	if withMillis {
-		ms := d.Milliseconds() % 1000
-		return fmt.Sprintf("%02d:%02d:%02d.%03d", h, m, s, ms)
-	}
-	return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
-}
-
-func formatDurationWords(d time.Duration, withMillis bool) string {
-	var parts []string
-
-	if h := int(d.Hours()); h > 0 {
-		parts = append(parts, fmt.Sprintf("%d %s", h, pluralize("hour", h)))
-	}
-	if m := int(d.Minutes()) % 60; m > 0 {
-		parts = append(parts, fmt.Sprintf("%d %s", m, pluralize("minute", m)))
-	}
-
-	s := int(d.Seconds()) % 60
-	if withMillis {
-		if ms := d.Milliseconds() % 1000; ms > 0 && s == 0 && len(parts) == 0 {
-			parts = append(parts, fmt.Sprintf("%d %s", ms, pluralize("millisecond", int(ms))))
-		}
-	}
-
-	if s > 0 || len(parts) == 0 {
-		parts = append(parts, fmt.Sprintf("%d %s", s, pluralize("second", s)))
-	}
-
-	return strings.Join(parts, " ")
-}
-
-// Number formatting
-func FormatPercent(value float64, precision ...int) string {
-	p := 2
-	if len(precision) > 0 {
-		p = precision[0]
-	}
-	return fmt.Sprintf("%.*f%%", p, value)
+	format := format.FormatTransferRate(uint64(bytesPerSecond), format.SizeBinary)
+	return format
 }
 
 func FormatNumber(number interface{}, precision ...int) string {
@@ -128,49 +71,6 @@ func FormatTime(t time.Time, format string) string {
 	default:
 		return t.Format(format)
 	}
-}
-
-// Utility formatting
-func FormatProgressBar(progress float64, width int) string {
-	progress = math.Max(0, math.Min(1, progress))
-	completed := int(math.Round(float64(width) * progress))
-	bar := strings.Repeat("█", completed) + strings.Repeat("░", width-completed)
-	return fmt.Sprintf("[%s] %s", bar, FormatPercent(progress*100))
-}
-
-func FormatOrdinal(n int) string {
-	if n <= 0 {
-		return strconv.Itoa(n)
-	}
-
-	suffix := "th"
-	if n%100 < 11 || n%100 > 13 {
-		switch n % 10 {
-		case 1:
-			suffix = "st"
-		case 2:
-			suffix = "nd"
-		case 3:
-			suffix = "rd"
-		}
-	}
-
-	return fmt.Sprintf("%d%s", n, suffix)
-}
-
-func FormatBool(value bool, trueStr, falseStr string) string {
-	if value {
-		return trueStr
-	}
-	return falseStr
-}
-
-// Helper functions
-func pluralize(word string, count int) string {
-	if count == 1 {
-		return word
-	}
-	return word + "s"
 }
 
 // parseMemorySizeToMB mengkonversi string memory size ke MB.

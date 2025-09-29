@@ -6,6 +6,7 @@ import (
 	"os"
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 )
 
 // DisplayBackupParameters logs backup parameters before execution (simplified)
@@ -64,7 +65,7 @@ func DisplayBackupResults(result *BackupResult, options BackupOptions, title str
 		logger.String("compression_type", result.CompressionUsed),
 		logger.Bool("encrypted", result.Encrypted),
 		logger.Bool("include_data", result.IncludedData),
-		logger.String("duration", common.FormatDuration(result.Duration, "words")),
+		logger.String("duration", format.FormatDuration(result.Duration, "shorts")),
 		logger.String("average_speed", common.FormatSize(int64(result.AverageSpeed))+"/s"),
 		logger.String("checksum_sha256", result.Checksum),
 	}

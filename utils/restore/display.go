@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 	"sfDBTools/internal/logger"
-	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/terminal"
 	"strings"
 	"time"
@@ -34,7 +34,7 @@ func DisplayRestoreResults(success bool, duration time.Duration, title string) {
 	} else {
 		fmt.Println("❌ Restore failed!")
 	}
-	fmt.Printf("Duration: %s\n", common.FormatDuration(duration, "words"))
+	fmt.Printf("Duration: %s\n", format.FormatDuration(duration, "shorts"))
 	fmt.Printf("=== End %s ===\n", title)
 }
 
@@ -55,7 +55,7 @@ func DisplayRestoreSummary(options RestoreOptions, duration time.Duration, lg *l
 	fmt.Printf("Host:             %s:%d\n", options.Host, options.Port)
 	fmt.Printf("User:             %s\n", options.User)
 	fmt.Printf("Source File:      %s\n", options.File)
-	fmt.Printf("Duration:         %s\n", common.FormatDuration(duration, "words"))
+	fmt.Printf("Duration:         %s\n", format.FormatDuration(duration, "shorts"))
 	fmt.Printf("Verify Checksum:  %t\n", options.VerifyChecksum)
 	fmt.Println("=======================")
 

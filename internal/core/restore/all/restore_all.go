@@ -16,6 +16,7 @@ import (
 	"sfDBTools/internal/logger"
 	backup_utils "sfDBTools/utils/backup"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/compression"
 	"sfDBTools/utils/crypto"
 	"sfDBTools/utils/database"
@@ -135,7 +136,7 @@ func RestoreAll(options restoreUtils.RestoreOptions) error {
 				lg.Info("Backup metadata loaded successfully",
 					logger.String("backup_type", metaInfo.BackupType),
 					logger.String("source_db", metaInfo.DatabaseName),
-					logger.String("backup_date", common.FormatTime(metaInfo.BackupDate, "2006-01-02 15:04:05")))
+					logger.String("backup_date", format.FormatTime(metaInfo.BackupDate, format.UnixTimestamp)))
 			}
 		} else {
 			lg.Debug("Metadata file not found or unreadable", logger.String("metadata", meta), logger.Error(err))
@@ -220,7 +221,7 @@ func DisplayRestoreOverview(options restoreUtils.RestoreOptions, startTime time.
 		logger.Int("target_port", options.Port),
 		logger.String("target_user", options.User),
 		logger.String("backup_file", options.File),
-		logger.String("start_time", common.FormatTime(startTime, "2006-01-02 15:04:05")))
+		logger.String("start_time", format.FormatTime(startTime, format.UnixTimestamp)))
 
 	meta := metadataPath(filePath)
 	if meta == "" {
@@ -241,7 +242,7 @@ func DisplayRestoreOverview(options restoreUtils.RestoreOptions, startTime time.
 
 		lg.Info("Backup metadata",
 			logger.String("metadata_file", meta),
-			logger.String("backup_date", common.FormatTime(metaInfo.BackupDate, "2006-01-02 15:04:05")),
+			logger.String("backup_date", format.FormatTime(metaInfo.BackupDate, format.UnixTimestamp)),
 			logger.Bool("compression", metaInfo.Compressed),
 			logger.Bool("encryption", metaInfo.Encrypted),
 			logger.Bool("included_data", metaInfo.IncludesData),
@@ -270,8 +271,8 @@ func DisplayRestoreSummary(options restoreUtils.RestoreOptions, startTime time.T
 		logger.Int("target_port", options.Port),
 		logger.String("target_user", options.User),
 		logger.String("backup_file", options.File),
-		logger.String("start_time", common.FormatTime(startTime, "2006-01-02 15:04:05")),
-		logger.String("end_time", common.FormatTime(endTime, "2006-01-02 15:04:05")),
+		logger.String("start_time", format.FormatTime(startTime, format.UnixTimestamp)),
+		logger.String("end_time", format.FormatTime(endTime, format.UnixTimestamp)),
 		logger.String("duration", duration.String()))
 
 	// Note: Skip individual database info collection for all-databases restore

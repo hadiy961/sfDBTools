@@ -4,6 +4,7 @@ package format
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/dustin/go-humanize"
@@ -58,16 +59,33 @@ const (
 //	fmt.Println(FormatDuration(d, "short"))   // 2h30m45s
 func FormatDuration(d time.Duration, format string) string {
 	switch format {
+	case "compact":
+		return strings.ReplaceAll(d.Round(time.Second).String(), " ", "")
+	case "hms":
+		return FormatHMS(d, false)
+	case "hms-ms":
+		return FormatHMS(d, true)
 	case "short":
 		return d.String() // Go's native: 2h30m45s
 	case "long":
 		return durafmt.Parse(d).String() // Full: 2 hours 30 minutes 45 seconds
+	case "details":
+		return FormatDurationPrecise(d, 4) // Full: 2 hours 30 minutes 45 seconds
 	case "limit":
 		// Limit to first 2 units
 		return durafmt.Parse(d).LimitFirstN(2).String() // 2 hours 30 minutes
 	default:
 		return durafmt.Parse(d).String()
 	}
+}
+
+func FormatHMS(d time.Duration, withMillis bool) string {
+	h, m, s := int(d.Hours()), int(d.Minutes())%60, int(d.Seconds())%60
+	if withMillis {
+		ms := d.Milliseconds() % 1000
+		return fmt.Sprintf("%02d:%02d:%02d.%03d", h, m, s, ms)
+	}
+	return fmt.Sprintf("%02d:%02d:%02d", h, m, s)
 }
 
 // FormatDurationPrecise formats duration with custom precision.

@@ -11,6 +11,7 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/fs"
 )
 
@@ -188,7 +189,7 @@ func (s *UsageStatistics) FormatUsageReport() string {
 		s.Fstype,
 		common.FormatSizeWithPrecision(s.Total, 2),
 		common.FormatSizeWithPrecision(s.Used, 2),
-		common.FormatPercent(s.UsedPercent, 1),
+		format.FormatPercent(s.UsedPercent, 1),
 		common.FormatSizeWithPrecision(s.Free, 2),
 	)
 }

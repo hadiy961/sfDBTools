@@ -10,6 +10,7 @@ import (
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common"
+	"sfDBTools/utils/common/format"
 	"sfDBTools/utils/fs"
 )
 
@@ -37,17 +38,17 @@ func CheckDiskSpace(path string, minFreeSpace int64) error {
 			logger.String("available", common.FormatSizeWithPrecision(usage.Free, 2)),
 			logger.String("required", common.FormatSizeWithPrecision(required, 2)),
 			logger.String("checked_path", usage.Path),
-			logger.String("percent_free", common.FormatPercent(percentFree, 1)))
+			logger.String("percent_free", format.FormatPercent(percentFree, 1)))
 		return fmt.Errorf("insufficient disk space: available %s, required %s (free %s)",
 			common.FormatSizeWithPrecision(usage.Free, 2),
 			common.FormatSizeWithPrecision(required, 2),
-			common.FormatPercent(percentFree, 1))
+			format.FormatPercent(percentFree, 1))
 	}
 
 	lg.Debug("Disk space check passed",
 		logger.String("available", common.FormatSizeWithPrecision(usage.Free, 2)),
 		logger.String("checked_path", usage.Path),
-		logger.String("percent_free", common.FormatPercent(percentFree, 1)))
+		logger.String("percent_free", format.FormatPercent(percentFree, 1)))
 	return nil
 }
 
