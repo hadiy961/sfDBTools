@@ -18,6 +18,15 @@ type DBConfig struct {
 	EncryptionConfig EncryptionConfig
 }
 
+// InputConfig represents configuration input data
+type DBConfigInput struct {
+	Name     string
+	Host     string
+	Port     int
+	User     string
+	Password string
+}
+
 // EncryptionConfig database configuration and backup encryption
 type EncryptionConfig struct {
 	PasswordType       string

@@ -5,17 +5,9 @@ import (
 	"strconv"
 	"strings"
 
+	"sfDBTools/utils/common/structs"
 	"sfDBTools/utils/terminal"
 )
-
-// InputConfig represents configuration input data
-type InputConfig struct {
-	Name     string
-	Host     string
-	Port     int
-	User     string
-	Password string
-}
 
 // PromptConfigName prompts for configuration name with validation
 func PromptConfigName(defaultName string) (string, error) {
@@ -34,11 +26,11 @@ func PromptConfigName(defaultName string) (string, error) {
 }
 
 // PromptDatabaseConfig prompts for complete database configuration
-func PromptDatabaseConfig() (*InputConfig, error) {
+func PromptDatabaseConfig() (InputConfig *structs.ConnectionOptions, err error) {
 	terminal.Headers("Database Configuration")
-	terminal.PrintInfo("Please provide database connection details:")
+	terminal.PrintSubHeader("Please provide database connection details:")
 
-	config := &InputConfig{}
+	config := &structs.ConnectionOptions{}
 
 	// Prompt for host
 	config.Host = terminal.AskString("Enter database host", "localhost")
@@ -67,7 +59,7 @@ func PromptDatabaseConfig() (*InputConfig, error) {
 }
 
 // PromptConfigEdit prompts for editing existing configuration
-func PromptConfigEdit(current *InputConfig, currentName string) (*InputConfig, string, bool, error) {
+func PromptConfigEdit(current *structs.ConnectionOptions, currentName string) (*structs.ConnectionOptions, string, bool, error) {
 	terminal.PrintSubHeader("✏️ Edit Configuration")
 	terminal.PrintInfo("Press Enter to keep current value, or type new value:")
 
@@ -75,7 +67,7 @@ func PromptConfigEdit(current *InputConfig, currentName string) (*InputConfig, s
 	newName := terminal.AskString(fmt.Sprintf("Configuration name [%s]", currentName), currentName)
 
 	// Edit other fields
-	newConfig := &InputConfig{
+	newConfig := &structs.ConnectionOptions{
 		Host:     terminal.AskString(fmt.Sprintf("Host [%s]", current.Host), current.Host),
 		User:     terminal.AskString(fmt.Sprintf("User [%s]", current.User), current.User),
 		Password: current.Password, // Password will be handled separately
@@ -109,7 +101,7 @@ func PromptConfigEdit(current *InputConfig, currentName string) (*InputConfig, s
 }
 
 // DisplayChangesSummary shows what will be changed
-func DisplayChangesSummary(current *InputConfig, new *InputConfig, currentName, newName string) {
+func DisplayChangesSummary(current *structs.ConnectionOptions, new *structs.ConnectionOptions, currentName, newName string) {
 	terminal.PrintSubHeader("📋 Changes Summary")
 
 	changes := [][]string{}

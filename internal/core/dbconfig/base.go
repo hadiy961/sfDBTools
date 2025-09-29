@@ -2,7 +2,6 @@ package dbconfig
 
 import (
 	"fmt"
-	"time"
 
 	"sfDBTools/internal/logger"
 	"sfDBTools/utils/crypto"
@@ -29,16 +28,6 @@ func NewBaseProcessor() (*BaseProcessor, error) {
 // LogOperation logs the start of an operation
 func (bp *BaseProcessor) LogOperation(operation, details string) {
 	bp.logger.Info(fmt.Sprintf("Starting %s", operation))
-}
-
-// ShowSpinnerWithDelay shows a spinner with a brief delay for UX
-func (bp *BaseProcessor) ShowSpinnerWithDelay(message string, delayMs int) {
-	spinner := terminal.NewProgressSpinner(message)
-	spinner.Start()
-	if delayMs > 0 {
-		time.Sleep(time.Duration(delayMs) * time.Millisecond)
-	}
-	spinner.Stop()
 }
 
 // GetEncryptionPassword prompts for encryption password with consistent messaging
