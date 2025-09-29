@@ -20,7 +20,12 @@ require (
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 )
 
-require github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
+require (
+	github.com/cockroachdb/apd v1.1.0 // indirect
+	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
+	github.com/pkg/errors v0.8.1 // indirect
+	github.com/shopspring/decimal v0.0.0-20180709203117-cd690d0c9e24 // indirect
+)
 
 require (
 	github.com/fatih/color v1.15.0 // indirect
@@ -28,7 +33,10 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
+	github.com/jinzhu/now v1.1.5
+	github.com/leekchan/accounting v1.0.0
 	github.com/lufia/plan9stats v0.0.0-20211012122336-39d0f177ccd0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
