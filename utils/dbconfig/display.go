@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"sfDBTools/utils/common/structs"
 	"sfDBTools/utils/terminal"
 )
 
@@ -35,7 +36,7 @@ func DisplayConfigDetails(configName, configPath string) error {
 
 // DisplayConfigSummary shows a summary table of configurations
 func DisplayConfigSummary(configs []*ConfigInfo) {
-	terminal.Headers("Ringkasan Konfigurasi Database")
+	terminal.PrintSubHeader("Ringkasan Konfigurasi Database")
 	if len(configs) == 0 {
 		terminal.PrintWarning("No configuration files found.")
 		return
@@ -70,10 +71,12 @@ func DisplayConfigSummary(configs []*ConfigInfo) {
 }
 
 // DisplayPasswordOption prompts for password handling option
-func DisplayPasswordOption() (string, error) {
+func DisplayPasswordOption(dbcfg *structs.DBConfig) (string, error) {
 	terminal.PrintSubHeader("Password Configuration")
-	terminal.PrintWarning("Password is MANDATORY - must be provided via one of the options below:")
-
+	terminal.PrintInfo("Please select how you want to provide the database password:")
+	if dbcfg != nil && dbcfg.ConnectionOptions.Password != "" {
+		terminal.PrintInfo("Password already provided via environment variable or flag (hidden) ")
+	}
 	options := []string{
 		"1. Enter password now",
 		"2. Use environment variable",

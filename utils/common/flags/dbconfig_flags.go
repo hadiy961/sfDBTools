@@ -4,11 +4,7 @@ import "github.com/spf13/cobra"
 
 // AddGenerateFlags adds flags specific to the generate command
 func AddGenerateFlags(cmd *cobra.Command) {
-	cmd.Flags().StringP("name", "n", "", "Configuration name (without extension)")
-	cmd.Flags().StringP("host", "H", "", "Database host")
-	cmd.Flags().IntP("port", "p", 0, "Database port")
-	cmd.Flags().StringP("user", "u", "", "Database username")
-	cmd.Flags().BoolP("auto", "a", false, "Auto mode - skip confirmations")
+	cmd.Flags().StringP("encryption-password", "e", "", "Encryption password (or set SFDB_ENCRYPTION_PASSWORD env variable)")
 }
 
 // AddCommonDbConfigFlags adds shared flags used across dbconfig commands

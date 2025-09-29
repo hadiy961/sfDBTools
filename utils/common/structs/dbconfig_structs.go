@@ -12,7 +12,6 @@ type DBConfig struct {
 	// Operation flags
 	ForceDelete bool
 	DeleteAll   bool
-	AutoMode    bool
 
 	// Authentication
 	EncryptionConfig EncryptionConfig

@@ -33,7 +33,7 @@ func NewProcessor() (*Processor, error) {
 
 // ProcessGenerate handles the core generate operation logic and delegates to
 // either automated or interactive flows.
-func ProcessGenerate(cfg *structs.DBConfig, lg *logger.Logger) error {
+func ProcessGenerate(dbcfg *structs.DBConfig, lg *logger.Logger) error {
 	// Clear screen and show header
 	terminal.Headers("Buat Konfigurasi DB")
 	processor, err := NewProcessor()
@@ -42,12 +42,5 @@ func ProcessGenerate(cfg *structs.DBConfig, lg *logger.Logger) error {
 	}
 
 	processor.LogOperation("database configuration generation", "")
-
-	// If all required params for automated mode are present, use it.
-	autoMode := cfg.AutoMode && cfg.ConfigName != "" && cfg.ConnectionOptions.Host != "" && cfg.ConnectionOptions.Port != 0 && cfg.ConnectionOptions.User != ""
-	if autoMode {
-		return processor.processAutoMode(cfg)
-	}
-
-	return processor.processInteractiveMode()
+	return processor.processInteractiveMode(dbcfg, lg)
 }

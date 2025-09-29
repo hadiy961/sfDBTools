@@ -5,14 +5,16 @@ import (
 	"time"
 
 	"sfDBTools/internal/config"
+	"sfDBTools/internal/logger"
+	"sfDBTools/utils/common/structs"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
 )
 
 // processInteractiveMode handles interactive generation
-func (p *Processor) processInteractiveMode() error {
+func (p *Processor) processInteractiveMode(dbcfg *structs.DBConfig, lg *logger.Logger) error {
 	// Get configuration details from user
-	inputConfig, err := dbconfig.PromptDatabaseConfig()
+	inputConfig, err := dbconfig.PromptDatabaseConfig(dbcfg)
 	if err != nil {
 		return fmt.Errorf("error getting database configuration: %v", err)
 	}
@@ -24,7 +26,7 @@ func (p *Processor) processInteractiveMode() error {
 	}
 
 	// Get password handling option
-	passwordOption, err := dbconfig.DisplayPasswordOption()
+	passwordOption, err := dbconfig.DisplayPasswordOption(dbcfg)
 	if err != nil {
 		return fmt.Errorf("error getting password option: %v", err)
 	}
@@ -38,11 +40,11 @@ func (p *Processor) processInteractiveMode() error {
 			return fmt.Errorf("password cannot be empty - please provide a valid password")
 		}
 	case "env":
-		envVar := terminal.AskString("Environment variable name", "DB_PASSWORD")
-		if envVar == "" {
-			return fmt.Errorf("environment variable name cannot be empty")
+		password = dbcfg.ConnectionOptions.Password
+		if password == "" {
+			return fmt.Errorf("password not set in environment variable - please set SFDB_DB_PASSWORD")
 		}
-		password = fmt.Sprintf("${%s}", envVar)
+		terminal.PrintInfo("Using database password from environment variable (hidden)")
 	default:
 		return fmt.Errorf("invalid password option: %s", passwordOption)
 	}
@@ -67,7 +69,6 @@ func (p *Processor) processInteractiveMode() error {
 		IsValid:      true,
 	}
 
-	terminal.Clear()
 	dbconfig.DisplayConfigSummary([]*dbconfig.ConfigInfo{configInfo})
 
 	// Confirm save
