@@ -5,6 +5,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"syscall"
+
+	"golang.org/x/term"
 )
 
 // AskYesNo prompts user for yes/no input with default value
@@ -45,6 +48,7 @@ func AskString(question, defaultValue string) string {
 
 	return response
 }
+
 
 // AskInt prompts user for integer input with default value and validation.
 // If the user enters an empty string, the defaultValue is returned.
@@ -97,4 +101,31 @@ func AskWithContext(question, help string, defaultValue bool) bool {
 		PrintInfo(help)
 	}
 	return AskYesNo(question, defaultValue)
+}
+
+// AskPassword prompts user for a password with input masking. If a non-empty
+// defaultValue is provided and the user presses Enter without typing any
+// characters, the defaultValue will be returned. In case reading the password
+// with masking fails, it falls back to AskString (unmasked) to remain usable
+// in environments where terminal masking is unsupported.
+func AskPassword(question, defaultValue string) string {
+	// Show hint that default exists but do not display the default itself
+	if defaultValue != "" {
+		fmt.Printf("%s [hidden]: ", question)
+	} else {
+		fmt.Printf("%s: ", question)
+	}
+
+	passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
+	fmt.Println()
+	if err != nil {
+		// Fallback to unmasked input if terminal masking isn't available
+		return AskString(question, defaultValue)
+	}
+
+	password := strings.TrimSpace(string(passwordBytes))
+	if password == "" {
+		return defaultValue
+	}
+	return password
 }

@@ -4,12 +4,19 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/subosito/gotenv"
+
 	"sfDBTools/cmd"
 	"sfDBTools/internal/config"
 	"sfDBTools/internal/logger"
 )
 
 func main() {
+	// Try to load .env file if present so environment variables are available
+	// (e.g. SFDB_ENCRYPTION_PASSWORD). This is optional and will not fail the
+	// program if the file doesn't exist.
+	_ = gotenv.Load()
+
 	// Validasi config terlebih dahulu sebelum menjalankan command apapun
 	// if _, err := config.LoadConfig(); err != nil {
 	// 	fmt.Fprintf(os.Stderr, "Error: %v\n", err)
