@@ -26,10 +26,14 @@ func PromptConfigName(defaultName string) (string, error) {
 }
 
 // PromptDatabaseConfig prompts for complete database configuration
-func PromptDatabaseConfig() (InputConfig *structs.ConnectionOptions, err error) {
+func PromptDatabaseConfig(dbcfg *structs.DBConfig) (InputConfig *structs.ConnectionOptions, err error) {
 	terminal.Headers("Database Configuration")
 	terminal.PrintSubHeader("Please provide database connection details:")
-
+	if dbcfg != nil && dbcfg.EncryptionConfig.EncryptionPassword != "" {
+		terminal.PrintInfo("Encryption password is provided via environment variable or flag (hidden)")
+	} else {
+		terminal.PrintInfo("No encryption password provided via environment; you will be prompted when needed")
+	}
 	config := &structs.ConnectionOptions{}
 
 	// Prompt for host

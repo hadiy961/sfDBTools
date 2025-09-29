@@ -35,7 +35,7 @@ func (p *Processor) processInteractiveMode(dbcfg *structs.DBConfig, lg *logger.L
 	var password string
 	switch passwordOption {
 	case "manual":
-		password = terminal.AskString("Enter database password", "")
+		password = terminal.AskPassword("Enter database password", "")
 		if password == "" {
 			return fmt.Errorf("password cannot be empty - please provide a valid password")
 		}

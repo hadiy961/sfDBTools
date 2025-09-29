@@ -49,7 +49,6 @@ func AskString(question, defaultValue string) string {
 	return response
 }
 
-
 // AskInt prompts user for integer input with default value and validation.
 // If the user enters an empty string, the defaultValue is returned.
 // If the user enters a non-integer value, the prompt repeats until a valid integer
