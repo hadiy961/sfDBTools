@@ -6,8 +6,6 @@ import (
 	"sfDBTools/utils/common/format"
 	"strconv"
 	"strings"
-
-	"github.com/dustin/go-humanize"
 )
 
 // Size formatting
@@ -19,27 +17,6 @@ func FormatSize(bytes int64) string {
 func FormatSpeed(bytesPerSecond float64) string {
 	format := format.FormatTransferRate(uint64(bytesPerSecond), format.SizeBinary)
 	return format
-}
-
-func FormatNumber(number interface{}, precision ...int) string {
-	switch v := number.(type) {
-	case int64:
-		return humanize.Comma(v)
-	case float64:
-		p := 2
-		if len(precision) > 0 {
-			p = precision[0]
-		}
-		formatted := fmt.Sprintf("%.*f", p, v)
-		if parts := strings.Split(formatted, "."); len(parts) > 1 {
-			intPart, _ := strconv.ParseInt(parts[0], 10, 64)
-			return humanize.Comma(intPart) + "." + parts[1]
-		}
-		intPart, _ := strconv.ParseInt(formatted, 10, 64)
-		return humanize.Comma(intPart)
-	default:
-		return fmt.Sprintf("%v", v)
-	}
 }
 
 // parseMemorySizeToMB mengkonversi string memory size ke MB.

@@ -40,13 +40,12 @@ func DisplayBackupResults(result *BackupResult, options BackupOptions, title str
 			var metadata BackupMetadata
 			if json.Unmarshal(data, &metadata) == nil && metadata.DatabaseInfo != nil {
 				dbInfo = map[string]interface{}{
-					"database_size":    common.FormatSize(metadata.DatabaseInfo.SizeBytes),
-					"database_size_mb": common.FormatNumber(metadata.DatabaseInfo.SizeMB, 2) + " MB",
-					"table_count":      common.FormatNumber(metadata.DatabaseInfo.TableCount),
-					"view_count":       common.FormatNumber(metadata.DatabaseInfo.ViewCount),
-					"routine_count":    common.FormatNumber(metadata.DatabaseInfo.RoutineCount),
-					"trigger_count":    common.FormatNumber(metadata.DatabaseInfo.TriggerCount),
-					"user_count":       common.FormatNumber(metadata.DatabaseInfo.UserCount),
+					"database_size": common.FormatSize(metadata.DatabaseInfo.SizeBytes),
+					"table_count":   format.FormatNumber(metadata.DatabaseInfo.TableCount),
+					"view_count":    format.FormatNumber(metadata.DatabaseInfo.ViewCount),
+					"routine_count": format.FormatNumber(metadata.DatabaseInfo.RoutineCount),
+					"trigger_count": format.FormatNumber(metadata.DatabaseInfo.TriggerCount),
+					"user_count":    format.FormatNumber(metadata.DatabaseInfo.UserCount),
 				}
 			}
 		}
