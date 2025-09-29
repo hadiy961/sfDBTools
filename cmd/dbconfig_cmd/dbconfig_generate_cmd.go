@@ -52,6 +52,5 @@ func execDBConfigGenerate(cmd *cobra.Command) error {
 
 func init() {
 	// Add shared and generate-specific flags
-	flags.AddCommonDbConfigFlags(GenerateCmd)
 	flags.AddGenerateFlags(GenerateCmd)
 }
