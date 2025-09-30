@@ -1,6 +1,7 @@
 package crypto
 
 import (
+	"bufio"
 	"fmt"
 	"os"
 	"strings"
@@ -22,25 +23,43 @@ const (
 
 // GetEncryptionPassword gets encryption password from environment variable or user input
 func GetEncryptionPassword(promptMessage string) (string, error) {
+	password, _, err := GetEncryptionPasswordWithSource(promptMessage)
+	return password, err
+}
+
+// GetEncryptionPasswordWithSource returns the encryption password and the source
+// where it was obtained from: either "env" when read from SFDB_ENCRYPTION_PASSWORD
+// or "prompt" when obtained interactively. This is useful when callers need
+// to know whether the value was provided by environment or entered manually.
+func GetEncryptionPasswordWithSource(promptMessage string) (string, string, error) {
 	// First, try to get password from environment variable
 	if password := os.Getenv(ENV_ENCRYPTION_PASSWORD); password != "" {
-		return password, nil
+		return password, "env", nil
 	}
 
-	// If not found in environment, prompt user for password
+	// If not found in environment, prompt user for password (masked)
 	fmt.Print(promptMessage)
 	passwordBytes, err := term.ReadPassword(int(syscall.Stdin))
+	fmt.Println()
+	if err == nil {
+		pw := strings.TrimSpace(string(passwordBytes))
+		if pw == "" {
+			return "", "prompt", fmt.Errorf("password cannot be empty")
+		}
+		return pw, "prompt", nil
+	}
+
+	// Fallback: read unmasked from stdin if masking isn't supported
+	reader := bufio.NewReader(os.Stdin)
+	line, err := reader.ReadString('\n')
 	if err != nil {
-		return "", fmt.Errorf("failed to read password: %w", err)
+		return "", "prompt", fmt.Errorf("failed to read password: %w", err)
 	}
-	fmt.Println() // New line after password input
-
-	password := strings.TrimSpace(string(passwordBytes))
-	if password == "" {
-		return "", fmt.Errorf("password cannot be empty")
+	pw := strings.TrimSpace(line)
+	if pw == "" {
+		return "", "prompt", fmt.Errorf("password cannot be empty")
 	}
-
-	return password, nil
+	return pw, "prompt", nil
 }
 
 // ConfirmEncryptionPassword prompts user to confirm password by entering it twice
