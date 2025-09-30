@@ -34,12 +34,27 @@ func (bp *BaseProcessor) LogOperation(operation, details string) {
 func (bp *BaseProcessor) GetEncryptionPassword(purpose string) (string, error) {
 	terminal.PrintSubHeader("Authentication Required")
 
-	encryptionPassword, err := crypto.GetEncryptionPassword("🔑 Encryption password: ")
+	encryptionPassword, source, err := crypto.GetEncryptionPasswordWithSource("🔑 Encryption password: ")
 	if err != nil {
 		return "", fmt.Errorf("failed to get encryption password: %w", err)
 	}
 
+	if source == "env" {
+		bp.logger.Warn(fmt.Sprintf("Encryption password for %s obtained from environment variable %s", purpose, crypto.ENV_ENCRYPTION_PASSWORD))
+	} else {
+		bp.logger.Info(fmt.Sprintf("Encryption password for %s obtained via user prompt", purpose))
+	}
+
 	return encryptionPassword, nil
+}
+
+// ConfirmEncryptionPassword prompts for confirmation of the encryption password
+func (bp *BaseProcessor) ConfirmEncryptionPassword(purpose string) (string, error) {
+	terminal.PrintSubHeader("Confirm Encryption Password")
+
+	confirmPassword := terminal.AskPassword("Please re-enter the encryption password to confirm: ", "")
+
+	return confirmPassword, nil
 }
 
 // HandleOperationResult displays operation result and handles common patterns

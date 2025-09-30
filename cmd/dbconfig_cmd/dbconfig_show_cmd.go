@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"sfDBTools/internal/core/dbconfig/show"
-	"sfDBTools/internal/logger"
 	"sfDBTools/utils/common/flags"
 	"sfDBTools/utils/dbconfig"
 	"sfDBTools/utils/terminal"
@@ -20,16 +19,15 @@ If no file is specified, it will list all available encrypted config files
 and allow you to choose one. Database password will be displayed in plain text.
 You will always be prompted for the encryption password (environment variables are ignored for security).`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Clear screen and show header
-		terminal.Headers("Show Database Configuration")
-
 		if err := executeShow(cmd); err != nil {
-			lg, _ := logger.Get()
-			lg.Error("Failed to show config", logger.Error(err))
 			terminal.PrintError("Show operation failed")
 			terminal.WaitForEnterWithMessage("Press Enter to continue...")
 			os.Exit(1)
+		} else {
+			terminal.PrintSuccess("Show operation completed successfully!")
+			return
 		}
+
 	},
 }
 

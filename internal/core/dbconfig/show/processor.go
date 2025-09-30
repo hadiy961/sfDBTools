@@ -39,6 +39,7 @@ func ProcessShow(cfg *dbconfig.Config) error {
 	if err != nil {
 		return err
 	}
+	terminal.ClearAndShowHeader("Lihat Konfigurasi DB")
 
 	processor.LogOperation("showing database configuration", "")
 
@@ -61,10 +62,21 @@ func (p *Processor) showSpecificConfig(filePath string) error {
 		return fmt.Errorf("invalid config file: %w", err)
 	}
 	terminal.Headers("Show Database Configuration")
+
 	// Get encryption password
 	encryptionPassword, err := p.GetEncryptionPassword("view the configuration")
 	if err != nil {
 		return err
+	}
+
+	// Confirm encryption password
+	confirmPassword, err := p.ConfirmEncryptionPassword("confirm to view the configuration")
+	if err != nil {
+		return err
+	}
+	if encryptionPassword != confirmPassword {
+		terminal.PrintError("Encryption passwords do not match. Aborting operation.")
+		return fmt.Errorf("encryption passwords do not match")
 	}
 
 	// Load decrypted configuration
