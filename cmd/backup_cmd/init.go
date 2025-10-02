@@ -10,7 +10,7 @@ import (
 var Cfg *model.Config
 var Lg *logger.Logger
 
-// Init sets the package-level config and logger for the dbconfig_cmd package.
+// Init sets the package-level config and logger for the backup_cmd package.
 func Init(cfg *model.Config, lg *logger.Logger) {
 	Cfg = cfg
 	Lg = lg

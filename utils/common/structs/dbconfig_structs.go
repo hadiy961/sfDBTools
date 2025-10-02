@@ -1,6 +1,17 @@
+// file: utils/common/structs/dbconfig_structs.go
+// Description: Structs untuk konfigurasi database.
+// Author: Hadiyatna Muflihun
+
 package structs
 
 import "time"
+
+// DBConfigGenerateOptions - Options for generating a DB configuration
+type DBConfigGenerateOptions struct {
+	ConnectionOptions ConnectionOptions
+	EncryptionOptions EncryptionOptions
+	Name              string `flag:"config-name" env:"SFDB_CONFIG_NAME" default:""`
+}
 
 // DBConfig - Database configuration related flags
 type DBConfig struct {
@@ -15,15 +26,6 @@ type DBConfig struct {
 
 	// Authentication
 	EncryptionConfig EncryptionConfig
-}
-
-// InputConfig represents configuration input data
-type DBConfigInput struct {
-	Name     string
-	Host     string
-	Port     int
-	User     string
-	Password string
 }
 
 // EncryptionConfig database configuration and backup encryption

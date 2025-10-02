@@ -71,7 +71,7 @@ func DisplayConfigSummary(configs []*ConfigInfo) {
 }
 
 // DisplayPasswordOption prompts for password handling option
-func DisplayPasswordOption(dbcfg *structs.DBConfig) (string, error) {
+func DisplayPasswordOption(dbcfg *structs.DBConfigGenerateOptions) (string, error) {
 	terminal.PrintSubHeader("Password Configuration")
 	terminal.PrintInfo("Please select how you want to provide the database password:")
 	if dbcfg != nil && dbcfg.ConnectionOptions.Password != "" {

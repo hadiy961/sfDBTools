@@ -31,4 +31,5 @@ func init() {
 	BackupCmd.AddCommand(backup_cmd.BackupAllDatabasesCmd)
 	BackupCmd.AddCommand(backup_cmd.BackupSelectionCmd)
 	BackupCmd.AddCommand(backup_cmd.BackupUserCMD)
+	BackupCmd.AddCommand(backup_cmd.BackupAllDBCmd)
 }

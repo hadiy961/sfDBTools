@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"sfDBTools/cmd/backup_cmd"
 	"sfDBTools/cmd/dbconfig_cmd"
 	mariadb_cmd "sfDBTools/cmd/mariadb_cmd"
 	"sfDBTools/internal/config/model"
@@ -31,6 +32,8 @@ func Execute(config *model.Config, logger *logger.Logger) error {
 	dbconfig_cmd.Init(cfg, lg)
 	// ensure mariadb subpackage has access to cfg/lg as well
 	mariadb_cmd.Init(cfg, lg)
+	// ensure backup subpackage has access to cfg/lg
+	backup_cmd.Init(cfg, lg)
 
 	return rootCmd.Execute()
 }

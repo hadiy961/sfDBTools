@@ -48,3 +48,37 @@ func GetBoolFlagOrEnv(cmd *cobra.Command, flagName, envName string, defaultVal b
 	}
 	return defaultVal
 }
+
+func GetStringSliceFlagOrEnv(cmd *cobra.Command, flagName, envName string, defaultVal []string) []string {
+	// 1. Coba ambil nilai dari CLI Flag
+	// Ignore error as we assume the flag is correctly registered.
+	val, _ := cmd.Flags().GetStringSlice(flagName)
+
+	// Jika flag diubah secara eksplisit, kembalikan nilai flag.
+	if cmd.Flags().Changed(flagName) {
+		return val
+	}
+
+	// 2. Cek Environment Variable (diasumsikan format comma-separated)
+	env := os.Getenv(envName)
+	if env != "" {
+		// Pisahkan string ENV berdasarkan koma
+		slice := strings.Split(env, ",")
+
+		var cleanedSlice []string
+		// Bersihkan spasi dan filter elemen kosong
+		for _, s := range slice {
+			trimmed := strings.TrimSpace(s)
+			if trimmed != "" {
+				cleanedSlice = append(cleanedSlice, trimmed)
+			}
+		}
+
+		if len(cleanedSlice) > 0 {
+			return cleanedSlice
+		}
+	}
+
+	// 3. Kembalikan default.
+	return defaultVal
+}

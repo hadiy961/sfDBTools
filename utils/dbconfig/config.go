@@ -3,6 +3,7 @@ package dbconfig
 import (
 	"fmt"
 
+	"sfDBTools/internal/config"
 	"sfDBTools/utils/common"
 
 	"github.com/spf13/cobra"
@@ -63,4 +64,28 @@ func ResolveConfigWithInteractiveSelection(cmd *cobra.Command) (*Config, error) 
 	}
 
 	return config, nil
+}
+
+// SelectConfigOrUseDefaults tries to select a config file interactively or returns empty for defaults
+func SelectConfigOrUseDefaults() (string, error) {
+	// Try to find encrypted config files
+	configDir, err := config.GetDatabaseConfigDirectory()
+	if err != nil {
+		return "", fmt.Errorf("failed to get database config directory: %w", err)
+	}
+
+	encFiles, err := common.FindEncryptedConfigFiles(configDir)
+	if err != nil {
+		return "", fmt.Errorf("failed to find encrypted config files: %w", err)
+	}
+
+	if len(encFiles) == 0 {
+		fmt.Println("ℹ️  No encrypted configuration files found.")
+		fmt.Println("   You can use --config flag to specify a config file,")
+		fmt.Println("   or use individual connection flags (--source_host, --source_user, etc.)")
+		return "", nil
+	}
+
+	// Show selection
+	return common.SelectConfigFileInteractive()
 }

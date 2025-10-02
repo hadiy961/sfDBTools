@@ -16,15 +16,14 @@ var GenerateCmd = &cobra.Command{
 	Short: "Generate encrypted database configuration",
 	Long: `Generate encrypted database configuration file.
 This command will prompt for database connection details and encrypt them
-using the application configuration values (client_code, app_name, version, author)
-combined with an encryption password from environment variable or interactive input.
+using the password you provide.
 
 For automation, you can use flags to provide database parameters:
 --name, --host, --port, --user
 
 Sensitive data (passwords) must be provided via environment variables:
 - Encryption password: SFDB_ENCRYPTION_PASSWORD
-- Database password: SFDB_PASSWORD
+- Database password: SFDB_DB_PASSWORD
 
 If environment variables are not set, you will be prompted interactively.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -42,7 +41,7 @@ If environment variables are not set, you will be prompted interactively.`,
 
 func execDBConfigGenerate(cmd *cobra.Command) error {
 	// Resolve configuration from flags
-	DBConfig, err := parsing.ParseDBConfigFlags(cmd)
+	DBConfig, err := parsing.ParseDBConfigGenerate(cmd)
 	if err != nil {
 		return err
 	}

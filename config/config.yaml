@@ -3,7 +3,7 @@ backup:
         algorithm: gzip
         level: best
         required: true
-    mysqldump_args: -CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --no-data=false --opt
+    mysqldump_args: -CfQq --max-allowed-packet=1G --hex-blob --order-by-primary --single-transaction --routines=true --triggers=true --opt
     retention:
         cleanup_enabled: true
         cleanup_schedule: daily
@@ -17,7 +17,7 @@ backup:
         cleanup_temp: true
         naming:
             include_client_code: true
-            include_hostname: false
+            include_hostname: true
             pattern: '{database}_{timestamp}_{type}'
         structure:
             create_subdirs: true
@@ -26,7 +26,7 @@ backup:
     verification:
         compare_checksums: true
         disk_space_check: true
-        minimum_free_space: 10GB
+        minimum_free_space: auto
         verify_after_write: true
 config_dir:
     database_config: /etc/sfDBTools/config/db_config

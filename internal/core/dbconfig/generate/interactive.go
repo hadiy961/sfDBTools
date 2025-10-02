@@ -12,7 +12,7 @@ import (
 )
 
 // processInteractiveMode handles interactive generation
-func (p *Processor) processInteractiveMode(dbcfg *structs.DBConfig, lg *logger.Logger) error {
+func (p *Processor) processInteractiveMode(dbcfg *structs.DBConfigGenerateOptions, lg *logger.Logger) error {
 	// Get configuration details from user
 	inputConfig, err := dbconfig.PromptDatabaseConfig(dbcfg)
 	if err != nil {

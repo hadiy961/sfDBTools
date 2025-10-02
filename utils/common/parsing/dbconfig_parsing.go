@@ -1,6 +1,8 @@
 package parsing
 
 import (
+	"fmt"
+	defaultconfig "sfDBTools/internal/config/default_config"
 	"sfDBTools/utils/common"
 	"sfDBTools/utils/common/structs"
 
@@ -23,4 +25,21 @@ func ParseDBConfigFlags(cmd *cobra.Command) (DBConfig *structs.DBConfig, err err
 	DBConfig.EncryptionConfig.EncryptionPassword = common.GetStringFlagOrEnv(cmd, "encryption-password", "SFDB_ENCRYPTION_PASSWORD", "")
 	DBConfig.ConnectionOptions.Password = common.GetStringFlagOrEnv(cmd, "password", "SFDB_DB_PASSWORD", "")
 	return DBConfig, nil
+}
+
+func ParseDBConfigGenerate(cmd *cobra.Command) (GenerateDefault *structs.DBConfigGenerateOptions, err error) {
+	// 1. Dapatkan nilai default dari Configuration.
+	// Nilai ini akan menjadi fallback terakhir.
+	GenerateDefault, err = defaultconfig.GetDBConfigGenerateDefaults()
+	if err != nil {
+		// Kembalikan error agar caller (seperti fungsi Run Cobra) yang menanganinya.
+		return nil, fmt.Errorf("failed to load general backup defaults from config: %w", err)
+	}
+
+	// 2. Parse flags dinamis ke dalam struct menggunakan refleksi.
+	if err := DynamicParseFlags(cmd, GenerateDefault); err != nil {
+		return nil, fmt.Errorf("failed to dynamically parse general backup flags: %w", err)
+	}
+
+	return GenerateDefault, nil
 }

@@ -33,7 +33,7 @@ func NewProcessor() (*Processor, error) {
 
 // ProcessGenerate handles the core generate operation logic and delegates to
 // either automated or interactive flows.
-func ProcessGenerate(dbcfg *structs.DBConfig, lg *logger.Logger) error {
+func ProcessGenerate(dbcfg *structs.DBConfigGenerateOptions, lg *logger.Logger) error {
 	// Clear screen and show header
 	terminal.Headers("Buat Konfigurasi DB")
 	processor, err := NewProcessor()
